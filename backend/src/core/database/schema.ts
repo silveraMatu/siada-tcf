@@ -1,1 +1,1 @@
-export * from "../../modules/user/userSchema.js"
+export * from "../../modules/user/userEntity.js"
