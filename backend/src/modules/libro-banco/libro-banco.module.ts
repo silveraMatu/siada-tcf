@@ -7,6 +7,7 @@ import { IngestarLibroBancoUseCase } from './application/use-cases/ingestar-libr
 import { LibroBancoRepositoryPort } from './application/ports/out/libro-banco-repository.port.js';
 import { TypeOrmLibroBancoRepositoryAdapter } from './infrastructure/adapters/driven/persistence/typeorm-libro-banco-repository.js';
 import { CuentasModule } from '../cuentas/cuentas.module.js';
+import { ObtenerLibroBancoUseCase } from './application/use-cases/obtener-libro-banco.use-case.js';
 
 @Module({
   imports: [
@@ -19,11 +20,15 @@ import { CuentasModule } from '../cuentas/cuentas.module.js';
   controllers: [LibroBancoController],
   providers: [
     IngestarLibroBancoUseCase,
+    ObtenerLibroBancoUseCase,
     {
       provide: LibroBancoRepositoryPort,
       useClass: TypeOrmLibroBancoRepositoryAdapter,
     },
   ],
-  exports: [IngestarLibroBancoUseCase],
+  exports: [
+    IngestarLibroBancoUseCase,
+    ObtenerLibroBancoUseCase
+  ],
 })
 export class LibroBancoModule {}

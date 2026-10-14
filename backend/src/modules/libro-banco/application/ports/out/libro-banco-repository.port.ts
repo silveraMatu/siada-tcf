@@ -4,7 +4,7 @@ export abstract class LibroBancoRepositoryPort {
 
   abstract guardar(libroBanco: LibroBanco): Promise<LibroBanco>;
 
-  // abstract existeCuentaMensual(cuentaMensualId: number): Promise<boolean>;
+  abstract buscarTodos(): Promise<LibroBanco[]>;
 
-  abstract buscarPorCuentaMensualId(cuentaMensualId: number): Promise<LibroBanco | null>;
+  abstract buscarPorCuentaMensualId(cuentaMensualId: number): Promise<LibroBanco[]>;
 }

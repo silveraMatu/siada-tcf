@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 
 //numeric(14,2) en bd admite hasta 10^12 en valor absoluto
-const MAX_MONTO = 999_999_999_999.99;
+const MAX_MONTO = 999_999_999_999.99
 
 export const TransaccionLibroBancoSchema = z.object({
   fecha: z.string().optional().describe('Fecha del movimiento (YYYY-MM-DD)'),
