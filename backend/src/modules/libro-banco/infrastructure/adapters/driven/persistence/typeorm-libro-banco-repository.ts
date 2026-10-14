@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { LibroBancoRepositoryPort } from '../../application/ports/out/libro-banco-repository.port.js';
-import { LibroBanco } from '../../domain/entities/libro-banco.domain.js';
-import { LibroBancoEntity } from '../entities/libro-banco.entity.js';
-import { LibroBancoMapper } from '../mappers/libro-banco.mapper.js';
+import { LibroBancoRepositoryPort } from '../../../../application/ports/out/libro-banco-repository.port.js';
+import { LibroBanco } from '../../../../domain/entities/libro-banco.domain.js';
+import { LibroBancoEntity } from '../../../entities/libro-banco.entity.js';
+import { LibroBancoMapper } from '../../../mappers/libro-banco.mapper.js';
 
 @Injectable()
 export class TypeOrmLibroBancoRepositoryAdapter implements LibroBancoRepositoryPort {
