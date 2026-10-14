@@ -23,6 +23,9 @@ export class OrganismoEntity {
   })
   rubro: string;
 
+  @Column({ type: 'boolean', default: true })
+  active: boolean;
+
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
 
