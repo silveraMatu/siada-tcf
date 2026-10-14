@@ -7,6 +7,7 @@ import {
   type Relation
 } from 'typeorm';
 import { LibroBancoEntity } from './libro-banco.entity.js';
+import { decimalTransformer } from '../transformers/decimal.transformer.js';
 
 @Entity('transacciones_libro_banco')
 export class TransaccionLibroBancoEntity {
@@ -22,13 +23,13 @@ export class TransaccionLibroBancoEntity {
   @Column({ type: 'text', name: 'a_la_orden_de' })
   aLaOrdenDe: string;
 
-  @Column({ type: 'decimal', precision: 14, scale: 2, default: 0 })
+  @Column({ type: 'decimal', precision: 14, scale: 2, default: 0, transformer: decimalTransformer })
   depositos: number;
 
-  @Column({ type: 'decimal', precision: 14, scale: 2, default: 0 })
+  @Column({ type: 'decimal', precision: 14, scale: 2, default: 0, transformer: decimalTransformer })
   retiro: number;
 
-  @Column({ type: 'decimal', precision: 14, scale: 2 })
+  @Column({ type: 'decimal', precision: 14, scale: 2, transformer: decimalTransformer })
   saldo: number;
 
   @Column({ type: 'int', name: 'libro_banco_id' })
