@@ -1,10 +1,14 @@
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  //el front envía el csv ya parseado como json, el límite por defecto (100kb) no alcanza para libros grandes
+  app.useBodyParser('json', { limit: '10mb' });
 
   app.setGlobalPrefix('api/v1');
 

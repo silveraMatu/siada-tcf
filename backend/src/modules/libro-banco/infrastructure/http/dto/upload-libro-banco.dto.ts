@@ -1,13 +1,16 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 
+//numeric(14,2) en bd admite hasta 10^12 en valor absoluto
+const MAX_MONTO = 999_999_999_999.99;
+
 export const TransaccionLibroBancoSchema = z.object({
   fecha: z.string().optional().describe('Fecha del movimiento (YYYY-MM-DD)'),
   cheque: z.string().optional().describe('Número de cheque o comprobante bancario'),
   aLaOrdenDe: z.string().min(1, 'El concepto / beneficiario es obligatorio'),
-  depositos: z.number().nonnegative().default(0).describe('Monto ingresado / Depósitos'),
-  retiro: z.number().nonnegative().default(0).describe('Monto egresado / Retiros'),
-  saldo: z.number().describe('Saldo acumulado en la cuenta'),
+  depositos: z.number().nonnegative().max(MAX_MONTO).default(0).describe('Monto ingresado / Depósitos'),
+  retiro: z.number().nonnegative().max(MAX_MONTO).default(0).describe('Monto egresado / Retiros'),
+  saldo: z.number().min(-MAX_MONTO).max(MAX_MONTO).describe('Saldo acumulado en la cuenta'),
 });
 
 export const UploadLibroBancoSchema = z.object({
