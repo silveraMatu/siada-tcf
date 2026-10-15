@@ -11,6 +11,18 @@ import {
 import { CuentaAnualEntity } from './cuenta-anual.entity.js';
 import { LibroBancoEntity } from '../../../libro-banco/infrastructure/entities/libro-banco.entity.js';
 
+
+export enum EstadoCuentaMensual {
+  PENDIENTE_CARGA = 'pendiente_carga',
+  CARGADA = 'cargada',
+  LISTA_PARA_AUDITAR = 'lista_para_auditar',
+  CON_OBSERVACIONES = 'con_observaciones',
+  AUDITADA = 'auditada',
+  RECHAZADA = 'rechazada',
+  CERRADA = 'cerrada',
+}
+
+
 @Entity('cuentas_mensuales')
 export class CuentaMensualEntity {
   @PrimaryGeneratedColumn()
@@ -21,6 +33,13 @@ export class CuentaMensualEntity {
 
   @Column({ type: 'int', name: 'cuenta_anual_id' })
   cuentaAnualId: number;
+
+  @Column({
+    type: 'enum', 
+    name: 'estado', 
+    enum: EstadoCuentaMensual, default: EstadoCuentaMensual.PENDIENTE_CARGA 
+  })
+  estado: string;
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
