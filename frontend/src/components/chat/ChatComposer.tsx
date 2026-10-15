@@ -38,13 +38,6 @@ export function ChatComposer({ onSendMessage }: ChatComposerProps) {
         />
         <div className="composer-toolbar">
           <div className="composer-tools">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Adjuntar archivo"
-            >
-              <Paperclip />
-            </Button>
             <span className="tool-divider" />
             <Button variant="ghost" size="sm" className="mode-button">
               <AudioLines />
