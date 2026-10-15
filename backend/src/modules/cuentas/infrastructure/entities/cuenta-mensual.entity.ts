@@ -6,6 +6,7 @@ import {
   OneToMany,
   JoinColumn,
   CreateDateColumn,
+  Unique,
   type Relation
 } from 'typeorm';
 import { CuentaAnualEntity } from './cuenta-anual.entity.js';
@@ -24,6 +25,7 @@ export enum EstadoCuentaMensual {
 
 
 @Entity('cuentas_mensuales')
+@Unique('UQ_cuenta_mensual_anual_mes', ['cuentaAnualId', 'mes'])
 export class CuentaMensualEntity {
   @PrimaryGeneratedColumn()
   id: number;
