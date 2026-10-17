@@ -8,7 +8,7 @@ import { ObtenerResponsablesPorOrganismoUseCase } from '../../application/use-ca
 import type { Responsable } from '../../domain/entities/responsable.domain.js';
 
 @ApiTags('Responsables')
-@Controller('organismos/:organismoId/responsables')
+@Controller()
 export class ResponsablesController {
   constructor(
     private readonly crearResponsableUseCase: CrearResponsableUseCase,
@@ -27,19 +27,13 @@ export class ResponsablesController {
     };
   }
 
-  @Post()
+  @Post('responsables')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Registrar un responsable de rendiciones para un organismo' })
+  @ApiOperation({ summary: 'Registrar un responsable de rendiciones (nace sin organismo asignado)' })
   @ApiResponse({ status: 201, description: 'Responsable creado exitosamente', type: ResponsableResponseDto })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
-  @ApiResponse({ status: 404, description: 'El Organismo especificado no existe' })
-  @ApiResponse({ status: 409, description: 'El Organismo especificado no está activo' })
-  async crear(
-    @Param() { organismoId }: ResponsableParamsDto,
-    @Body() dto: CrearResponsableDto,
-  ): Promise<ResponsableResponseDto> {
+  async crear(@Body() dto: CrearResponsableDto): Promise<ResponsableResponseDto> {
     const responsable = await this.crearResponsableUseCase.execute(
-      organismoId,
       dto.nombre,
       dto.apellido,
       dto.email,
@@ -47,7 +41,7 @@ export class ResponsablesController {
     return this.toResponse(responsable);
   }
 
-  @Get()
+  @Get('organismos/:organismoId/responsables')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Listar los responsables de un organismo' })
   @ApiResponse({

@@ -26,15 +26,16 @@ export class ResponsableEntity {
   @Column({ type: 'boolean', default: true })
   activo: boolean;
 
-  @Column({ type: 'int', name: 'organismo_id' })
-  organismoId: number;
+  @Column({ type: 'int', name: 'organismo_id', nullable: true })
+  organismoId: number | null;
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
 
   @ManyToOne(() => OrganismoEntity, (organismo) => organismo.responsables, {
-    onDelete: 'CASCADE',
+    nullable: true,
+    onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'organismo_id' })
-  organismo: Relation<OrganismoEntity>;
+  organismo: Relation<OrganismoEntity> | null;
 }

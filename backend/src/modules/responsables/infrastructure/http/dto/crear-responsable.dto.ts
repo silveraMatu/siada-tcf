@@ -1,7 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-//`activo` y `organismoId` no se aceptan en el body: el estado lo define el dominio y el organismo viene por la ruta
+//`activo` y `organismoId` no se aceptan: el estado lo define el dominio y el organismo se asigna despues (nace en null)
 export const CrearResponsableSchema = z.object({
   nombre: z
     .string()

@@ -295,50 +295,77 @@ describe('SIADA API (e2e)', () => {
   });
 });
 
-  describe('/organismos/:organismoId/responsables', () => {
-    const crearResponsable = (id: number | string, body: unknown) =>
-      request(app.getHttpServer()).post(`/api/v1/organismos/${id}/responsables`).send(body as object);
+  describe('responsables', () => {
+    const crearResponsable = (body: unknown) =>
+      request(app.getHttpServer()).post('/api/v1/responsables').send(body as object);
     const listarResponsables = (id: number | string) =>
       request(app.getHttpServer()).get(`/api/v1/organismos/${id}/responsables`);
 
     //email unico por ejecucion: los datos no se limpian
     const emailUnico = () => `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
 
-    it('201: crea un responsable activo asociado al organismo', async () => {
-      const email = emailUnico();
-      const res = await crearResponsable(organismoId, { nombre: ' Ana ', apellido: 'Pérez', email }).expect(201);
+    describe('POST /responsables', () => {
+      it('201: crea un responsable activo y sin organismo asignado', async () => {
+        const email = emailUnico();
+        const res = await crearResponsable({ nombre: ' Ana ', apellido: 'Pérez', email }).expect(201);
 
-      expect(res.body).toEqual({
-        id: expect.any(Number),
-        nombre: 'Ana',
-        apellido: 'Pérez',
-        email,
-        activo: true,
-        organismoId,
-        fechaCreacion: expect.any(String),
+        expect(res.body).toEqual({
+          id: expect.any(Number),
+          nombre: 'Ana',
+          apellido: 'Pérez',
+          email,
+          activo: true,
+          organismoId: null,
+          fechaCreacion: expect.any(String),
+        });
+      });
+
+      it('201: ignora organismoId y activo si el cliente los envia', async () => {
+        const res = await crearResponsable({
+          nombre: 'Ana',
+          apellido: 'Pérez',
+          email: emailUnico(),
+          organismoId,
+          activo: false,
+        }).expect(201);
+
+        expect(res.body.organismoId).toBeNull();
+        expect(res.body.activo).toBe(true);
+      });
+
+      it('400: body invalido', async () => {
+        await crearResponsable({ nombre: 'Ana', apellido: 'Pérez', email: 'no-es-un-email' }).expect(400);
+        await crearResponsable({ nombre: '', apellido: 'Pérez', email: emailUnico() }).expect(400);
+        await crearResponsable({ nombre: 'Ana' }).expect(400);
       });
     });
 
-    it('200: lista los responsables del organismo, incluyendo el recien creado', async () => {
-      const email = emailUnico();
-      const creado = await crearResponsable(organismoId, { nombre: 'Luis', apellido: 'Gómez', email }).expect(201);
+    describe('GET /organismos/:organismoId/responsables', () => {
+      it('200: lista solo los responsables asignados al organismo', async () => {
+        const asignado = await crearResponsable({ nombre: 'Luis', apellido: 'Gómez', email: emailUnico() }).expect(201);
+        const sinOrganismo = await crearResponsable({ nombre: 'Eva', apellido: 'Ruiz', email: emailUnico() }).expect(201);
 
-      const res = await listarResponsables(organismoId).expect(200);
-      expect(res.body.find((r: { id: number }) => r.id === creado.body.id)).toEqual(creado.body);
-      for (const r of res.body) expect(r.organismoId).toBe(organismoId);
-    });
+        //todavia no existe el endpoint de asignacion: se fija el organismo directo en la base
+        await dataSource.query(`UPDATE responsables SET organismo_id = $1 WHERE id = $2`, [organismoId, asignado.body.id]);
 
-    it('404: crear o listar con un organismo inexistente', async () => {
-      await crearResponsable(ID_INEXISTENTE, { nombre: 'A', apellido: 'B', email: emailUnico() }).expect(404);
-      await listarResponsables(ID_INEXISTENTE).expect(404);
-    });
+        const res = await listarResponsables(organismoId).expect(200);
+        const ids: number[] = res.body.map((r: { id: number }) => r.id);
+        expect(ids).toContain(asignado.body.id);
+        expect(ids).not.toContain(sinOrganismo.body.id);
+        expect(res.body.find((r: { id: number }) => r.id === asignado.body.id)).toEqual({
+          ...asignado.body,
+          organismoId,
+        });
+        for (const r of res.body) expect(r.organismoId).toBe(organismoId);
+      });
 
-    it('400: body invalido o id de ruta invalido', async () => {
-      await crearResponsable(organismoId, { nombre: 'Ana', apellido: 'Pérez', email: 'no-es-un-email' }).expect(400);
-      await crearResponsable(organismoId, { nombre: '', apellido: 'Pérez', email: emailUnico() }).expect(400);
-      await crearResponsable(organismoId, { nombre: 'Ana' }).expect(400);
-      await crearResponsable('abc', { nombre: 'Ana', apellido: 'Pérez', email: emailUnico() }).expect(400);
-      await listarResponsables('abc').expect(400);
+      it('404: organismo inexistente', async () => {
+        await listarResponsables(ID_INEXISTENTE).expect(404);
+      });
+
+      it('400: id de ruta invalido', async () => {
+        await listarResponsables('abc').expect(400);
+      });
     });
   });
 });

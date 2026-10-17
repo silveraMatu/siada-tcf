@@ -7,7 +7,7 @@ export const ResponsableResponseSchema = z.object({
   apellido: z.string(),
   email: z.string(),
   activo: z.boolean(),
-  organismoId: z.number().int(),
+  organismoId: z.number().int().nullable(),
   fechaCreacion: z.iso.datetime(),
 });
 
