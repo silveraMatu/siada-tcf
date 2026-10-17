@@ -1,13 +1,28 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { type FindOptionsSelect, QueryFailedError, Repository } from 'typeorm';
 import { UsuarioRepositoryPort } from '../../../../application/ports/out/usuario-repository.port.js';
-import { Usuario } from '../../../../domain/entities/usuario.domain.js';
+import {
+  Usuario,
+  type UsuarioSinPassword,
+} from '../../../../domain/entities/usuario.domain.js';
 import { UsuarioEntity } from '../../../entities/usuario.entity.js';
 import { UsuarioMapper } from '../../../mappers/usuario.mapper.js';
 
 //codigo de Postgres para unique_violation
 const UNIQUE_VIOLATION = '23505';
+
+//una columna nueva en la entidad queda excluida hasta agregarla aqui
+const SELECT_SIN_PASSWORD: FindOptionsSelect<UsuarioEntity> = {
+  id: true,
+  nombre: true,
+  apellido: true,
+  cuitDni: true,
+  email: true,
+  active: true,
+  roles: true,
+  fechaCreacion: true,
+};
 
 @Injectable()
 export class TypeOrmUsuarioRepositoryAdapter implements UsuarioRepositoryPort {
@@ -44,5 +59,37 @@ export class TypeOrmUsuarioRepositoryAdapter implements UsuarioRepositoryPort {
   async buscarPorCuitDni(cuitDni: string): Promise<Usuario | null> {
     const entity = await this.repository.findOne({ where: { cuitDni } });
     return entity ? UsuarioMapper.toDomain(entity) : null;
+  }
+
+  async buscarPorId(id: number): Promise<UsuarioSinPassword | null> {
+    const entity = await this.repository.findOne({
+      select: SELECT_SIN_PASSWORD,
+      where: { id },
+    });
+    return entity ? UsuarioMapper.toDomainSinPassword(entity) : null;
+  }
+
+  async actualizar(
+    id: number,
+    datos: Partial<UsuarioSinPassword>,
+  ): Promise<UsuarioSinPassword> {
+    const { id: _id, fechaCreacion: _fechaCreacion, ...campos } = datos;
+    await this.repository.update(id, campos);
+    return UsuarioMapper.toDomainSinPassword(
+      await this.repository.findOneOrFail({
+        select: SELECT_SIN_PASSWORD,
+        where: { id },
+      }),
+    );
+  }
+
+  async listar(filtros?: { active?: boolean }): Promise<UsuarioSinPassword[]> {
+    const entities = await this.repository.find({
+      select: SELECT_SIN_PASSWORD,
+      //el filtro se aplica solo si viene definido (false es un valor valido)
+      where: filtros?.active === undefined ? {} : { active: filtros.active },
+      order: { id: 'ASC' },
+    });
+    return entities.map((entity) => UsuarioMapper.toDomainSinPassword(entity));
   }
 }

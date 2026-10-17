@@ -15,3 +15,5 @@ export class Usuario {
     public readonly fechaCreacion?: Date,
   ) {}
 }
+
+export type UsuarioSinPassword = Omit<Usuario, 'password'>;

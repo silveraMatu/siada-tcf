@@ -3,9 +3,15 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Check,
 } from 'typeorm';
 import { Rol } from '../../domain/enums/rol.enum.js';
 
+//garantia final en la base: un usuario activo siempre tiene al menos un rol
+@Check(
+  'CHK_usuarios_activo_con_rol',
+  'NOT "active" OR cardinality("roles") > 0',
+)
 @Entity('usuarios')
 export class UsuarioEntity {
   @PrimaryGeneratedColumn()

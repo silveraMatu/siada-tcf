@@ -1,4 +1,7 @@
-import { Usuario } from '../../domain/entities/usuario.domain.js';
+import {
+  Usuario,
+  type UsuarioSinPassword,
+} from '../../domain/entities/usuario.domain.js';
 import { UsuarioEntity } from '../entities/usuario.entity.js';
 
 export class UsuarioMapper {
@@ -14,6 +17,20 @@ export class UsuarioMapper {
       entity.id,
       entity.fechaCreacion,
     );
+  }
+
+  //no lee entity.password: las consultas que lo usan ni siquiera lo traen de la base
+  static toDomainSinPassword(entity: UsuarioEntity): UsuarioSinPassword {
+    return {
+      nombre: entity.nombre,
+      apellido: entity.apellido,
+      cuitDni: entity.cuitDni,
+      email: entity.email,
+      active: entity.active,
+      roles: entity.roles,
+      id: entity.id,
+      fechaCreacion: entity.fechaCreacion,
+    };
   }
 
   static toEntity(domain: Usuario): UsuarioEntity {
