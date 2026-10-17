@@ -6,6 +6,7 @@ import { ResponsableRepositoryPort } from './application/ports/out/responsable-r
 import { TypeOrmResponsableRepositoryAdapter } from './infrastructure/adapters/driven/persistence/typeorm-responsable.repository.js';
 import { ResponsablesController } from './infrastructure/http/responsables.controller.js';
 import { CrearResponsableUseCase } from './application/use-cases/crear-responsable.use-case.js';
+import { AsignarOrganismoAResponsableUseCase } from './application/use-cases/asignar-organismo.use-case.js';
 import { ObtenerResponsablesPorOrganismoUseCase } from './application/use-cases/obtener-responsables-por-organismo.use-case.js';
 
 @Module({
@@ -14,10 +15,12 @@ import { ObtenerResponsablesPorOrganismoUseCase } from './application/use-cases/
   providers: [
     CrearResponsableUseCase,
     ObtenerResponsablesPorOrganismoUseCase,
+    AsignarOrganismoAResponsableUseCase,
     {
       provide: ResponsableRepositoryPort,
       useClass: TypeOrmResponsableRepositoryAdapter,
     },
   ],
+  exports: [AsignarOrganismoAResponsableUseCase],
 })
 export class ResponsablesModule {}

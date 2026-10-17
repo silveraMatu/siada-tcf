@@ -1,9 +1,12 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CrearResponsableDto } from './dto/crear-responsable.dto.js';
+import { AsignarOrganismoDto } from './dto/asignar-organismo.dto.js';
+import { ResponsableIdParamsDto } from './dto/responsable-id-params.dto.js';
 import { ResponsableParamsDto } from './dto/responsable-params.dto.js';
 import { ResponsableResponseDto } from './dto/responsable-response.dto.js';
 import { CrearResponsableUseCase } from '../../application/use-cases/crear-responsable.use-case.js';
+import { AsignarOrganismoAResponsableUseCase } from '../../application/use-cases/asignar-organismo.use-case.js';
 import { ObtenerResponsablesPorOrganismoUseCase } from '../../application/use-cases/obtener-responsables-por-organismo.use-case.js';
 import type { Responsable } from '../../domain/entities/responsable.domain.js';
 
@@ -13,6 +16,7 @@ export class ResponsablesController {
   constructor(
     private readonly crearResponsableUseCase: CrearResponsableUseCase,
     private readonly obtenerResponsablesPorOrganismoUseCase: ObtenerResponsablesPorOrganismoUseCase,
+    private readonly asignarOrganismoAResponsableUseCase: AsignarOrganismoAResponsableUseCase,
   ) {}
 
   private toResponse(responsable: Responsable): ResponsableResponseDto {
@@ -55,5 +59,21 @@ export class ResponsablesController {
   ): Promise<ResponsableResponseDto[]> {
     const responsables = await this.obtenerResponsablesPorOrganismoUseCase.execute(organismoId);
     return responsables.map((responsable) => this.toResponse(responsable));
+  }
+
+  // TODO: Proteger con @UseGuards() y @Roles('ADMIN') en el futuro
+  @Patch('responsables/:id/organismo')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Endpoint administrativo para vincular un responsable a un organismo' })
+  @ApiResponse({ status: 200, description: 'Responsable asignado al organismo', type: ResponsableResponseDto })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'El Responsable o el Organismo especificado no existe' })
+  @ApiResponse({ status: 409, description: 'El Responsable o el Organismo especificado no está activo' })
+  async asignarOrganismo(
+    @Param() { id }: ResponsableIdParamsDto,
+    @Body() { organismoId }: AsignarOrganismoDto,
+  ): Promise<ResponsableResponseDto> {
+    const responsable = await this.asignarOrganismoAResponsableUseCase.execute(id, organismoId);
+    return this.toResponse(responsable);
   }
 }

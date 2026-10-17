@@ -20,6 +20,17 @@ export class TypeOrmResponsableRepositoryAdapter implements ResponsableRepositor
     return ResponsableMapper.toDomain(entity);
   }
 
+  async buscarPorId(id: number): Promise<Responsable | null> {
+    const entity = await this.repository.findOne({ where: { id } });
+    return entity ? ResponsableMapper.toDomain(entity) : null;
+  }
+
+  async actualizar(id: number, datos: Partial<Responsable>): Promise<Responsable> {
+    const { id: _id, fechaCreacion: _fechaCreacion, ...campos } = datos;
+    await this.repository.update(id, campos);
+    return ResponsableMapper.toDomain(await this.repository.findOneByOrFail({ id }));
+  }
+
   async buscarPorOrganismo(organismoId: number): Promise<Responsable[]> {
     const entities = await this.repository.find({
       where: { organismoId },
