@@ -13,6 +13,7 @@ export default registerAs('database', () => ({
   password: process.env.POSTGRES_PASS || 'password',
   database: process.env.POSTGRES_DB || 'siada_db',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+  // dropSchema: true,
   synchronize: true,
   logging: true,
 }));
