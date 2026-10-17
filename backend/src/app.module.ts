@@ -6,6 +6,8 @@ import { OrganismosModule } from './modules/organismos/organismo.module.js';
 import { CuentasModule } from './modules/cuentas/cuentas.module.js';
 import { LibroBancoModule } from './modules/libro-banco/libro-banco.module.js';
 import { ResponsablesModule } from './modules/responsables/responsables.module.js';
+import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { ResponsablesModule } from './modules/responsables/responsables.module.j
     CuentasModule,
     LibroBancoModule,
     ResponsablesModule,
+    UsuariosModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],

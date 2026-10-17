@@ -9,6 +9,8 @@ import { OrganismosModule } from '../../src/modules/organismos/organismo.module.
 import { CuentasModule } from '../../src/modules/cuentas/cuentas.module.js';
 import { LibroBancoModule } from '../../src/modules/libro-banco/libro-banco.module.js';
 import { ResponsablesModule } from '../../src/modules/responsables/responsables.module.js';
+import { UsuariosModule } from '../../src/modules/usuarios/usuarios.module.js';
+import { AuthModule } from '../../src/modules/auth/auth.module.js';
 
 //Replica AppModule/main.ts contra la base real. No usa AppModule porque su config carga las
 //entidades por glob (*.entity.ts) con import nativo, que Node no puede parsear fuera de la compilacion.
@@ -30,6 +32,8 @@ export async function createTestApp(): Promise<{ app: INestApplication; dataSour
       CuentasModule,
       LibroBancoModule,
       ResponsablesModule,
+      UsuariosModule,
+      AuthModule,
     ],
   }).compile();
 

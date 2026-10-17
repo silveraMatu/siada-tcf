@@ -1,0 +1,6 @@
+export enum Rol {
+  ADMIN = 'ADMIN',
+  JUEZ_TRAMITE = 'JUEZ_TRAMITE',
+  AUDITOR = 'AUDITOR',
+  RESPONSABLE = 'RESPONSABLE',
+}
