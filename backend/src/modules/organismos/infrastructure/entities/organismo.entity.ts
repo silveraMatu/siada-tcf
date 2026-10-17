@@ -4,10 +4,9 @@ import {
   Column,
   CreateDateColumn,
   OneToMany,
-  type Relation
+  type Relation,
 } from 'typeorm';
 import { CuentaAnualEntity } from '../../../cuentas/infrastructure/entities/cuenta-anual.entity.js';
-
 
 @Entity('organismos')
 export class OrganismoEntity {
@@ -19,7 +18,8 @@ export class OrganismoEntity {
 
   @Column({
     type: 'varchar',
-    default: "General",
+    length: 255,
+    default: 'General',
   })
   rubro: string;
 

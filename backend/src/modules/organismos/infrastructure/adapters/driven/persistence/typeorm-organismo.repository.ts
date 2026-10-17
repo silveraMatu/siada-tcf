@@ -13,7 +13,13 @@ export class TypeOrmOrganismoRepositoryAdapter implements OrganismoRepositoryPor
   ) {}
 
   private toDomain(entity: OrganismoEntity): Organismo {
-    return new Organismo(entity.id, entity.nombre, entity.rubro, entity.active, entity.fechaCreacion);
+    return new Organismo(
+      entity.nombre,
+      entity.rubro,
+      entity.active,
+      entity.id,
+      entity.fechaCreacion,
+    );
   }
 
   async crear(organismo: Organismo): Promise<Organismo> {
@@ -30,11 +36,21 @@ export class TypeOrmOrganismoRepositoryAdapter implements OrganismoRepositoryPor
     return entity ? this.toDomain(entity) : null;
   }
 
-  async activar(id: number): Promise<void> {
-    await this.repository.update(id, { active: true });
+  async buscarTodos(): Promise<Organismo[]> {
+    const entities = await this.repository.find({ order: { id: 'ASC' } });
+    return entities.map((entity) => this.toDomain(entity));
   }
 
-  async desactivar(id: number): Promise<void> {
-    await this.repository.update(id, { active: false });
+  async activar(id: number): Promise<boolean> {
+    return this.cambiarEstado(id, true);
+  }
+
+  async desactivar(id: number): Promise<boolean> {
+    return this.cambiarEstado(id, false);
+  }
+
+  private async cambiarEstado(id: number, active: boolean): Promise<boolean> {
+    const { affected } = await this.repository.update(id, { active });
+    return !!affected;
   }
 }
