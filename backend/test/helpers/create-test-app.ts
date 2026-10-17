@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm';
 import { OrganismosModule } from '../../src/modules/organismos/organismo.module.js';
 import { CuentasModule } from '../../src/modules/cuentas/cuentas.module.js';
 import { LibroBancoModule } from '../../src/modules/libro-banco/libro-banco.module.js';
+import { ResponsablesModule } from '../../src/modules/responsables/responsables.module.js';
 
 //Replica AppModule/main.ts contra la base real. No usa AppModule porque su config carga las
 //entidades por glob (*.entity.ts) con import nativo, que Node no puede parsear fuera de la compilacion.
@@ -28,6 +29,7 @@ export async function createTestApp(): Promise<{ app: INestApplication; dataSour
       OrganismosModule,
       CuentasModule,
       LibroBancoModule,
+      ResponsablesModule,
     ],
   }).compile();
 

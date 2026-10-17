@@ -5,6 +5,7 @@ import databaseConfig from './config/database.config.js';
 import { OrganismosModule } from './modules/organismos/organismo.module.js';
 import { CuentasModule } from './modules/cuentas/cuentas.module.js';
 import { LibroBancoModule } from './modules/libro-banco/libro-banco.module.js';
+import { ResponsablesModule } from './modules/responsables/responsables.module.js';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { LibroBancoModule } from './modules/libro-banco/libro-banco.module.js';
     OrganismosModule,
     CuentasModule,
     LibroBancoModule,
+    ResponsablesModule,
   ],
   controllers: [],
   providers: [],

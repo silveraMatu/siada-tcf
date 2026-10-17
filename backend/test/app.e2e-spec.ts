@@ -294,4 +294,51 @@ describe('SIADA API (e2e)', () => {
     });
   });
 });
+
+  describe('/organismos/:organismoId/responsables', () => {
+    const crearResponsable = (id: number | string, body: unknown) =>
+      request(app.getHttpServer()).post(`/api/v1/organismos/${id}/responsables`).send(body as object);
+    const listarResponsables = (id: number | string) =>
+      request(app.getHttpServer()).get(`/api/v1/organismos/${id}/responsables`);
+
+    //email unico por ejecucion: los datos no se limpian
+    const emailUnico = () => `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+
+    it('201: crea un responsable activo asociado al organismo', async () => {
+      const email = emailUnico();
+      const res = await crearResponsable(organismoId, { nombre: ' Ana ', apellido: 'Pérez', email }).expect(201);
+
+      expect(res.body).toEqual({
+        id: expect.any(Number),
+        nombre: 'Ana',
+        apellido: 'Pérez',
+        email,
+        activo: true,
+        organismoId,
+        fechaCreacion: expect.any(String),
+      });
+    });
+
+    it('200: lista los responsables del organismo, incluyendo el recien creado', async () => {
+      const email = emailUnico();
+      const creado = await crearResponsable(organismoId, { nombre: 'Luis', apellido: 'Gómez', email }).expect(201);
+
+      const res = await listarResponsables(organismoId).expect(200);
+      expect(res.body.find((r: { id: number }) => r.id === creado.body.id)).toEqual(creado.body);
+      for (const r of res.body) expect(r.organismoId).toBe(organismoId);
+    });
+
+    it('404: crear o listar con un organismo inexistente', async () => {
+      await crearResponsable(ID_INEXISTENTE, { nombre: 'A', apellido: 'B', email: emailUnico() }).expect(404);
+      await listarResponsables(ID_INEXISTENTE).expect(404);
+    });
+
+    it('400: body invalido o id de ruta invalido', async () => {
+      await crearResponsable(organismoId, { nombre: 'Ana', apellido: 'Pérez', email: 'no-es-un-email' }).expect(400);
+      await crearResponsable(organismoId, { nombre: '', apellido: 'Pérez', email: emailUnico() }).expect(400);
+      await crearResponsable(organismoId, { nombre: 'Ana' }).expect(400);
+      await crearResponsable('abc', { nombre: 'Ana', apellido: 'Pérez', email: emailUnico() }).expect(400);
+      await listarResponsables('abc').expect(400);
+    });
+  });
 });

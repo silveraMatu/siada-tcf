@@ -7,6 +7,7 @@ import {
   type Relation,
 } from 'typeorm';
 import { CuentaAnualEntity } from '../../../cuentas/infrastructure/entities/cuenta-anual.entity.js';
+import { ResponsableEntity } from '../../../responsables/infrastructure/entities/responsable.entity.js';
 
 @Entity('organismos')
 export class OrganismoEntity {
@@ -31,4 +32,7 @@ export class OrganismoEntity {
 
   @OneToMany(() => CuentaAnualEntity, (cuentaAnual) => cuentaAnual.organismo)
   cuentasAnuales: Relation<CuentaAnualEntity[]>;
+
+  @OneToMany(() => ResponsableEntity, (responsable) => responsable.organismo)
+  responsables: Relation<ResponsableEntity[]>;
 }
