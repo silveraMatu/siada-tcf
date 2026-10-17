@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { createTestApp } from './helpers/create-test-app.js';
+import { createTestApp } from '../helpers/create-test-app.js';
 
 //Corre contra la base de datos real y NO limpia lo que crea: los datos quedan persistidos.
 describe('Auth (e2e)', () => {

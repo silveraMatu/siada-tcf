@@ -1,14 +1,13 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { createTestApp } from './helpers/create-test-app.js';
+import { createTestApp } from '../helpers/create-test-app.js';
+import { ID_INEXISTENTE } from '../helpers/fixtures.js';
 
 //Corre contra la base de datos real y NO limpia lo que crea: los datos quedan persistidos.
 describe('Usuarios (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
-
-  const ID_INEXISTENTE = 999999;
 
   //cada usuario usa email y cuitDni propios de la corrida para que los tests sean idempotentes
   //(prefijo '27' para no chocar con los cuitDni de auth.e2e-spec, que empiezan con '20')
