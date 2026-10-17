@@ -1,10 +1,39 @@
+import { useState } from 'react';
+
 import { PageHeader } from '@/components/layout/PageHeader';
+import { ContextoForm } from '@/features/cuentas/components/ContextoForm';
+import { CuentaMensualDetalle } from '@/features/cuentas/components/CuentaMensualDetalle';
+import type { ContextoCuenta, CuentaMensual } from '@/features/cuentas/types';
+
+interface CuentaResuelta {
+  cuenta: CuentaMensual;
+  contexto: ContextoCuenta;
+}
 
 export function LibroBancoPage() {
+  const [resuelta, setResuelta] = useState<CuentaResuelta | null>(null);
+
   return (
-    <PageHeader
-      title="Ingesta Libro Banco"
-      description="Carga y consulta de libros banco por cuenta mensual."
-    />
+    <div className="space-y-8">
+      <PageHeader
+        title="Ingesta Libro Banco"
+        description="Seleccione el organismo y el período para cargar su rendición mensual."
+      />
+
+      <ContextoForm
+        onResuelta={(cuenta, contexto) => setResuelta({ cuenta, contexto })}
+        onCambio={() => setResuelta(null)}
+      />
+
+      {resuelta && (
+        <CuentaMensualDetalle
+          cuenta={resuelta.cuenta}
+          contexto={resuelta.contexto}
+          onActualizada={(cuenta) =>
+            setResuelta((actual) => actual && { ...actual, cuenta })
+          }
+        />
+      )}
+    </div>
   );
 }
