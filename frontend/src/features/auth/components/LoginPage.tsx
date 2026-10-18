@@ -47,8 +47,8 @@ export function LoginPage() {
 
   return (
     <AuthShell>
-      <Card className="w-full max-w-md shadow-none">
-        <CardHeader className="space-y-1.5 px-8 pt-8">
+      <Card className="w-full max-w-md shadow-sm">
+        <CardHeader className="space-y-1.5 p-8 pb-6">
           <CardTitle className="text-2xl font-semibold tracking-tight">
             Acceso a SIADA
           </CardTitle>
@@ -56,7 +56,7 @@ export function LoginPage() {
             Ingrese con su cuenta para continuar.
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-8 pb-8">
+        <CardContent className="p-8 pt-0">
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
@@ -101,18 +101,18 @@ export function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                className="w-full"
                 disabled={login.isPending}
               >
                 {login.isPending && <Loader2 className="animate-spin" />}
                 Iniciar Sesión
               </Button>
 
-              <p className="text-center text-sm text-slate-500">
+              <p className="text-center text-sm text-muted-foreground">
                 ¿No tienes cuenta?{' '}
                 <Link
                   to="/registro"
-                  className="font-medium text-slate-900 underline-offset-4 hover:underline"
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
                 >
                   Solicita acceso aquí
                 </Link>

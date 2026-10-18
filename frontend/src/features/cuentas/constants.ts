@@ -26,30 +26,30 @@ export const ESTADOS: Record<
 > = {
   pendiente_carga: {
     label: 'Pendiente de Carga',
-    className: 'border-amber-200 bg-amber-50 text-amber-700',
+    className: 'border-warning-border bg-warning-subtle text-warning',
   },
   cargada: {
     label: 'Cargada',
-    className: 'border-blue-200 bg-blue-50 text-blue-700',
+    className: 'border-info-border bg-info-subtle text-info',
   },
   lista_para_auditar: {
     label: 'Lista para Auditar',
-    className: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+    className: 'border-review-border bg-review-subtle text-review',
   },
   con_observaciones: {
     label: 'Con Observaciones',
-    className: 'border-orange-200 bg-orange-50 text-orange-700',
+    className: 'border-caution-border bg-caution-subtle text-caution',
   },
   auditada: {
     label: 'Auditada',
-    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    className: 'border-success-border bg-success-subtle text-success',
   },
   rechazada: {
     label: 'Rechazada',
-    className: 'border-red-200 bg-red-50 text-red-700',
+    className: 'border-danger-border bg-danger-subtle text-danger',
   },
   cerrada: {
     label: 'Cerrada',
-    className: 'border-slate-200 bg-slate-100 text-slate-700',
+    className: 'border-inactivo-border bg-inactivo-subtle text-inactivo',
   },
 };

@@ -1,7 +1,8 @@
-import { Check } from 'lucide-react';
+import { UserCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { ErrorAlert } from '@/components/feedback/ErrorAlert';
+import { EmptyState } from '@/components/feedback/EmptyState';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useOrganismosActivos } from '@/features/organismos/hooks/useOrganismos';
@@ -13,7 +14,8 @@ export function ResponsablesPage() {
   const organismos = useOrganismosActivos();
 
   const organismosActivos = organismos.data ?? [];
-  const sinOrganismosActivos = organismos.isSuccess && organismosActivos.length === 0;
+  const sinOrganismosActivos =
+    organismos.isSuccess && organismosActivos.length === 0;
 
   return (
     <div className="space-y-8">
@@ -39,28 +41,19 @@ export function ResponsablesPage() {
       )}
 
       {responsables.data && responsables.data.length === 0 && (
-        <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed py-16 text-center">
-          <div className="flex size-12 items-center justify-center rounded-full bg-emerald-50">
-            <Check className="size-6 text-emerald-600" />
-          </div>
-          <div className="space-y-1">
-            <p className="font-medium">
-              No hay responsables pendientes de asignación
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Los nuevos responsables aparecerán aquí hasta que se les asigne un
-              organismo.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={UserCheck}
+          title="No hay responsables pendientes de asignación"
+          description="Los nuevos responsables aparecerán aquí hasta que se les asigne un organismo."
+        />
       )}
 
       {responsables.data && responsables.data.length > 0 && (
-        <section className="space-y-3">
+        <section className="space-y-4">
           {sinOrganismosActivos && (
             <p
               role="status"
-              className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+              className="rounded-lg border border-warning-border bg-warning-subtle p-3 text-sm text-warning"
             >
               No hay organismos activos disponibles.{' '}
               <Link to="/organismos" className="font-medium underline">
@@ -81,7 +74,7 @@ export function ResponsablesPage() {
               ? '1 responsable pendiente'
               : `${responsables.data.length} responsables pendientes`}
           </p>
-          <ul className="space-y-3">
+          <ul className="space-y-4">
             {responsables.data.map((responsable) => (
               <ResponsablePendienteCard
                 key={responsable.id}

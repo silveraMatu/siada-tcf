@@ -2,6 +2,7 @@ import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent } from './Sidebar';
 
@@ -15,18 +16,24 @@ export function DashboardLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b px-4 md:hidden">
           <span className="text-sm font-semibold tracking-tight">SIADA</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
-            onClick={() => setOpen((v) => !v)}
-          >
-            {open ? <X /> : <Menu />}
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+              onClick={() => setOpen((v) => !v)}
+            >
+              {open ? <X /> : <Menu />}
+            </Button>
+          </div>
         </header>
         {open && (
           <div className="border-b bg-background md:hidden">
-            <SidebarContent onNavigate={() => setOpen(false)} />
+            <SidebarContent
+              mostrarTema={false}
+              onNavigate={() => setOpen(false)}
+            />
           </div>
         )}
 

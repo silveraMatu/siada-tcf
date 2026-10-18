@@ -29,7 +29,7 @@ export function UsuarioPendienteItem({ usuario }: { usuario: Usuario }) {
   const sinRoles = rolesSeleccionados.length === 0;
 
   return (
-    <li className="flex flex-col gap-5 rounded-xl border bg-card p-5 md:flex-row md:items-center md:justify-between">
+    <li className="flex flex-col gap-6 rounded-xl border bg-card p-6 shadow-sm md:flex-row md:items-center md:justify-between">
       <div className="min-w-0 space-y-1">
         <p className="truncate font-medium">
           {usuario.nombre} {usuario.apellido}
@@ -37,7 +37,7 @@ export function UsuarioPendienteItem({ usuario }: { usuario: Usuario }) {
         <p className="truncate text-sm text-muted-foreground">
           {usuario.email}
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           DNI {usuario.dni} · Solicitado el{' '}
           {formatoFecha.format(new Date(usuario.fechaCreacion))}
         </p>
@@ -50,13 +50,12 @@ export function UsuarioPendienteItem({ usuario }: { usuario: Usuario }) {
         />
         <div className="flex items-center gap-3">
           {sinRoles && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               Seleccione al menos un rol
             </span>
           )}
           <Button
             size="sm"
-            className="bg-blue-600 text-white hover:bg-blue-700"
             disabled={sinRoles || activar.isPending}
             onClick={() => setDialogAbierto(true)}
           >

@@ -51,10 +51,7 @@ export function CuentaMensualDetalle({
 
         <div className="flex flex-col items-start gap-4 sm:items-end">
           <EstadoBadge estado={cuenta.estado} />
-          <Button
-            className="bg-blue-600 text-white hover:bg-blue-700"
-            onClick={() => setDialogAbierto(true)}
-          >
+          <Button onClick={() => setDialogAbierto(true)}>
             <Upload />
             Cargar Documentos
           </Button>

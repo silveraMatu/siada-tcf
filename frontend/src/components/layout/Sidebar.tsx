@@ -1,23 +1,31 @@
 import { LogOut } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ROL_LABEL } from '@/features/usuarios/types';
 import { cn } from '@/lib/utils';
 import { filtrarNavegacion, navigationGroups } from './navigation';
 
-export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+export function SidebarContent({
+  onNavigate,
+  mostrarTema = true,
+}: {
+  onNavigate?: () => void;
+  mostrarTema?: boolean;
+}) {
   const { user, logout } = useAuth();
   const grupos = filtrarNavegacion(navigationGroups, user?.roles);
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center gap-2 px-5">
-        <div className="flex size-6 items-center justify-center rounded-md bg-primary text-[11px] font-semibold text-primary-foreground">
+        <div className="flex size-6 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
           S
         </div>
         <span className="text-sm font-semibold tracking-tight">SIADA</span>
+        {mostrarTema && <ThemeToggle className="ml-auto" />}
       </div>
       <nav
         aria-label="Navegación principal"
@@ -35,7 +43,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 onClick={onNavigate}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors',
+                    'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     isActive
                       ? 'bg-accent font-medium text-foreground'
                       : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
@@ -50,9 +58,9 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         ))}
       </nav>
 
-      <div className="mt-auto space-y-3 border-t px-4 py-4">
+      <div className="mt-auto space-y-3 border-t p-3">
         {user && (
-          <div className="min-w-0 space-y-0.5">
+          <div className="min-w-0 space-y-0.5 px-2">
             <p className="truncate text-sm font-medium" title={user.email}>
               {user.email}
             </p>

@@ -40,8 +40,8 @@ export function DropZone({ onArchivo, cargando = false }: DropZoneProps) {
       className={cn(
         'flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed px-6 py-14 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         arrastrando
-          ? 'border-blue-500 bg-blue-50'
-          : 'border-slate-300 bg-slate-50/50 hover:border-slate-400 hover:bg-slate-50',
+          ? 'border-info bg-info-subtle'
+          : 'border-input bg-muted/50 hover:border-muted-foreground/50 hover:bg-muted',
         cargando && 'pointer-events-none opacity-60',
       )}
     >
@@ -49,7 +49,7 @@ export function DropZone({ onArchivo, cargando = false }: DropZoneProps) {
         {cargando ? (
           <Loader2 className="size-5 animate-spin" />
         ) : arrastrando ? (
-          <FileSpreadsheet className="size-5 text-blue-600" />
+          <FileSpreadsheet className="size-5 text-blue-600 dark:text-blue-400" />
         ) : (
           <UploadCloud className="size-5" />
         )}

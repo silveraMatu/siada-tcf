@@ -18,7 +18,7 @@ export function ErrorAlert({ error, onRetry, retrying }: ErrorAlertProps) {
   return (
     <div
       role="alert"
-      className="flex flex-col items-start gap-4 rounded-xl border border-red-200 bg-red-50 p-5 text-red-700"
+      className="flex flex-col items-start gap-4 rounded-xl border border-danger-border bg-danger-subtle p-5 text-danger"
     >
       <p className="flex items-start gap-2 text-sm">
         <AlertCircle className="mt-0.5 size-4 shrink-0" />

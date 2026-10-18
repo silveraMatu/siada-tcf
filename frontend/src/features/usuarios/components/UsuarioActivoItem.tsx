@@ -44,7 +44,7 @@ export function UsuarioActivoItem({ usuario }: { usuario: Usuario }) {
       : null;
 
   return (
-    <li className="flex flex-col gap-5 rounded-xl border bg-card p-5 lg:flex-row lg:items-center lg:justify-between">
+    <li className="flex flex-col gap-6 rounded-xl border bg-card p-6 shadow-sm lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0 space-y-1">
         <p className="truncate font-medium">
           {usuario.nombre} {usuario.apellido}
@@ -57,7 +57,7 @@ export function UsuarioActivoItem({ usuario }: { usuario: Usuario }) {
         <p className="truncate text-sm text-muted-foreground">
           {usuario.email}
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           DNI {usuario.dni} · Alta el{' '}
           {formatoFecha.format(new Date(usuario.fechaCreacion))}
         </p>
@@ -71,7 +71,7 @@ export function UsuarioActivoItem({ usuario }: { usuario: Usuario }) {
         />
         <div className="flex flex-wrap items-center gap-3 lg:justify-end">
           {(ayuda || noPuedeDesactivar) && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {ayuda ?? 'No puede desactivar su propia cuenta'}
             </span>
           )}

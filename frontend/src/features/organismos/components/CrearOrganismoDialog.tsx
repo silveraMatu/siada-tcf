@@ -59,7 +59,7 @@ export function CrearOrganismoDialog() {
   return (
     <Dialog open={open} onOpenChange={cambiarApertura}>
       <DialogTrigger asChild>
-        <Button className="bg-blue-600 text-white hover:bg-blue-700">
+        <Button>
           <Plus />
           Nuevo Organismo
         </Button>
@@ -116,7 +116,7 @@ export function CrearOrganismoDialog() {
             {crear.isError && (
               <p
                 role="alert"
-                className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+                className="flex items-start gap-2 rounded-lg border border-danger-border bg-danger-subtle p-3 text-sm text-danger"
               >
                 <AlertCircle className="mt-0.5 size-4 shrink-0" />
                 {getErrorMessage(crear.error)}
@@ -132,11 +132,7 @@ export function CrearOrganismoDialog() {
               >
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                className="bg-blue-600 text-white hover:bg-blue-700"
-                disabled={crear.isPending}
-              >
+              <Button type="submit" disabled={crear.isPending}>
                 {crear.isPending && <Loader2 className="animate-spin" />}
                 Crear Organismo
               </Button>

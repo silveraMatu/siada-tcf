@@ -39,7 +39,9 @@ export function PreviewTable({ filas }: { filas: FilaPreview[] }) {
           {filas.map(({ fila, transaccion: t, errores }) => (
             <TableRow
               key={fila}
-              className={cn(errores.length > 0 && 'bg-red-50 hover:bg-red-50')}
+              className={cn(
+                errores.length > 0 && 'bg-danger-subtle hover:bg-danger-subtle',
+              )}
             >
               <TableCell className="text-right text-xs text-muted-foreground">
                 {fila}
@@ -51,7 +53,7 @@ export function PreviewTable({ filas }: { filas: FilaPreview[] }) {
               <TableCell className="min-w-48">
                 {t.aLaOrdenDe || '—'}
                 {errores.length > 0 && (
-                  <p className="mt-1 flex items-start gap-1 text-xs text-red-700">
+                  <p className="mt-1 flex items-start gap-1 text-xs text-danger">
                     <AlertCircle className="mt-0.5 size-3 shrink-0" />
                     {errores.join('. ')}
                   </p>

@@ -11,7 +11,8 @@ export function EstadoBadge({ estado }: { estado: CuentaMensual['estado'] }) {
       variant="outline"
       className={cn(
         'rounded-full font-medium',
-        config?.className ?? 'border-slate-200 bg-slate-100 text-slate-700',
+        config?.className ??
+          'border-inactivo-border bg-inactivo-subtle text-inactivo',
       )}
     >
       {config?.label ?? estado}

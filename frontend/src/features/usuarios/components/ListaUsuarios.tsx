@@ -1,8 +1,9 @@
 import { isAxiosError } from 'axios';
-import { AlertCircle, Check } from 'lucide-react';
+import { AlertCircle, Inbox, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
+import { EmptyState } from '@/components/feedback/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getErrorMessage } from '@/lib/api';
@@ -19,6 +20,7 @@ interface QueryUsuarios {
 
 interface ListaUsuariosProps {
   query: QueryUsuarios;
+  vacioIcono?: LucideIcon;
   vacioTitulo: string;
   vacioTexto: string;
   /** Texto del contador, p. ej. ["1 solicitud pendiente", "N solicitudes pendientes"]. */
@@ -36,6 +38,7 @@ function mensajeDeError(error: unknown): string {
 /** Estados comunes de una lista de usuarios: cargando, error, vacía y con datos. */
 export function ListaUsuarios({
   query,
+  vacioIcono = Inbox,
   vacioTitulo,
   vacioTexto,
   contador,
@@ -57,7 +60,7 @@ export function ListaUsuarios({
     return (
       <div
         role="alert"
-        className="flex flex-col items-start gap-4 rounded-xl border border-red-200 bg-red-50 p-5 text-red-700"
+        className="flex flex-col items-start gap-4 rounded-xl border border-danger-border bg-danger-subtle p-5 text-danger"
       >
         <p className="flex items-start gap-2 text-sm">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
@@ -84,22 +87,18 @@ export function ListaUsuarios({
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed py-16 text-center">
-        <div className="flex size-12 items-center justify-center rounded-full bg-emerald-50">
-          <Check className="size-6 text-emerald-600" />
-        </div>
-        <div className="space-y-1">
-          <p className="font-medium">{vacioTitulo}</p>
-          <p className="text-sm text-muted-foreground">{vacioTexto}</p>
-        </div>
-      </div>
+      <EmptyState
+        icon={vacioIcono}
+        title={vacioTitulo}
+        description={vacioTexto}
+      />
     );
   }
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-4">
       <p className="text-sm text-muted-foreground">{contador(data.length)}</p>
-      <ul className="space-y-3">{data.map(renderItem)}</ul>
+      <ul className="space-y-4">{data.map(renderItem)}</ul>
     </section>
   );
 }

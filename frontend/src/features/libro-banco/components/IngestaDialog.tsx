@@ -21,7 +21,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useIngestarLibroBanco } from '../hooks/useIngestarLibroBanco';
-import { LibroBancoParseError, parseLibroBanco } from '../lib/parse-libro-banco';
+import {
+  LibroBancoParseError,
+  parseLibroBanco,
+} from '../lib/parse-libro-banco';
 import type { ResultadoParseo } from '../types';
 import { DropZone } from './DropZone';
 import { PreviewTable } from './PreviewTable';
@@ -109,7 +112,9 @@ export function IngestaDialog({
     if (!resultado || !puedeEnviar) return;
     ingestar.mutate(
       {
-        ...(numeroCuenta.trim() ? { numeroCuentaCte: numeroCuenta.trim() } : {}),
+        ...(numeroCuenta.trim()
+          ? { numeroCuentaCte: numeroCuenta.trim() }
+          : {}),
         transacciones: resultado.filas.map((f) => f.transaccion),
       },
       {
@@ -160,7 +165,7 @@ export function IngestaDialog({
         {error && (
           <p
             role="alert"
-            className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+            className="flex items-start gap-2 rounded-lg border border-danger-border bg-danger-subtle p-3 text-sm text-danger"
           >
             <AlertCircle className="mt-0.5 size-4 shrink-0" />
             {error}
@@ -204,7 +209,7 @@ export function IngestaDialog({
             {invalidas.length > 0 && (
               <p
                 role="alert"
-                className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+                className="flex items-start gap-2 rounded-lg border border-danger-border bg-danger-subtle p-3 text-sm text-danger"
               >
                 <AlertCircle className="mt-0.5 size-4 shrink-0" />
                 {invalidas.length === 1
@@ -226,11 +231,7 @@ export function IngestaDialog({
           >
             Cancelar
           </Button>
-          <Button
-            className="bg-blue-600 text-white hover:bg-blue-700"
-            onClick={enviar}
-            disabled={!puedeEnviar}
-          >
+          <Button onClick={enviar} disabled={!puedeEnviar}>
             {ingestar.isPending && <Loader2 className="animate-spin" />}
             Enviar
           </Button>

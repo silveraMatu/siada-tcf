@@ -29,16 +29,16 @@ import { PasswordInput } from './PasswordInput';
 
 function RegistroExitoso() {
   return (
-    <Card className="w-full max-w-md text-center shadow-none">
-      <CardContent className="flex flex-col items-center gap-6 px-8 py-10">
-        <div className="flex size-14 items-center justify-center rounded-full bg-emerald-50 ring-8 ring-emerald-50/60">
-          <Check className="size-7 text-emerald-600" strokeWidth={2.25} />
+    <Card className="w-full max-w-md text-center shadow-sm">
+      <CardContent className="flex flex-col items-center gap-6 p-8">
+        <div className="flex size-14 items-center justify-center rounded-full bg-success-subtle ring-8 ring-success-subtle/60">
+          <Check className="size-7 text-success" strokeWidth={2.25} />
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             Registro Exitoso
           </h1>
-          <p className="text-sm leading-relaxed text-slate-500">
+          <p className="text-sm leading-relaxed text-muted-foreground">
             Su cuenta ha sido creada y está pendiente de activación por parte de
             un administrador. Se le notificará cuando pueda ingresar.
           </p>
@@ -76,8 +76,8 @@ export function RegistroPage() {
       {isSuccess ? (
         <RegistroExitoso />
       ) : (
-        <Card className="w-full max-w-md shadow-none">
-          <CardHeader className="space-y-1.5 px-8 pt-8">
+        <Card className="w-full max-w-md shadow-sm">
+          <CardHeader className="space-y-1.5 p-8 pb-6">
             <CardTitle className="text-2xl font-semibold tracking-tight">
               Crear cuenta
             </CardTitle>
@@ -86,7 +86,7 @@ export function RegistroPage() {
               antes de que pueda ingresar.
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-8 pb-8">
+          <CardContent className="p-8 pt-0">
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
@@ -176,7 +176,7 @@ export function RegistroPage() {
                 {registro.isError && (
                   <p
                     role="alert"
-                    className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+                    className="flex items-start gap-2 rounded-lg border border-danger-border bg-danger-subtle p-3 text-sm text-danger"
                   >
                     <AlertCircle className="mt-0.5 size-4 shrink-0" />
                     {getErrorMessage(registro.error)}
@@ -185,7 +185,7 @@ export function RegistroPage() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                  className="w-full"
                   disabled={registro.isPending}
                 >
                   {registro.isPending && <Loader2 className="animate-spin" />}
@@ -198,11 +198,11 @@ export function RegistroPage() {
       )}
 
       {!isSuccess && (
-        <p className="mt-6 text-sm text-slate-500">
+        <p className="mt-6 text-sm text-muted-foreground">
           ¿Ya tiene cuenta?{' '}
           <Link
             to="/login"
-            className="font-medium text-slate-900 underline-offset-4 hover:underline"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
           >
             Iniciar sesión
           </Link>

@@ -1,3 +1,5 @@
+import { Inbox, Users } from 'lucide-react';
+
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUsuariosActivos } from '../hooks/useUsuariosActivos';
@@ -9,7 +11,7 @@ import { UsuarioPendienteItem } from './UsuarioPendienteItem';
 function Contador({ cantidad }: { cantidad: number | undefined }) {
   if (cantidad === undefined) return null;
   return (
-    <span className="ml-2 rounded-full bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">
+    <span className="ml-2 min-w-5 rounded-full bg-muted px-1.5 py-0.5 text-center text-xs font-medium tabular-nums text-muted-foreground">
       {cantidad}
     </span>
   );
@@ -43,6 +45,7 @@ export function AdminUsuariosPage() {
         <TabsContent value="pendientes">
           <ListaUsuarios
             query={pendientes}
+            vacioIcono={Inbox}
             vacioTitulo="No hay solicitudes pendientes"
             vacioTexto="Las nuevas solicitudes de acceso aparecerán aquí."
             contador={(n) =>
@@ -57,6 +60,7 @@ export function AdminUsuariosPage() {
         <TabsContent value="activos">
           <ListaUsuarios
             query={activos}
+            vacioIcono={Users}
             vacioTitulo="No hay usuarios activos"
             vacioTexto="Los usuarios aparecerán aquí una vez que active sus solicitudes."
             contador={(n) =>

@@ -48,26 +48,27 @@ export function ResponsablePendienteCard({
 
   return (
     <li>
-      <Card className="flex flex-col gap-5 p-5 shadow-none md:flex-row md:items-center md:justify-between">
+      <Card className="flex flex-col gap-6 p-6 shadow-sm md:flex-row md:items-center md:justify-between">
         <div className="min-w-0 space-y-1">
           <p className="truncate font-medium">{nombreCompleto}</p>
           <p className="truncate text-sm text-muted-foreground">
             {usuario.email}
           </p>
-          <p className="text-xs text-muted-foreground">
-            Registrado el {formatoFecha.format(new Date(responsable.fechaCreacion))}
+          <p className="text-sm text-muted-foreground">
+            Registrado el{' '}
+            {formatoFecha.format(new Date(responsable.fechaCreacion))}
             {!responsable.active && ' · Responsable inactivo'}
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
           <Select
             value={organismoId}
             onValueChange={setOrganismoId}
             disabled={cargandoOrganismos || sinOrganismos || asignar.isPending}
           >
             <SelectTrigger
-              className="w-full sm:w-64"
+              className="w-full sm:min-w-60"
               aria-label={`Organismo para ${nombreCompleto}`}
             >
               <SelectValue
@@ -89,7 +90,6 @@ export function ResponsablePendienteCard({
             </SelectContent>
           </Select>
           <Button
-            className="bg-blue-600 text-white hover:bg-blue-700"
             disabled={
               organismoId === '' || asignar.isPending || !responsable.active
             }
