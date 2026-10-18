@@ -1,23 +1,9 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-//`activo` y `organismoId` no se aceptan: el estado lo define el dominio y el organismo se asigna despues (nace en null)
+//nombre, apellido y email salen del usuario; active y organismoId no se aceptan
 export const CrearResponsableSchema = z.object({
-  nombre: z
-    .string()
-    .trim()
-    .min(1, { message: 'El nombre es obligatorio' })
-    .max(255, { message: 'El nombre no puede superar los 255 caracteres' }),
-  apellido: z
-    .string()
-    .trim()
-    .min(1, { message: 'El apellido es obligatorio' })
-    .max(255, { message: 'El apellido no puede superar los 255 caracteres' }),
-  email: z
-    .string()
-    .trim()
-    .max(255, { message: 'El email no puede superar los 255 caracteres' })
-    .pipe(z.email({ message: 'El email no es válido' })),
+  usuarioId: z.number().int().positive().max(2147483647),
 });
 
 export class CrearResponsableDto extends createZodDto(CrearResponsableSchema) {}

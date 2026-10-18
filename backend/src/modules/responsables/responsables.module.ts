@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrganismosModule } from '../organismos/organismos.module.js';
+import { UsuariosModule } from '../usuarios/usuarios.module.js';
 import { ResponsableEntity } from './infrastructure/entities/responsable.entity.js';
 import { ResponsableRepositoryPort } from './application/ports/out/responsable-repository.port.js';
 import { TypeOrmResponsableRepositoryAdapter } from './infrastructure/adapters/driven/persistence/typeorm-responsable.repository.js';
@@ -10,7 +11,11 @@ import { AsignarOrganismoAResponsableUseCase } from './application/use-cases/asi
 import { ObtenerResponsablesPorOrganismoUseCase } from './application/use-cases/obtener-responsables-por-organismo.use-case.js';
 
 @Module({
-  imports: [OrganismosModule, TypeOrmModule.forFeature([ResponsableEntity])],
+  imports: [
+    OrganismosModule,
+    UsuariosModule,
+    TypeOrmModule.forFeature([ResponsableEntity]),
+  ],
   controllers: [ResponsablesController],
   providers: [
     CrearResponsableUseCase,

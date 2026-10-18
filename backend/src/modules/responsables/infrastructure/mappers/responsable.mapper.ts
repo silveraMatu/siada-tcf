@@ -4,11 +4,9 @@ import { ResponsableEntity } from '../entities/responsable.entity.js';
 export class ResponsableMapper {
   static toDomain(entity: ResponsableEntity): Responsable {
     return new Responsable(
-      entity.nombre,
-      entity.apellido,
-      entity.email,
+      entity.usuarioId,
       entity.organismoId,
-      entity.activo,
+      entity.active,
       entity.id,
       entity.fechaCreacion,
     );
@@ -17,11 +15,9 @@ export class ResponsableMapper {
   static toEntity(domain: Responsable): ResponsableEntity {
     const entity = new ResponsableEntity();
     if (domain.id) entity.id = domain.id;
-    entity.nombre = domain.nombre;
-    entity.apellido = domain.apellido;
-    entity.email = domain.email;
+    entity.usuarioId = domain.usuarioId;
     entity.organismoId = domain.organismoId;
-    entity.activo = domain.activo;
+    entity.active = domain.active;
     return entity;
   }
 }

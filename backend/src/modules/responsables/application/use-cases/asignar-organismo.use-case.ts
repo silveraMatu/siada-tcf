@@ -16,7 +16,7 @@ export class AsignarOrganismoAResponsableUseCase {
     if (!responsable) {
       throw new NotFoundException(`El Responsable con ID ${responsableId} no existe.`);
     }
-    if (!responsable.activo) {
+    if (!responsable.active) {
       throw new ConflictException(`El Responsable con ID ${responsableId} está inactivo.`);
     }
 

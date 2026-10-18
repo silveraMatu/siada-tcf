@@ -74,3 +74,41 @@ export async function dniDeSieteDigitosLibre(
   }
   throw new Error('No se encontro un DNI de 7 digitos libre');
 }
+
+//registra un usuario por el endpoint publico (nace inactivo y sin roles) con email y DNI unicos
+export async function registrarUsuario(app: INestApplication): Promise<number> {
+  await inicializarDnis(app.get(DataSource));
+  const sufijo = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const res = await request(app.getHttpServer())
+    .post('/api/v1/auth/registro')
+    .send({
+      nombre: 'Fixture',
+      apellido: 'E2E',
+      email: `e2e-fixture-${sufijo}@example.com`,
+      dni: dniNuevo(),
+      password: 'clave-segura-123',
+    })
+    .expect(201);
+  return res.body.id;
+}
+
+//activa un usuario y le asigna roles por el endpoint administrativo
+export async function habilitarUsuario(
+  app: INestApplication,
+  usuarioId: number,
+  roles: string[],
+): Promise<void> {
+  await request(app.getHttpServer())
+    .patch(`/api/v1/usuarios/${usuarioId}/activar`)
+    .send({ active: true, roles })
+    .expect(200);
+}
+
+//usuario activo con el rol RESPONSABLE, listo para crearle su perfil de responsable
+export async function crearUsuarioResponsable(
+  app: INestApplication,
+): Promise<number> {
+  const usuarioId = await registrarUsuario(app);
+  await habilitarUsuario(app, usuarioId, ['RESPONSABLE']);
+  return usuarioId;
+}

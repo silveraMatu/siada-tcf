@@ -3,10 +3,8 @@ import { z } from 'zod';
 
 export const ResponsableResponseSchema = z.object({
   id: z.number().int(),
-  nombre: z.string(),
-  apellido: z.string(),
-  email: z.string(),
-  activo: z.boolean(),
+  usuarioId: z.number().int(),
+  active: z.boolean(),
   organismoId: z.number().int().nullable(),
   fechaCreacion: z.iso.datetime(),
 });
