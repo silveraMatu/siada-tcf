@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import databaseConfig from './config/database.config.js';
-import { OrganismosModule } from './modules/organismos/organismo.module.js';
+import { OrganismosModule } from './modules/organismos/organismos.module.js';
 import { CuentasModule } from './modules/cuentas/cuentas.module.js';
 import { LibroBancoModule } from './modules/libro-banco/libro-banco.module.js';
 import { ResponsablesModule } from './modules/responsables/responsables.module.js';

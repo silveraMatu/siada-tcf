@@ -1,4 +1,4 @@
-import { OrganismosModule } from '../organismos/organismo.module.js';
+import { OrganismosModule } from '../organismos/organismos.module.js';
 import { CuentaMensualResolverPort } from './application/ports/out/cuenta-mensual-resolver.port.js';
 import { TypeOrmCuentaMensualResolverAdapter } from './infrastructure/adapters/driven/persistence/typeorm-cuenta-mensual-resolver.adapter.js';
 import { Module } from '@nestjs/common';

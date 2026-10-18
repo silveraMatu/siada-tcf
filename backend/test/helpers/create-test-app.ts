@@ -5,7 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { DataSource } from 'typeorm';
-import { OrganismosModule } from '../../src/modules/organismos/organismo.module.js';
+import { OrganismosModule } from '../../src/modules/organismos/organismos.module.js';
 import { CuentasModule } from '../../src/modules/cuentas/cuentas.module.js';
 import { LibroBancoModule } from '../../src/modules/libro-banco/libro-banco.module.js';
 import { ResponsablesModule } from '../../src/modules/responsables/responsables.module.js';

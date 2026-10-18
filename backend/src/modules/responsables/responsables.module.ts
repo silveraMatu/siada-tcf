@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { OrganismosModule } from '../organismos/organismo.module.js';
+import { OrganismosModule } from '../organismos/organismos.module.js';
 import { ResponsableEntity } from './infrastructure/entities/responsable.entity.js';
 import { ResponsableRepositoryPort } from './application/ports/out/responsable-repository.port.js';
 import { TypeOrmResponsableRepositoryAdapter } from './infrastructure/adapters/driven/persistence/typeorm-responsable.repository.js';
