@@ -7,6 +7,7 @@ import { TypeOrmModule, type TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { configurarApp } from '../../src/app.setup.js';
 import databaseConfig from '../../src/config/database.config.js';
+import jwtConfig from '../../src/config/jwt.config.js';
 import { OrganismosModule } from '../../src/modules/organismos/organismos.module.js';
 import { CuentasModule } from '../../src/modules/cuentas/cuentas.module.js';
 import { LibroBancoModule } from '../../src/modules/libro-banco/libro-banco.module.js';
@@ -21,7 +22,10 @@ export async function createTestApp(): Promise<{
 }> {
   const moduleRef = await Test.createTestingModule({
     imports: [
-      ConfigModule.forRoot({ isGlobal: true, load: [databaseConfig] }),
+      ConfigModule.forRoot({
+        isGlobal: true,
+        load: [databaseConfig, jwtConfig],
+      }),
       TypeOrmModule.forRootAsync({
         imports: [ConfigModule],
         inject: [ConfigService],
@@ -44,7 +48,8 @@ export async function createTestApp(): Promise<{
     bodyParser: false,
   });
   configurarApp(app);
-  await app.init();
+  //escucha una sola vez en un puerto libre local: si no, supertest abre y cierra el servidor en cada request y puede fallar al encadenarlos
+  await app.listen(0, '127.0.0.1');
 
   return { app, dataSource: app.get(DataSource) };
 }

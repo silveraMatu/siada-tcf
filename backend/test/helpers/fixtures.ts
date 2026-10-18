@@ -1,4 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
+import bcrypt from 'bcrypt';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 
@@ -75,21 +76,60 @@ export async function dniDeSieteDigitosLibre(
   throw new Error('No se encontro un DNI de 7 digitos libre');
 }
 
+export const PASSWORD_FIXTURE = 'clave-segura-123';
+
 //registra un usuario por el endpoint publico (nace inactivo y sin roles) con email y DNI unicos
-export async function registrarUsuario(app: INestApplication): Promise<number> {
+export async function registrarUsuarioConCredenciales(
+  app: INestApplication,
+): Promise<{ id: number; email: string; password: string }> {
   await inicializarDnis(app.get(DataSource));
   const sufijo = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const email = `e2e-fixture-${sufijo}@example.com`;
   const res = await request(app.getHttpServer())
     .post('/api/v1/auth/registro')
     .send({
       nombre: 'Fixture',
       apellido: 'E2E',
-      email: `e2e-fixture-${sufijo}@example.com`,
+      email,
       dni: dniNuevo(),
-      password: 'clave-segura-123',
+      password: PASSWORD_FIXTURE,
     })
     .expect(201);
-  return res.body.id;
+  return { id: res.body.id, email, password: PASSWORD_FIXTURE };
+}
+
+export async function registrarUsuario(app: INestApplication): Promise<number> {
+  return (await registrarUsuarioConCredenciales(app)).id;
+}
+
+//admin de pruebas: se crea una vez (find-or-create) y los tests nunca lo modifican
+export const EMAIL_ADMIN = 'e2e-admin@example.com';
+export const PASSWORD_ADMIN = 'clave-admin-123';
+let bearerAdmin: string | null = null;
+
+//header Authorization de un ADMIN: lo crea directo en la base y obtiene su token por POST /auth/login
+export async function obtenerBearerAdmin(
+  app: INestApplication,
+): Promise<string> {
+  if (bearerAdmin) return bearerAdmin;
+  const dataSource = app.get(DataSource);
+  await inicializarDnis(dataSource);
+  await dataSource.query(
+    `INSERT INTO usuarios (nombre, apellido, dni, email, password, active, roles)
+     VALUES ('Admin', 'E2E', $1, $2, $3, true, '{ADMIN}') ON CONFLICT DO NOTHING`,
+    [dniNuevo(), EMAIL_ADMIN, await bcrypt.hash(PASSWORD_ADMIN, 4)],
+  );
+  await dataSource.query(
+    `UPDATE usuarios SET active = true, roles = '{ADMIN}' WHERE email = $1`,
+    [EMAIL_ADMIN],
+  );
+
+  const res = await request(app.getHttpServer())
+    .post('/api/v1/auth/login')
+    .send({ email: EMAIL_ADMIN, password: PASSWORD_ADMIN })
+    .expect(200);
+  bearerAdmin = `Bearer ${res.body.accessToken}`;
+  return bearerAdmin;
 }
 
 //activa un usuario y le asigna roles por el endpoint administrativo
@@ -100,6 +140,7 @@ export async function habilitarUsuario(
 ): Promise<void> {
   await request(app.getHttpServer())
     .patch(`/api/v1/usuarios/${usuarioId}/activar`)
+    .set('Authorization', await obtenerBearerAdmin(app))
     .send({ active: true, roles })
     .expect(200);
 }

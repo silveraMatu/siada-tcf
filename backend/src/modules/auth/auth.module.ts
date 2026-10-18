@@ -1,18 +1,37 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { UsuariosModule } from '../usuarios/usuarios.module.js';
 import { AuthController } from './infrastructure/http/auth.controller.js';
 import { RegistrarUsuarioUseCase } from './application/use-cases/registrar-usuario.use-case.js';
+import { LoginUseCase } from './application/use-cases/login.use-case.js';
 import { PasswordHasherPort } from './application/ports/out/password-hasher.port.js';
+import { TokenServicePort } from './application/ports/out/token-service.port.js';
 import { BcryptPasswordHasherAdapter } from './infrastructure/adapters/driven/security/bcrypt-password-hasher.adapter.js';
+import { JwtTokenAdapter } from './infrastructure/adapters/driven/security/jwt-token.adapter.js';
 
 @Module({
-  imports: [UsuariosModule],
+  imports: [
+    UsuariosModule,
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const { secret, expiresIn } = configService.get('jwt')!;
+        return { secret, signOptions: { expiresIn, algorithm: 'HS256' } };
+      },
+    }),
+  ],
   controllers: [AuthController],
   providers: [
     RegistrarUsuarioUseCase,
+    LoginUseCase,
     {
       provide: PasswordHasherPort,
       useClass: BcryptPasswordHasherAdapter,
+    },
+    {
+      provide: TokenServicePort,
+      useClass: JwtTokenAdapter,
     },
   ],
   exports: [PasswordHasherPort],

@@ -1,15 +1,19 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RegistroDto } from './dto/registro.dto.js';
+import { LoginDto } from './dto/login.dto.js';
+import { LoginResponseDto } from './dto/login-response.dto.js';
 import { UsuarioResponseDto } from '../../../usuarios/infrastructure/http/dto/usuario-response.dto.js';
 import { toUsuarioResponse } from '../../../usuarios/infrastructure/http/usuario-response.mapper.js';
 import { RegistrarUsuarioUseCase } from '../../application/use-cases/registrar-usuario.use-case.js';
+import { LoginUseCase } from '../../application/use-cases/login.use-case.js';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly registrarUsuarioUseCase: RegistrarUsuarioUseCase,
+    private readonly loginUseCase: LoginUseCase,
   ) {}
 
   //endpoint público
@@ -35,5 +39,28 @@ export class AuthController {
   async registro(@Body() dto: RegistroDto): Promise<UsuarioResponseDto> {
     const usuario = await this.registrarUsuarioUseCase.execute(dto);
     return toUsuarioResponse(usuario);
+  }
+
+  //endpoint público
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Iniciar sesión',
+    description:
+      'Endpoint público. Devuelve un JWT (válido 12 horas) con el id, el email y los roles del usuario. Una cuenta que todavía no fue activada por un administrador no puede iniciar sesión.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Sesión iniciada',
+    type: LoginResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Credenciales inválidas, o la cuenta está pendiente de activación por un administrador',
+  })
+  async login(@Body() dto: LoginDto): Promise<LoginResponseDto> {
+    return await this.loginUseCase.execute(dto);
   }
 }

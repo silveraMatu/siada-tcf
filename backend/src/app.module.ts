@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import databaseConfig from './config/database.config.js';
+import jwtConfig from './config/jwt.config.js';
 import { OrganismosModule } from './modules/organismos/organismos.module.js';
 import { CuentasModule } from './modules/cuentas/cuentas.module.js';
 import { LibroBancoModule } from './modules/libro-banco/libro-banco.module.js';
@@ -13,7 +14,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig],
+      load: [databaseConfig, jwtConfig],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
