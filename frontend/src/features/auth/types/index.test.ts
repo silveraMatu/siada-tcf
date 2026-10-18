@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { RegistroSchema } from './index';
+import { LoginSchema, RegistroSchema } from './index';
 
 const valido = {
   nombre: 'Ana',
@@ -55,5 +55,24 @@ describe('RegistroSchema', () => {
     expect(mensajes({ ...valido, password: 'ñ'.repeat(37) })).toContain(
       'La contraseña no puede superar los 72 bytes',
     );
+  });
+});
+
+describe('LoginSchema', () => {
+  it('acepta credenciales válidas, sin exigir un largo mínimo de contraseña', () => {
+    expect(
+      LoginSchema.safeParse({ email: 'ana@organismo.gob.ar', password: 'x' })
+        .success,
+    ).toBe(true);
+  });
+
+  it('rechaza un email inválido', () => {
+    const r = LoginSchema.safeParse({ email: 'no-es-email', password: 'x' });
+    expect(r.success).toBe(false);
+  });
+
+  it('exige la contraseña', () => {
+    const r = LoginSchema.safeParse({ email: 'ana@organismo.gob.ar', password: '' });
+    expect(r.success).toBe(false);
   });
 });

@@ -41,3 +41,19 @@ export const RegistroSchema = z.object({
 });
 
 export type RegistroFormValues = z.infer<typeof RegistroSchema>;
+
+export const LoginSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, 'El email es obligatorio')
+    .pipe(z.email('El email no es válido')),
+  // Sin largo mínimo: no se expone la política de contraseñas al iniciar sesión.
+  password: z.string().min(1, 'La contraseña es obligatoria'),
+});
+
+export type LoginFormValues = z.infer<typeof LoginSchema>;
+
+export interface LoginResponse {
+  accessToken: string;
+}

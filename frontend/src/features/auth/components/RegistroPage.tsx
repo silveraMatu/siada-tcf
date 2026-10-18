@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Check, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AlertCircle, Check, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
@@ -24,20 +24,8 @@ import { Input } from '@/components/ui/input';
 import { getErrorMessage } from '@/lib/api';
 import { useRegistro } from '../hooks/useRegistro';
 import { RegistroSchema, type RegistroFormValues } from '../types';
-
-function Marca() {
-  return (
-    <Link to="/" className="mb-8 flex items-center gap-3">
-      <span className="text-sm font-semibold tracking-tight text-slate-900">
-        HTC Formosa
-      </span>
-      <span className="h-4 w-px bg-slate-300" aria-hidden />
-      <span className="text-sm font-semibold tracking-tight text-blue-600">
-        SIADA
-      </span>
-    </Link>
-  );
-}
+import { AuthShell } from './AuthShell';
+import { PasswordInput } from './PasswordInput';
 
 function RegistroExitoso() {
   return (
@@ -65,7 +53,6 @@ function RegistroExitoso() {
 
 export function RegistroPage() {
   const [isSuccess, setIsSuccess] = useState(false);
-  const [mostrarPassword, setMostrarPassword] = useState(false);
   const registro = useRegistro();
 
   const form = useForm<RegistroFormValues>({
@@ -85,9 +72,7 @@ export function RegistroPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-12">
-      <Marca />
-
+    <AuthShell>
       {isSuccess ? (
         <RegistroExitoso />
       ) : (
@@ -180,30 +165,9 @@ export function RegistroPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Contraseña</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            type={mostrarPassword ? 'text' : 'password'}
-                            autoComplete="new-password"
-                            className="pr-10"
-                            {...field}
-                          />
-                        </FormControl>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-0 top-0 size-9 text-muted-foreground"
-                          aria-label={
-                            mostrarPassword
-                              ? 'Ocultar contraseña'
-                              : 'Mostrar contraseña'
-                          }
-                          onClick={() => setMostrarPassword((v) => !v)}
-                        >
-                          {mostrarPassword ? <EyeOff /> : <Eye />}
-                        </Button>
-                      </div>
+                      <FormControl>
+                        <PasswordInput autoComplete="new-password" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -244,6 +208,6 @@ export function RegistroPage() {
           </Link>
         </p>
       )}
-    </main>
+    </AuthShell>
   );
 }
