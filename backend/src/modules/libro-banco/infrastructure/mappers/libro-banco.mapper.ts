@@ -9,22 +9,22 @@ export class LibroBancoMapper {
       ? entity.transacciones.map(
           (t) =>
             new TransaccionLibroBanco(
-              t.id,
               t.fecha,
               t.cheque,
               t.aLaOrdenDe,
               Number(t.depositos),
               Number(t.retiro),
               Number(t.saldo),
+              t.id,
             ),
         )
       : [];
 
     return new LibroBanco(
-      entity.id,
       entity.cuentaMensualId,
       entity.numeroCuentaCte,
       transacciones,
+      entity.id,
       entity.fechaCreacion,
     );
   }

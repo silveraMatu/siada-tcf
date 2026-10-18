@@ -4,10 +4,10 @@ import { CuentaMensualEntity } from '../entities/cuenta-mensual.entity.js';
 export class CuentaMensualMapper {
   static toDomain(entity: CuentaMensualEntity): CuentaMensual {
     return new CuentaMensual(
-      entity.id,
       entity.mes,
       entity.cuentaAnualId,
       entity.estado,
+      entity.id,
       entity.fechaCreacion,
     );
   }

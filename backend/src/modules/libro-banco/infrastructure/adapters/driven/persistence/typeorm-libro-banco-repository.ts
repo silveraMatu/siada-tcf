@@ -19,24 +19,17 @@ export class TypeOrmLibroBancoRepositoryAdapter implements LibroBancoRepositoryP
     return LibroBancoMapper.toDomain(guardado);
   }
 
-  async buscarTodos(): Promise<LibroBanco[]> {
-    const entities = await this.repository.find({
-      relations: {
-        'transacciones': true
-      },
-    });
-    return entities.map(entity => LibroBancoMapper.toDomain(entity));
-  }
-
-  async buscarPorCuentaMensualId(cuentaMensualId: number): Promise<LibroBanco[]> {
+  async buscarPorCuentaMensualId(
+    cuentaMensualId: number,
+  ): Promise<LibroBanco[]> {
     const entities = await this.repository.find({
       where: { cuentaMensualId },
       relations: {
-        'transacciones': true
+        transacciones: true,
       },
       order: { id: 'ASC' },
     });
 
-    return entities.map(entity => LibroBancoMapper.toDomain(entity));
+    return entities.map((entity) => LibroBancoMapper.toDomain(entity));
   }
 }

@@ -1,9 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { LibroBancoRepositoryPort } from '../ports/out/libro-banco-repository.port.js';
 import { CuentaMensualRepositoryPort } from '../../../cuentas/application/ports/out/cuenta-mensual-repository.port.js';
-import { UploadLibroBancoDto } from '../../infrastructure/http/dto/upload-libro-banco.dto.js';
 import { LibroBanco } from '../../domain/entities/libro-banco.domain.js';
 import { TransaccionLibroBanco } from '../../domain/entities/transaccion-libro-banco.domain.js';
+
+//entrada del caso de uso, independiente del DTO HTTP
+export interface IngestarLibroBancoComando {
+  numeroCuentaCte?: string;
+  transacciones: {
+    fecha?: string;
+    cheque?: string;
+    aLaOrdenDe: string;
+    depositos: number;
+    retiro: number;
+    saldo: number;
+  }[];
+}
 
 @Injectable()
 export class IngestarLibroBancoUseCase {
@@ -12,18 +24,23 @@ export class IngestarLibroBancoUseCase {
     private readonly cuentaMensualRepository: CuentaMensualRepositoryPort,
   ) {}
 
-  async execute(cuentaMensualId: number, dto: UploadLibroBancoDto): Promise<LibroBanco> {
+  async execute(
+    cuentaMensualId: number,
+    comando: IngestarLibroBancoComando,
+  ): Promise<LibroBanco> {
     //validamos existencia de la cuenta mensual
-    const existeCuenta = await this.cuentaMensualRepository.existe(cuentaMensualId);
+    const existeCuenta =
+      await this.cuentaMensualRepository.existe(cuentaMensualId);
     if (!existeCuenta) {
-      throw new NotFoundException(`La Cuenta Mensual con ID ${cuentaMensualId} no existe.`);
+      throw new NotFoundException(
+        `La Cuenta Mensual con ID ${cuentaMensualId} no existe.`,
+      );
     }
 
-    //mapping del dto a la entidad de dominio
-    const transaccionesDomain = dto.transacciones.map(
+    //mapping del comando a la entidad de dominio
+    const transaccionesDomain = comando.transacciones.map(
       (t) =>
         new TransaccionLibroBanco(
-          null,
           t.fecha ?? null,
           t.cheque ?? null,
           t.aLaOrdenDe,
@@ -34,13 +51,12 @@ export class IngestarLibroBancoUseCase {
     );
 
     const libroBancoDomain = new LibroBanco(
-      null,
       cuentaMensualId,
-      dto.numeroCuentaCte ?? null,
+      comando.numeroCuentaCte ?? null,
       transaccionesDomain,
     );
 
-    //prsistir usando el Puerto de Salida
+    //persistir usando el Puerto de Salida
     return await this.libroBancoRepository.guardar(libroBancoDomain);
   }
 }
