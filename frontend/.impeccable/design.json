@@ -1,30 +1,104 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-18T00:00:00Z",
+  "generatedAt": "2026-10-18T18:00:00Z",
   "title": "Design System: SIADA · Landing «El Expediente Foliado»",
   "extensions": {
     "colorMeta": {
-      "carpeta": { "role": "primary", "displayName": "Índigo de Carpeta", "canonical": "#1b2470", "tonalRamp": ["#0a0e2e", "#121a55", "#1b2470", "#2b37a0", "#5560c4", "#8c94dc", "#c3c8ee", "#e9ebf8"] },
-      "carpeta-hondo": { "role": "primary", "displayName": "Carpeta Hondo", "canonical": "#121a55", "tonalRamp": ["#070a2a", "#0c1240", "#121a55", "#1b2470", "#2b37a0", "#5560c4", "#8c94dc", "#c3c8ee"] },
-      "sello-violeta": { "role": "secondary", "displayName": "Violeta de Sello", "canonical": "#5b2d9e", "tonalRamp": ["#1f0f38", "#341a5c", "#5b2d9e", "#7a4cb8", "#9a73cc", "#b99ddc", "#d8c8ec", "#efe8f8"] },
-      "sello-rojo": { "role": "secondary", "displayName": "Rojo Observado", "canonical": "#c4301f", "tonalRamp": ["#3a0e08", "#6b1a10", "#c4301f", "#d95a4a", "#e68476", "#efa99f", "#f6cdc7", "#fbe9e6"] },
-      "sello-verde": { "role": "secondary", "displayName": "Verde Aprobado", "canonical": "#17784a", "tonalRamp": ["#08241a", "#0f4a2e", "#17784a", "#3a9a6a", "#68b88f", "#98d0b2", "#c7e6d6", "#e8f5ee"] },
-      "foja": { "role": "neutral", "displayName": "Foja", "canonical": "#fbfbf8", "tonalRamp": ["#4a4a46", "#6e6e69", "#92928c", "#b6b6b0", "#d4d4cf", "#e8e8e3", "#f4f4f0", "#fbfbf8"] },
-      "oficio": { "role": "neutral", "displayName": "Oficio", "canonical": "#e9ebf2", "tonalRamp": ["#3c4050", "#5a5f74", "#7c8196", "#9ea3b6", "#bcc0cf", "#d3d6e2", "#e9ebf2", "#f5f6fa"] },
-      "tinta": { "role": "neutral", "displayName": "Tinta", "canonical": "#14173a", "tonalRamp": ["#14173a", "#2a2d54", "#41446e", "#5d6088", "#7e81a2", "#a2a5bf", "#c8cada", "#e8e9f0"] },
-      "lapiz": { "role": "neutral", "displayName": "Lápiz", "canonical": "#b8bfd9", "tonalRamp": ["#2c3150", "#454b72", "#5f668f", "#7e86a9", "#9aa2c2", "#b8bfd9", "#d4d8e8", "#eceef5"] }
+      "foreground": {
+        "role": "primary",
+        "displayName": "Tinta",
+        "canonical": "#0a0a0a",
+        "dark": "#f5f5f5",
+        "tonalRamp": ["#0a0a0a", "#2a2a2a", "#4a4a4a", "#666666", "#8e8e8e", "#b3b3b3", "#d6d6d6", "#f5f5f5"]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Botón principal",
+        "canonical": "#171717",
+        "dark": "#fafafa",
+        "tonalRamp": ["#171717", "#2e2e2e", "#4a4a4a", "#666666", "#8e8e8e", "#b3b3b3", "#d9d9d9", "#fafafa"]
+      },
+      "sello-violeta": {
+        "role": "secondary",
+        "displayName": "Violeta de Sello",
+        "canonical": "#5b21b6",
+        "dark": "#c4b5fd",
+        "tonalRamp": ["#2e1065", "#4c1d95", "#5b21b6", "#6d28d9", "#8b5cf6", "#a78bfa", "#c4b5fd", "#ede9fe"]
+      },
+      "sello-rojo": {
+        "role": "secondary",
+        "displayName": "Rojo Observado",
+        "canonical": "#b91c1c",
+        "dark": "#f87171",
+        "tonalRamp": ["#450a0a", "#7f1d1d", "#b91c1c", "#dc2626", "#ef4444", "#f87171", "#fca5a5", "#fee2e2"]
+      },
+      "sello-verde": {
+        "role": "secondary",
+        "displayName": "Verde Aprobado",
+        "canonical": "#047857",
+        "dark": "#34d399",
+        "tonalRamp": ["#022c22", "#064e3b", "#047857", "#059669", "#10b981", "#34d399", "#6ee7b7", "#d1fae5"]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Fondo",
+        "canonical": "#ffffff",
+        "dark": "#0a0a0a",
+        "tonalRamp": ["#0a0a0a", "#2a2a2a", "#555555", "#808080", "#b0b0b0", "#d9d9d9", "#f0f0f0", "#ffffff"]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Foja",
+        "canonical": "#ffffff",
+        "dark": "#121212",
+        "tonalRamp": ["#121212", "#333333", "#555555", "#808080", "#b0b0b0", "#d9d9d9", "#f0f0f0", "#ffffff"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Franja alterna",
+        "canonical": "#f5f5f5",
+        "dark": "#1f1f1f",
+        "tonalRamp": ["#1f1f1f", "#383838", "#555555", "#808080", "#b0b0b0", "#d6d6d6", "#ebebeb", "#f5f5f5"]
+      },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "Texto secundario",
+        "canonical": "#666666",
+        "dark": "#a6a6a6",
+        "tonalRamp": ["#262626", "#404040", "#555555", "#666666", "#808080", "#a6a6a6", "#c4c4c4", "#e0e0e0"]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Línea",
+        "canonical": "#e5e5e5",
+        "dark": "#2e2e2e",
+        "tonalRamp": ["#2e2e2e", "#4a4a4a", "#707070", "#999999", "#b8b8b8", "#d0d0d0", "#e5e5e5", "#f2f2f2"]
+      }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Titular del hero en Libre Franklin 800." },
+      "display": { "displayName": "Display", "purpose": "Titular del hero en Libre Franklin 800 (font-prensa)." },
       "headline": { "displayName": "Headline", "purpose": "Títulos de sección." },
       "title": { "displayName": "Title", "purpose": "Encabezados de foja y cadena de roles." },
-      "body": { "displayName": "Body", "purpose": "Párrafos de 52 a 55ch." },
-      "campo": { "displayName": "Campo", "purpose": "Cifras y renglones en Courier Prime con tabular-nums." },
+      "body": { "displayName": "Body", "purpose": "Párrafos de 52 a 55ch en muted-foreground." },
+      "campo": { "displayName": "Campo", "purpose": "Cifras y renglones en Courier Prime (font-maquina) con tabular-nums." },
       "label": { "displayName": "Label", "purpose": "Cabeceras de columna y rótulo ilustrativo." }
     },
     "shadows": [
-      { "name": "foja-hero", "value": "0 34px 60px -24px rgba(6,8,36,0.7), 0 2px 6px rgba(6,8,36,0.18)", "purpose": "Planilla principal del hero." },
-      { "name": "foja-seccion", "value": "0 30px 60px -26px rgba(0,0,0,0.6)", "purpose": "Foja de consulta del asistente." }
+      {
+        "name": "foja-hero",
+        "value": "0 30px 50px -26px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.1)",
+        "purpose": "Planilla principal del hero."
+      },
+      {
+        "name": "foja-seccion",
+        "value": "0 28px 50px -26px rgba(0,0,0,0.25), 0 2px 5px rgba(0,0,0,0.08)",
+        "purpose": "Fojas de asistente, motor y trazabilidad."
+      },
+      {
+        "name": "foja-oscuro-anillo",
+        "value": "0 0 0 1px rgba(255,255,255,0.15)",
+        "purpose": "Separación de la foja en tema oscuro (dark:ring-1 dark:ring-white/15)."
+      }
     ],
     "motion": [
       { "name": "ease-expediente", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Easing de todas las entradas." },
@@ -41,44 +115,52 @@
   },
   "components": [
     {
-      "name": "Botón primario sobre carpeta",
+      "name": "Botón primario",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Acción principal «Iniciar sesión»: papel sobre índigo.",
-      "html": "<div style=\"background:#1b2470;padding:24px\"><a class=\"ds-btn-primary\" href=\"#\">Iniciar sesión</a></div>",
-      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:8px;background:#fbfbf8;color:#1b2470;padding:16px 32px;font-weight:700;font-size:16px;text-decoration:none;border-radius:0;transition:background .2s}.ds-btn-primary:hover{background:#fff}.ds-btn-primary:focus-visible{outline:2px solid #fbfbf8;outline-offset:3px}"
+      "description": "Button de shadcn variante default con rounded-none: «Iniciar sesión».",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">Iniciar sesión →</a>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;background:hsl(var(--primary,0 0% 9%));color:hsl(var(--primary-foreground,0 0% 98%));padding:0 32px;font-weight:700;font-size:16px;text-decoration:none;border-radius:0;box-shadow:0 1px 3px rgba(0,0,0,.1);transition:background .15s}.ds-btn-primary:hover{background:hsl(var(--primary,0 0% 9%)/.9)}.ds-btn-primary:focus-visible{outline:none;box-shadow:0 0 0 1px hsl(var(--ring,0 0% 9%))}"
     },
     {
-      "name": "Botón secundario sobre carpeta",
+      "name": "Botón outline",
       "kind": "button",
-      "refersTo": "button-secondary",
-      "description": "«Registrarse»: recuadro de 2px sin relleno.",
-      "html": "<div style=\"background:#1b2470;padding:24px\"><a class=\"ds-btn-secondary\" href=\"#\">Registrarse</a></div>",
-      "css": ".ds-btn-secondary{display:inline-flex;border:2px solid rgba(251,251,248,.5);color:#fbfbf8;padding:14px 28px;font-weight:600;font-size:16px;text-decoration:none;transition:background .2s,border-color .2s}.ds-btn-secondary:hover{border-color:#fbfbf8;background:rgba(255,255,255,.1)}.ds-btn-secondary:focus-visible{outline:2px solid #fbfbf8;outline-offset:3px}"
+      "refersTo": "button-outline",
+      "description": "Button de shadcn variante outline con rounded-none; en el hero con borde de 2px en foreground: «Registrarse».",
+      "html": "<a class=\"ds-btn-outline\" href=\"#\">Registrarse</a>",
+      "css": ".ds-btn-outline{display:inline-flex;align-items:center;justify-content:center;height:48px;border:2px solid hsl(var(--foreground,0 0% 4%));background:hsl(var(--background,0 0% 100%));color:hsl(var(--foreground,0 0% 4%));padding:0 32px;font-weight:600;font-size:16px;text-decoration:none;border-radius:0;transition:background .15s}.ds-btn-outline:hover{background:hsl(var(--accent,0 0% 95%))}.ds-btn-outline:focus-visible{outline:none;box-shadow:0 0 0 1px hsl(var(--ring,0 0% 9%))}"
     },
     {
       "name": "Navegación",
       "kind": "nav",
-      "refersTo": "button-primary",
-      "description": "Barra fija índigo con marca y accesos.",
-      "html": "<header class=\"ds-nav\"><span class=\"ds-nav-marca\">SIADA</span><span class=\"ds-nav-sub\">Tribunal de Cuentas · Formosa</span><a class=\"ds-nav-link\" href=\"#\">Registrarse</a><a class=\"ds-nav-cta\" href=\"#\">Iniciar sesión</a></header>",
-      "css": ".ds-nav{display:flex;align-items:baseline;gap:12px;height:64px;padding:0 24px;background:#1b2470;color:#fbfbf8;border-bottom:1px solid rgba(255,255,255,.1);align-items:center}.ds-nav-marca{font-weight:800;font-size:16px}.ds-nav-sub{font-size:14px;color:#cfd3f2;flex:1}.ds-nav-link{color:#cfd3f2;font-size:14px;font-weight:500;text-decoration:none}.ds-nav-link:hover{color:#fbfbf8}.ds-nav-cta{background:#fbfbf8;color:#1b2470;padding:8px 16px;font-size:14px;font-weight:700;text-decoration:none}.ds-nav-cta:hover{background:#fff}"
+      "refersTo": "navbar",
+      "description": "Barra fija bg-background/80 con backdrop-blur, borde border-border, botón de tema y accesos rectos.",
+      "html": "<header class=\"ds-nav\"><span class=\"ds-nav-marca\">SIADA</span><span class=\"ds-nav-sub\">Tribunal de Cuentas · Formosa</span><button class=\"ds-tema\" aria-label=\"Cambiar a tema oscuro\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z\"/></svg></button><a class=\"ds-nav-link\" href=\"#\">Registrarse</a><a class=\"ds-nav-cta\" href=\"#\">Iniciar sesión</a></header>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:8px;height:64px;padding:0 24px;background:hsl(var(--background,0 0% 100%)/.8);backdrop-filter:blur(8px);color:hsl(var(--foreground,0 0% 4%));border-bottom:1px solid hsl(var(--border,0 0% 90%))}.ds-nav-marca{font-weight:800;font-size:16px}.ds-nav-sub{font-size:14px;color:hsl(var(--muted-foreground,0 0% 40%));flex:1;margin-left:8px}.ds-tema{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid hsl(var(--border,0 0% 90%));border-radius:6px;background:transparent;color:hsl(var(--muted-foreground,0 0% 40%));cursor:pointer;transition:background .15s}.ds-tema:hover{background:hsl(var(--accent,0 0% 95%));color:hsl(var(--foreground,0 0% 4%))}.ds-nav-link{display:inline-flex;align-items:center;height:32px;padding:0 12px;border:1px solid hsl(var(--input,0 0% 90%));background:hsl(var(--background,0 0% 100%));color:hsl(var(--foreground,0 0% 4%));font-size:12px;font-weight:500;text-decoration:none}.ds-nav-link:hover{background:hsl(var(--accent,0 0% 95%))}.ds-nav-cta{display:inline-flex;align-items:center;height:32px;padding:0 12px;background:hsl(var(--primary,0 0% 9%));color:hsl(var(--primary-foreground,0 0% 98%));font-size:12px;font-weight:700;text-decoration:none}.ds-nav-cta:hover{background:hsl(var(--primary,0 0% 9%)/.9)}"
     },
     {
       "name": "Foja con folio",
       "kind": "card",
       "refersTo": "foja-card",
-      "description": "Papel con encabezado de filete grueso y foliador.",
+      "description": "bg-card con borde border-border, encabezado de filete grueso en foreground y foliador nítido.",
       "html": "<article class=\"ds-foja\"><header class=\"ds-foja-h\"><h3>Libro Banco · Marzo 2026</h3><span class=\"ds-folio\">Fs. 14</span></header><p class=\"ds-foja-p\">Organismo de ejemplo</p></article>",
-      "css": ".ds-foja{background:#fbfbf8;color:#14173a;padding:28px;box-shadow:0 34px 60px -24px rgba(6,8,36,.7),0 2px 6px rgba(6,8,36,.18);max-width:420px}.ds-foja-h{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #14173a;padding-bottom:16px}.ds-foja-h h3{margin:0;font-weight:800;font-size:20px}.ds-folio{display:inline-block;border:3px solid #5b2d9e;outline:1px solid #5b2d9e;outline-offset:3px;color:#5b2d9e;border-radius:2px;padding:4px 8px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.08em;transform:rotate(-3deg)}.ds-foja-p{font-family:'Courier Prime',monospace;font-size:12px;color:rgba(20,23,58,.7)}"
+      "css": ".ds-foja{background:hsl(var(--card,0 0% 100%));color:hsl(var(--card-foreground,0 0% 4%));border:1px solid hsl(var(--border,0 0% 90%));padding:28px;box-shadow:0 30px 50px -26px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.1);max-width:420px}.ds-foja-h{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid hsl(var(--foreground,0 0% 4%));padding-bottom:16px}.ds-foja-h h3{margin:0;font-weight:800;font-size:20px}.ds-folio{display:inline-block;border:3px solid #5b21b6;outline:1px solid #5b21b6;outline-offset:3px;color:#5b21b6;border-radius:2px;padding:6px 10px;font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;transform:rotate(-3deg)}.ds-foja-p{font-family:'Courier Prime',monospace;font-size:12px;color:hsl(var(--muted-foreground,0 0% 40%))}"
     },
     {
       "name": "Planilla",
       "kind": "custom",
       "refersTo": "foja-card",
-      "description": "Tabla en máquina de escribir con reglado de lápiz y marcas.",
+      "description": "Tabla en máquina de escribir con reglado de border-border.",
       "html": "<table class=\"ds-planilla\"><thead><tr><th>Fecha</th><th>Concepto</th><th class=\"r\">Retiros</th></tr></thead><tbody><tr><td>05/03</td><td>Pago proveedor</td><td class=\"r\">120.000,00</td></tr><tr><td>12/03</td><td>Transferencia</td><td class=\"r\">80.000,00</td></tr></tbody></table>",
-      "css": ".ds-planilla{width:100%;border-collapse:collapse;background:#fbfbf8;color:#14173a;font-family:'Courier Prime',monospace;font-size:13px}.ds-planilla th{text-align:left;font-weight:400;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:rgba(20,23,58,.7);border-bottom:1px solid #b8bfd9;padding:6px 8px}.ds-planilla td{padding:8px;border-bottom:1px solid rgba(184,191,217,.7);font-variant-numeric:tabular-nums}.ds-planilla .r{text-align:right}"
+      "css": ".ds-planilla{width:100%;border-collapse:collapse;background:hsl(var(--card,0 0% 100%));color:hsl(var(--card-foreground,0 0% 4%));font-family:'Courier Prime',monospace;font-size:13px}.ds-planilla th{text-align:left;font-weight:400;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:hsl(var(--muted-foreground,0 0% 40%));border-bottom:1px solid hsl(var(--border,0 0% 90%));padding:6px 8px}.ds-planilla td{padding:8px;border-bottom:1px solid hsl(var(--border,0 0% 90%)/.7);font-variant-numeric:tabular-nums}.ds-planilla .r{text-align:right}"
+    },
+    {
+      "name": "Celda Dictamina",
+      "kind": "custom",
+      "refersTo": "celda-dictamina",
+      "description": "Último rol de la cadena, invertido: bg-foreground text-background.",
+      "html": "<div class=\"ds-dictamina\"><dt>Dictamina</dt><dd>Delegado fiscal</dd></div>",
+      "css": ".ds-dictamina{background:hsl(var(--foreground,0 0% 4%));color:hsl(var(--background,0 0% 100%));padding:20px 24px;max-width:240px}.ds-dictamina dt{font-weight:800;font-size:18px;line-height:1.2}.ds-dictamina dd{margin:4px 0 0;font-size:14px;line-height:1.35;opacity:.8}"
     },
     {
       "name": "Sello Observado",
@@ -86,37 +168,68 @@
       "refersTo": "sello",
       "description": "Sello de tinta con doble filete y giro; rojo para observación.",
       "html": "<span class=\"ds-sello\">Observado</span>",
-      "css": ".ds-sello{display:inline-block;border:3px solid #c4301f;outline:1px solid #c4301f;outline-offset:3px;color:#c4301f;border-radius:2px;padding:4px 12px;font-weight:800;font-size:24px;text-transform:uppercase;letter-spacing:.08em;line-height:1;transform:rotate(-8deg);mix-blend-mode:multiply}"
+      "css": ".ds-sello{display:inline-block;border:3px solid #b91c1c;outline:1px solid #b91c1c;outline-offset:3px;color:#b91c1c;border-radius:2px;padding:4px 12px;font-weight:800;font-size:24px;text-transform:uppercase;letter-spacing:.08em;line-height:1;transform:rotate(-8deg);mix-blend-mode:multiply}"
     }
   ],
   "narrative": {
     "northStar": "El Expediente Foliado",
-    "overview": "La rendición mensual se presenta como un legajo del Tribunal de Cuentas: la carátula índigo declara el propósito, cada foja de papel frío es una verificación y el sello es del delegado fiscal. Es una superficie de persuasión institucional, sobria y legible, que se apoya en materiales de oficina pública (carpeta, papel, tinta de sello, lápiz) y no en decoración de producto.\n\nLa composición alterna campos índigo a escala de página con campo de papel «oficio» claro. Sobre ellos se apoyan fojas blancas con sombra suave de papel apilado, numeradas con un foliador. Las cifras, campos y datos de expediente van en máquina de escribir; los titulares, en grotesca de prensa oficial con pesos altos. El único movimiento orquestado es la verificación renglón por renglón de la planilla del hero, que cierra con el sello rojo.",
+    "overview": "La rendición mensual se presenta como un legajo del Tribunal de Cuentas: la carátula declara el propósito, cada foja es una verificación y el sello es del delegado fiscal. Es una superficie de persuasión institucional, sobria y legible, que se apoya en materiales de oficina pública (papel, tinta, sello, lápiz) y no en decoración de producto.\n\nEl fondo es blanco y la composición alterna franjas de fondo con una franja gris apenas más oscura (muted al 40%). Sobre ellas se apoyan fojas (card) con borde fino y sombra suave de papel apilado, numeradas con un foliador. Las cifras, campos y datos de expediente van en máquina de escribir; los titulares, en grotesca de prensa oficial con pesos altos.\n\nEl tema oscuro es el mismo expediente en negro neutro, sin tinte azul; se activa con un único botón en la cabecera.",
     "keyCharacteristics": [
-      "Esquinas rectas en botones y fojas; el único redondeo es de 2px en sellos.",
-      "Campo índigo de carpeta contra papel blanco frío; tres tintas de sello como únicos acentos.",
+      "Colores solo por variable semántica de shadcn; el tema oscuro funciona sin variantes dark: salvo en los sellos.",
+      "Esquinas rectas en botones y fojas (rounded-none); el único redondeo es de 2px en sellos y folio.",
+      "Neutros puros como base; tres tintas de sello (violeta, rojo, verde) como únicos acentos.",
       "Dos familias: Libre Franklin (prensa) y Courier Prime (máquina).",
       "Sin tarjetas con icono; la jerarquía la dan filetes, folios y sellos.",
       "Todo material de demostración lleva el rótulo «Ejemplo ilustrativo · datos ficticios».",
       "Movimiento solo con motion-safe:; respeta prefers-reduced-motion."
     ],
     "rules": [
-      { "name": "The Tinta de Estado Rule", "body": "Violeta identifica al sistema y al auditor (folio, lápiz), rojo identifica una observación, verde un dictamen aprobado. Ninguna tinta se usa como decoración.", "section": "colors" },
-      { "name": "The Campo y Papel Rule", "body": "El índigo es campo de escala de página; el contenido operativo (cifras, planillas, consultas) siempre vive sobre una foja de papel.", "section": "colors" },
-      { "name": "The Máquina Solo para Datos Rule", "body": "Courier Prime se reserva a cifras, campos y datos de expediente; los titulares y la prosa nunca van en máquina.", "section": "typography" },
-      { "name": "The Papel Apilado Rule", "body": "La profundidad se logra con hojas apiladas y sombras difusas de papel, nunca con sombras duras desplazadas ni brillos.", "section": "elevation" }
+      {
+        "name": "The Tinta de Estado Rule",
+        "body": "Violeta identifica al sistema y al auditor (folio, viñetas, rótulo), rojo una observación, verde un dictamen aprobado. Ninguna tinta se usa como decoración.",
+        "section": "colors"
+      },
+      {
+        "name": "The Variable Semántica Rule",
+        "body": "Todo color de superficie, texto y línea sale de una variable semántica de shadcn; solo los sellos, el folio y las viñetas usan la paleta de Tailwind (violet, red, emerald, y zinc-950 para el texto del folio relleno), siempre con su par dark:.",
+        "section": "colors"
+      },
+      {
+        "name": "The Foja sobre Fondo Rule",
+        "body": "El contenido operativo (cifras, planillas, consultas) vive sobre una foja bg-card con borde border-border; en oscuro la foja suma un anillo blanco al 15%. Las franjas solo alternan entre bg-background y bg-muted/40.",
+        "section": "colors"
+      },
+      {
+        "name": "The Neutro Rule",
+        "body": "Ni el tema claro ni el oscuro llevan tinte de matiz: gris puro en ambos. No reintroducir campos de color de marca.",
+        "section": "colors"
+      },
+      {
+        "name": "The Máquina Solo para Datos Rule",
+        "body": "Courier Prime se reserva a cifras, campos y datos de expediente; los titulares y la prosa nunca van en máquina.",
+        "section": "typography"
+      },
+      {
+        "name": "The Papel Apilado Rule",
+        "body": "La profundidad se logra con hojas apiladas y sombras difusas de papel, nunca con sombras duras desplazadas ni brillos.",
+        "section": "elevation"
+      }
     ],
     "dos": [
-      "Do apoyar toda cifra o dato operativo sobre una foja de papel (#fbfbf8) en Courier Prime con tabular-nums.",
+      "Do apoyar toda cifra o dato operativo sobre una foja bg-card con borde border-border, en Courier Prime con tabular-nums.",
+      "Do usar solo variables semánticas de shadcn para superficies, texto y líneas (background, foreground, card, muted, muted-foreground, border), de modo que el tema oscuro funcione sin variantes dark: propias.",
+      "Do usar el Button de shadcn con rounded-none; variante default para la acción principal y outline para la secundaria, y un solo botón de tema en la cabecera.",
+      "Do dar a los sellos su par claro/oscuro (text-violet-800 dark:text-violet-300, text-red-700 dark:text-red-400, text-emerald-700 dark:text-emerald-400).",
       "Do rotular todo material con datos ficticios con «Ejemplo ilustrativo · datos ficticios».",
-      "Do numerar las fojas con el Folio y usar sellos para estados (violeta, rojo, verde).",
+      "Do numerar las fojas con el Folio y usar sellos para estados.",
       "Do envolver cada animación en motion-safe: y usar el easing cubic-bezier(0.16, 1, 0.3, 1).",
-      "Do mantener esquinas rectas y titulares en Libre Franklin 800 con interletrado negativo."
+      "Do mantener titulares en Libre Franklin 800 con interletrado negativo."
     ],
     "donts": [
       "Don't usar el hero centrado con badge, dos botones y fila de tarjetas iguales (rechazo explícito de la dirección).",
+      "Don't reintroducir un campo índigo o azul ni tintes azulados en el negro: el usuario rechazó el fondo índigo y el oscuro es neutro.",
       "Don't usar tarjetas con icono para explicar funciones.",
-      "Don't usar Inter, shadcn ni los neutros HSL internos dentro de la landing, ni llevar este mundo a las pantallas internas sin decisión explícita.",
+      "Don't crear de nuevo tokens de color propios de la landing (suelo, papel, tinta, lápiz, sello-*); si falta un matiz, se resuelve con la variable semántica más cercana.",
       "Don't usar Courier Prime para titulares o prosa.",
       "Don't presentar cifras, plazos o capacidades del motor determinístico o de la IA como existentes: se describen por función (todavía no existen en el backend)."
     ]

@@ -44,13 +44,13 @@ export function SeccionMotor() {
   const animada = fase === 'animada';
 
   return (
-    <section className="bg-oficio text-tinta">
+    <section className="bg-muted/40 text-foreground">
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 md:px-8 md:py-28 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-5">
           <h2 className="font-prensa text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold leading-[1.08] tracking-[-0.02em] text-balance">
             El motor revisa las cifras. Usted ve qué encontró y por qué.
           </h2>
-          <p className="mt-5 max-w-[55ch] text-lg leading-relaxed text-tinta/80">
+          <p className="mt-5 max-w-[55ch] text-lg leading-relaxed text-muted-foreground">
             Un motor determinístico cruza los saldos, los depósitos y los
             retiros de cada rendición y señala lo que no cuadra. No estima ni
             adivina: aplica reglas explícitas que el delegado puede seguir paso
@@ -60,11 +60,11 @@ export function SeccionMotor() {
             {controles.map((texto) => (
               <li
                 key={texto}
-                className="flex gap-3 border-t border-lapiz pt-3 text-[15px] leading-snug"
+                className="flex gap-3 border-t border-border pt-3 text-base leading-snug"
               >
                 <span
                   aria-hidden
-                  className="mt-[3px] size-2 shrink-0 bg-sello-violeta"
+                  className="mt-[3px] size-2 shrink-0 bg-violet-800 dark:bg-violet-300"
                 />
                 {texto}
               </li>
@@ -75,9 +75,9 @@ export function SeccionMotor() {
         <figure className="lg:col-span-7">
           <div
             ref={ref}
-            className="relative bg-foja p-6 shadow-[0_28px_50px_-26px_rgba(20,23,58,0.45),0_2px_5px_rgba(20,23,58,0.12)] sm:p-8"
+            className="relative border border-border bg-card p-6 text-card-foreground shadow-[0_28px_50px_-26px_rgba(0,0,0,0.25),0_2px_5px_rgba(0,0,0,0.08)] dark:ring-1 dark:ring-white/15 sm:p-8"
           >
-            <div className="flex items-start justify-between gap-4 border-b-2 border-tinta pb-3">
+            <div className="flex items-start justify-between gap-4 border-b-2 border-foreground pb-3">
               <h3 className="font-prensa text-base font-extrabold">
                 Papel de trabajo: de dónde sale la observación
               </h3>
@@ -95,11 +95,11 @@ export function SeccionMotor() {
                   }
                   style={animada ? retraso(i * 420) : undefined}
                 >
-                  <span className="font-maquina text-sm font-bold text-sello-violeta">
+                  <span className="font-maquina text-sm font-bold text-violet-800 dark:text-violet-300">
                     {i + 1}.
                   </span>
                   <div>
-                    <p className="font-prensa text-[15px] font-bold leading-snug">
+                    <p className="font-prensa text-base font-bold leading-snug">
                       {titulo}
                     </p>
                     <p className="mt-1 break-words font-maquina text-[13px] leading-relaxed tabular-nums sm:text-sm">
@@ -112,14 +112,16 @@ export function SeccionMotor() {
 
             <div
               className={
-                'relative mt-6 flex items-baseline justify-between gap-4 border-t-2 border-tinta pt-4 font-maquina text-sm font-bold text-sello-rojo sm:text-[15px] ' +
+                'relative mt-6 flex items-baseline justify-between gap-4 border-t-2 border-foreground pt-4 font-maquina text-sm font-bold text-red-700 dark:text-red-400 sm:text-base ' +
                 (oculta ? 'opacity-0 ' : '') +
                 (animada ? 'animate-fila-in' : '')
               }
               style={animada ? retraso(1400) : undefined}
             >
               <span>Diferencia</span>
-              <span className="tabular-nums">{formatearImporte(r.diferencia)}</span>
+              <span className="tabular-nums">
+                {formatearImporte(r.diferencia)}
+              </span>
               <Sello
                 tono="rojo"
                 className={
@@ -132,13 +134,13 @@ export function SeccionMotor() {
                 Observado
               </Sello>
             </div>
-            <p className="mt-8 max-w-[52ch] text-sm leading-snug text-tinta/80">
+            <p className="mt-8 max-w-[52ch] text-sm leading-snug text-muted-foreground">
               La observación conserva el cálculo completo: el delegado puede
               repetirlo y llegar al mismo resultado.
             </p>
           </div>
           <figcaption className="mt-3">
-            <Ilustrativo className="text-tinta/70" />
+            <Ilustrativo className="text-muted-foreground" />
           </figcaption>
         </figure>
       </div>

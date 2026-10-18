@@ -23,24 +23,24 @@ export function PlanillaHero() {
     <figure className="relative mx-auto w-full max-w-[540px] pb-4 pr-3 lg:mr-0">
       <div
         aria-hidden
-        className="absolute inset-0 bg-[#d9dcec] [rotate:1.4deg] [translate:12px_12px] motion-safe:animate-foja-in"
+        className="absolute inset-0 border border-border bg-secondary [rotate:1.4deg] [translate:12px_12px] motion-safe:animate-foja-in"
         style={retraso(160)}
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-[#eceef6] [rotate:-0.9deg] [translate:6px_6px] motion-safe:animate-foja-in"
+        className="absolute inset-0 border border-border bg-muted [rotate:-0.9deg] [translate:6px_6px] motion-safe:animate-foja-in"
         style={retraso(80)}
       />
-      <article className="relative bg-foja p-5 pb-8 text-tinta shadow-[0_34px_60px_-24px_rgba(6,8,36,0.7),0_2px_6px_rgba(6,8,36,0.18)] motion-safe:animate-foja-in sm:p-7 sm:pb-9">
-        <header className="flex items-start justify-between gap-4 border-b-2 border-tinta pb-4">
+      <article className="relative border border-border bg-card p-5 pb-8 text-card-foreground shadow-[0_28px_50px_-26px_rgba(0,0,0,0.25),0_2px_5px_rgba(0,0,0,0.08)] dark:ring-1 dark:ring-white/15 motion-safe:animate-foja-in sm:p-7 sm:pb-9">
+        <header className="flex items-start justify-between gap-4 border-b-2 border-foreground pb-4">
           <div>
             <h2 className="font-prensa text-lg font-extrabold leading-tight sm:text-xl">
               Libro Banco · {rendicion.periodo}
             </h2>
-            <p className="font-maquina text-xs text-tinta/70">
+            <p className="font-maquina text-xs text-muted-foreground">
               {rendicion.organismo}
             </p>
-            <Ilustrativo className="mt-0.5 text-sello-violeta" />
+            <Ilustrativo className="mt-0.5 text-violet-800 dark:text-violet-300" />
           </div>
           <Folio numero={14} />
         </header>
@@ -50,7 +50,7 @@ export function PlanillaHero() {
             Movimientos del Libro Banco de {rendicion.periodo}
           </caption>
           <thead>
-            <tr className="border-b border-lapiz text-left text-[11px] uppercase tracking-wider text-tinta/70 sm:text-xs">
+            <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
               <th scope="col" className="w-5 py-1.5" />
               <th scope="col" className="py-1.5 pr-2 font-normal">
                 Fecha
@@ -72,7 +72,7 @@ export function PlanillaHero() {
               return (
                 <tr
                   key={m.fecha}
-                  className="border-b border-lapiz/70 align-top motion-safe:animate-fila-in"
+                  className="border-b border-border/70 align-top motion-safe:animate-fila-in"
                   style={retraso(inicio)}
                 >
                   <td className="py-2 pr-1">
@@ -108,11 +108,7 @@ export function PlanillaHero() {
             marca={<MarcaLapiz style={retraso(inicioResumen + 450)} />}
           />
           <Linea etiqueta="Saldo informado" valor={rendicion.saldoInformado} />
-          <Linea
-            etiqueta="Diferencia"
-            valor={resultado.diferencia}
-            alerta
-          />
+          <Linea etiqueta="Diferencia" valor={resultado.diferencia} alerta />
           <Sello
             tono="rojo"
             className="absolute bottom-[-0.9rem] right-[4.4rem] rounded-sm text-lg [rotate:-8deg] motion-safe:animate-sello-in sm:right-[4.8rem] sm:text-2xl"
@@ -121,7 +117,6 @@ export function PlanillaHero() {
             Observado
           </Sello>
         </dl>
-
       </article>
       <figcaption className="sr-only">
         Vista ilustrativa de una rendición donde el motor marca una diferencia
@@ -143,8 +138,8 @@ function Linea({ etiqueta, valor, fuerte, alerta, marca }: LineaProps) {
   return (
     <div
       className={
-        'flex items-baseline justify-between gap-3 border-b border-dotted border-lapiz pb-1 ' +
-        (alerta ? 'font-bold text-sello-rojo ' : '') +
+        'flex items-baseline justify-between gap-3 border-b border-dotted border-border pb-1 ' +
+        (alerta ? 'font-bold text-red-700 dark:text-red-400 ' : '') +
         (fuerte ? 'font-bold' : '')
       }
     >

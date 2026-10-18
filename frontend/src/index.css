@@ -29,6 +29,75 @@
     --input: 0 0% 90%;
     --ring: 0 0% 9%;
     --radius: 0.5rem;
+
+    --danger: 0 74% 42%;
+    --danger-subtle: 0 86% 97%;
+    --danger-border: 0 96% 89%;
+    --success: 162 94% 24%;
+    --success-subtle: 152 81% 96%;
+    --success-border: 152 76% 80%;
+    --warning: 26 90% 37%;
+    --warning-subtle: 48 100% 96%;
+    --warning-border: 48 97% 77%;
+    --info: 224 76% 48%;
+    --info-subtle: 214 100% 97%;
+    --info-border: 213 97% 87%;
+    --review: 243 75% 51%;
+    --review-subtle: 226 100% 97%;
+    --review-border: 228 96% 89%;
+    --caution: 17 88% 40%;
+    --caution-subtle: 33 100% 96%;
+    --caution-border: 32 98% 83%;
+    --inactivo: 215 25% 27%;
+    --inactivo-subtle: 210 40% 96%;
+    --inactivo-border: 214 32% 91%;
+
+  }
+
+  .dark {
+    color-scheme: dark;
+    --background: 0 0% 4%;
+    --foreground: 0 0% 96%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 96%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 18%;
+    --input: 0 0% 22%;
+    --ring: 0 0% 83%;
+
+    --danger: 0 94% 82%;
+    --danger-subtle: 0 50% 12%;
+    --danger-border: 0 45% 26%;
+    --success: 156 72% 67%;
+    --success-subtle: 160 50% 10%;
+    --success-border: 160 40% 22%;
+    --warning: 46 97% 65%;
+    --warning-subtle: 36 60% 10%;
+    --warning-border: 36 50% 22%;
+    --info: 212 96% 78%;
+    --info-subtle: 218 50% 13%;
+    --info-border: 218 45% 28%;
+    --review: 230 94% 82%;
+    --review-subtle: 240 40% 14%;
+    --review-border: 240 35% 28%;
+    --caution: 31 97% 72%;
+    --caution-subtle: 20 50% 11%;
+    --caution-border: 20 45% 24%;
+    --inactivo: 215 20% 75%;
+    --inactivo-subtle: 215 15% 15%;
+    --inactivo-border: 215 12% 26%;
+
   }
 
   * {
@@ -43,16 +112,12 @@
 
 @layer base {
   ::selection {
-    background: #5b2d9e;
-    color: #fbfbf8;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
   }
 
   :focus-visible {
-    outline: 2px solid #5b2d9e;
+    outline: 2px solid hsl(var(--ring));
     outline-offset: 3px;
-  }
-
-  .sobre-carpeta :focus-visible {
-    outline-color: #fbfbf8;
   }
 }

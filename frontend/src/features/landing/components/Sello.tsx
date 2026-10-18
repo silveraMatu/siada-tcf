@@ -5,27 +5,36 @@ import { cn } from '@/lib/utils';
 type Tono = 'violeta' | 'rojo' | 'verde' | 'tinta';
 
 const TONOS: Record<Tono, string> = {
-  violeta: 'text-sello-violeta',
-  rojo: 'text-sello-rojo',
-  verde: 'text-sello-verde',
-  tinta: 'text-tinta/70',
+  violeta: 'text-violet-800 dark:text-violet-300',
+  rojo: 'text-red-700 dark:text-red-400',
+  verde: 'text-emerald-700 dark:text-emerald-400',
+  tinta: 'text-muted-foreground',
 };
 
 interface SelloProps {
   tono: Tono;
+  /** Sin textura de tinta: para texto pequeño que debe leerse sin esfuerzo. */
+  nitido?: boolean;
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
 }
 
 /** Sello de tinta: doble filete, mayúsculas y leve giro, como el de la mesa de entradas. */
-export function Sello({ tono, children, className, style }: SelloProps) {
+export function Sello({
+  tono,
+  nitido,
+  children,
+  className,
+  style,
+}: SelloProps) {
   return (
     <span
       style={style}
       className={cn(
-        'inline-block select-none border-[3px] px-3 py-1 font-prensa font-extrabold uppercase leading-none tracking-[0.08em] mix-blend-multiply [filter:url(#tinta-sello)] outline outline-1 outline-offset-[3px] [outline-color:currentColor]',
+        'inline-block select-none border-[3px] [border-color:currentColor] px-3 py-1 font-prensa font-extrabold uppercase leading-none tracking-[0.08em] mix-blend-multiply dark:mix-blend-normal outline outline-1 outline-offset-[3px] [outline-color:currentColor]',
         TONOS[tono],
+        !nitido && '[filter:url(#tinta-sello)]',
         className,
       )}
     >

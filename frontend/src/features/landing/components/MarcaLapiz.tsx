@@ -13,7 +13,10 @@ export function MarcaLapiz({ className, style }: MarcaLapizProps) {
     <svg
       aria-hidden
       viewBox="0 0 16 16"
-      className={cn('size-4 shrink-0 text-sello-violeta', className)}
+      className={cn(
+        'size-4 shrink-0 text-violet-800 dark:text-violet-300',
+        className,
+      )}
     >
       <path
         d="M2 9.2 5.8 13 14 2.6"

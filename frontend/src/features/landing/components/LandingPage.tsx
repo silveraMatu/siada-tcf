@@ -10,7 +10,7 @@ import { SeccionTrazabilidad } from './SeccionTrazabilidad';
 
 export function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-oficio font-prensa">
+    <div className="flex min-h-screen flex-col bg-background font-prensa">
       <FiltroTintaSello />
       <LandingNavbar />
       <main className="flex-1">
