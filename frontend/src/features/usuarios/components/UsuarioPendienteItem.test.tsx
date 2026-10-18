@@ -4,6 +4,9 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { toast } from 'sonner';
+
+import { asegurarResponsable } from '@/features/responsables/api/responsables.api';
 import { activarUsuario } from '../api/usuarios.api';
 import type { Usuario } from '../types';
 import { UsuarioPendienteItem } from './UsuarioPendienteItem';
@@ -15,7 +18,12 @@ vi.mock('../api/usuarios.api', () => ({
   obtenerUsuariosPendientes: vi.fn(),
   obtenerUsuariosActivos: vi.fn(),
 }));
-vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
+}));
+vi.mock('@/features/responsables/api/responsables.api', () => ({
+  asegurarResponsable: vi.fn(),
+}));
 
 const usuario: Usuario = {
   id: 7,
@@ -118,5 +126,53 @@ describe('UsuarioPendienteItem', () => {
       expect(screen.queryByText('Confirmar Activación')).toBeNull(),
     );
     expect(activarUsuario).not.toHaveBeenCalled();
+  });
+
+  describe('alta del Responsable', () => {
+    async function activarConRol(nombreRol: string) {
+      const user = renderItem();
+      await user.click(rol(nombreRol, false));
+      await user.click(screen.getByRole('button', { name: 'Activar' }));
+      await user.click(await screen.findByRole('button', { name: 'Continuar' }));
+    }
+
+    it('registra al Responsable cuando el usuario queda con el rol RESPONSABLE', async () => {
+      vi.mocked(activarUsuario).mockResolvedValue({
+        ...usuario,
+        active: true,
+        roles: ['RESPONSABLE'],
+      });
+      vi.mocked(asegurarResponsable).mockResolvedValue(true);
+
+      await activarConRol('Responsable');
+      await waitFor(() => expect(asegurarResponsable).toHaveBeenCalledWith(7));
+    });
+
+    it('no lo registra si no tiene el rol RESPONSABLE', async () => {
+      vi.mocked(activarUsuario).mockResolvedValue({
+        ...usuario,
+        active: true,
+        roles: ['AUDITOR'],
+      });
+
+      await activarConRol('Auditor');
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+      expect(asegurarResponsable).not.toHaveBeenCalled();
+    });
+
+    it('si falla el alta del Responsable, la activación igual se confirma y se avisa', async () => {
+      vi.mocked(activarUsuario).mockResolvedValue({
+        ...usuario,
+        active: true,
+        roles: ['RESPONSABLE'],
+      });
+      vi.mocked(asegurarResponsable).mockRejectedValue(new Error('Servidor caído'));
+
+      await activarConRol('Responsable');
+      await waitFor(() => expect(toast.warning).toHaveBeenCalled());
+      expect(vi.mocked(toast.warning).mock.calls[0][0]).toContain('Servidor caído');
+      expect(toast.success).toHaveBeenCalled();
+      expect(toast.error).not.toHaveBeenCalled();
+    });
   });
 });

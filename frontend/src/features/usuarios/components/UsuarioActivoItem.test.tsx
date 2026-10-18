@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthStore } from '@/features/auth/hooks/useAuth';
+import { asegurarResponsable } from '@/features/responsables/api/responsables.api';
 import { activarUsuario, desactivarUsuario } from '../api/usuarios.api';
 import type { Usuario } from '../types';
 import { UsuarioActivoItem } from './UsuarioActivoItem';
@@ -13,7 +14,12 @@ vi.mock('../api/usuarios.api', () => ({
   activarUsuario: vi.fn(),
   desactivarUsuario: vi.fn(),
 }));
-vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
+}));
+vi.mock('@/features/responsables/api/responsables.api', () => ({
+  asegurarResponsable: vi.fn(),
+}));
 
 const usuario: Usuario = {
   id: 7,
@@ -127,6 +133,32 @@ describe('UsuarioActivoItem', () => {
 
     await waitFor(() => expect(screen.queryByText('Desactivar cuenta')).toBeNull());
     expect(desactivarUsuario).not.toHaveBeenCalled();
+  });
+
+  it('al agregar el rol RESPONSABLE registra al Responsable', async () => {
+    vi.mocked(activarUsuario).mockResolvedValue({
+      ...usuario,
+      roles: ['AUDITOR', 'RESPONSABLE'],
+    });
+    vi.mocked(asegurarResponsable).mockResolvedValue(true);
+    const user = renderItem();
+    await user.click(rol('Responsable', false));
+    await user.click(boton('Actualizar Roles'));
+
+    await waitFor(() => expect(asegurarResponsable).toHaveBeenCalledWith(7));
+  });
+
+  it('al cambiar a otros roles no toca a los Responsables', async () => {
+    vi.mocked(activarUsuario).mockResolvedValue({
+      ...usuario,
+      roles: ['AUDITOR', 'ADMIN'],
+    });
+    const user = renderItem();
+    await user.click(rol('Administrador', false));
+    await user.click(boton('Actualizar Roles'));
+
+    await waitFor(() => expect(activarUsuario).toHaveBeenCalled());
+    expect(asegurarResponsable).not.toHaveBeenCalled();
   });
 
   describe('sobre la propia cuenta', () => {
