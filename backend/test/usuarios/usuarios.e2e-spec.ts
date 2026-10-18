@@ -6,12 +6,14 @@ import {
   dniNuevo,
   ID_INEXISTENTE,
   inicializarDnis,
+  obtenerBearerAdmin,
 } from '../helpers/fixtures.js';
 
 //Corre contra la base de datos real y NO limpia lo que crea: los datos quedan persistidos.
 describe('Usuarios (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
+  let bearer: string;
 
   //cada usuario usa email y DNI propios de la corrida para que los tests sean idempotentes
   const base = Date.now() % 1_000_000_000;
@@ -35,10 +37,13 @@ describe('Usuarios (e2e)', () => {
   };
 
   const listar = (query = '') =>
-    request(app.getHttpServer()).get(`/api/v1/usuarios${query}`);
+    request(app.getHttpServer())
+      .get(`/api/v1/usuarios${query}`)
+      .set('Authorization', bearer);
   const activar = (id: number | string, body: unknown) =>
     request(app.getHttpServer())
       .patch(`/api/v1/usuarios/${id}/activar`)
+      .set('Authorization', bearer)
       .send(body as object);
   const filaDe = async (id: number) =>
     (await dataSource.query(`SELECT * FROM usuarios WHERE id = $1`, [id]))[0];
@@ -46,6 +51,7 @@ describe('Usuarios (e2e)', () => {
   beforeAll(async () => {
     ({ app, dataSource } = await createTestApp());
     await inicializarDnis(dataSource);
+    bearer = await obtenerBearerAdmin(app);
   });
 
   afterAll(async () => {

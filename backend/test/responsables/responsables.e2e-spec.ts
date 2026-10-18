@@ -5,6 +5,7 @@ import { createTestApp } from '../helpers/create-test-app.js';
 import {
   crearUsuarioResponsable,
   habilitarUsuario,
+  obtenerBearerAdmin,
   ID_INEXISTENTE,
   obtenerOrganismoBaseId,
   registrarUsuario,
@@ -16,6 +17,7 @@ describe('Responsables (e2e)', () => {
   let dataSource: DataSource;
 
   let organismoId: number;
+  let bearer: string;
 
   const crearResponsable = (body: unknown) =>
     request(app.getHttpServer())
@@ -37,6 +39,7 @@ describe('Responsables (e2e)', () => {
   beforeAll(async () => {
     ({ app, dataSource } = await createTestApp());
     organismoId = await obtenerOrganismoBaseId(dataSource);
+    bearer = await obtenerBearerAdmin(app);
   });
 
   afterAll(async () => {
@@ -213,6 +216,7 @@ describe('Responsables (e2e)', () => {
 
       await request(app.getHttpServer())
         .patch(`/api/v1/responsables/${asignado.id}/organismo`)
+        .set('Authorization', bearer)
         .send({ organismoId })
         .expect(200);
 
@@ -245,6 +249,7 @@ describe('Responsables (e2e)', () => {
     const asignar = (id: number | string, body: unknown) =>
       request(app.getHttpServer())
         .patch(`/api/v1/responsables/${id}/organismo`)
+        .set('Authorization', bearer)
         .send(body as object);
 
     const nuevoOrganismo = async (): Promise<number> => {
@@ -332,6 +337,7 @@ describe('Responsables (e2e)', () => {
       const { id: responsableId, usuarioId } = await nuevoResponsable();
       await request(app.getHttpServer())
         .patch(`/api/v1/usuarios/${usuarioId}/activar`)
+        .set('Authorization', bearer)
         .send({ active: false, roles: [] })
         .expect(200);
 
@@ -354,6 +360,7 @@ describe('Responsables (e2e)', () => {
       const { id: responsableId, usuarioId } = await nuevoResponsable();
       await request(app.getHttpServer())
         .patch(`/api/v1/usuarios/${usuarioId}/activar`)
+        .set('Authorization', bearer)
         .send({ active: false, roles: [] })
         .expect(200);
       await asignar(responsableId, { organismoId }).expect(409);
@@ -389,6 +396,7 @@ describe('Responsables (e2e)', () => {
       const { id: conUsuarioInactivo, usuarioId } = await nuevoResponsable();
       await request(app.getHttpServer())
         .patch(`/api/v1/usuarios/${usuarioId}/activar`)
+        .set('Authorization', bearer)
         .send({ active: false, roles: [] })
         .expect(200);
       await asignar(conUsuarioInactivo, { organismoId: ID_INEXISTENTE }).expect(

@@ -21,6 +21,7 @@ async function bootstrap() {
         'API REST para ingesta y validación determinística de libros contables',
       )
       .setVersion('1.0')
+      .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, config);

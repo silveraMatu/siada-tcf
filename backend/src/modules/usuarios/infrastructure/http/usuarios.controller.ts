@@ -7,8 +7,20 @@ import {
   Param,
   Patch,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../auth/infrastructure/security/jwt-auth.guard.js';
+import { Roles } from '../../../auth/infrastructure/security/roles.decorator.js';
+import { RolesGuard } from '../../../auth/infrastructure/security/roles.guard.js';
+import { Rol } from '../../domain/enums/rol.enum.js';
 import { ActivarUsuarioDto } from './dto/activar-usuario.dto.js';
 import { ListarUsuariosQueryDto } from './dto/listar-usuarios-query.dto.js';
 import { UsuarioIdParamsDto } from './dto/usuario-id-params.dto.js';
@@ -18,6 +30,11 @@ import { ListarUsuariosUseCase } from '../../application/use-cases/listar-usuari
 import { ActivarUsuarioYAsignarRolesUseCase } from '../../application/use-cases/activar-usuario-y-asignar-roles.use-case.js';
 
 @ApiTags('Usuarios')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+@ApiForbiddenResponse({ description: 'Requiere el rol ADMIN' })
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Rol.ADMIN)
 @Controller('usuarios')
 export class UsuariosController {
   constructor(
@@ -25,7 +42,6 @@ export class UsuariosController {
     private readonly activarUsuarioYAsignarRolesUseCase: ActivarUsuarioYAsignarRolesUseCase,
   ) {}
 
-  // TODO: Proteger con @UseGuards() y @Roles('ADMIN') en el futuro
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -50,7 +66,6 @@ export class UsuariosController {
     return usuarios.map((usuario) => toUsuarioResponse(usuario));
   }
 
-  // TODO: Proteger con @UseGuards() y @Roles('ADMIN') en el futuro
   @Patch(':id/activar')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

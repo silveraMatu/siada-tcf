@@ -7,8 +7,20 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../auth/infrastructure/security/jwt-auth.guard.js';
+import { Roles } from '../../../auth/infrastructure/security/roles.decorator.js';
+import { RolesGuard } from '../../../auth/infrastructure/security/roles.guard.js';
+import { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
 import { CrearResponsableDto } from './dto/crear-responsable.dto.js';
 import { AsignarOrganismoDto } from './dto/asignar-organismo.dto.js';
 import { ResponsableIdParamsDto } from './dto/responsable-id-params.dto.js';
@@ -89,7 +101,11 @@ export class ResponsablesController {
     return responsables.map((responsable) => this.toResponse(responsable));
   }
 
-  // TODO: Proteger con @UseGuards() y @Roles('ADMIN') en el futuro
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Rol.ADMIN)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+  @ApiForbiddenResponse({ description: 'Requiere el rol ADMIN' })
   @Patch('responsables/:id/organismo')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
