@@ -1,3 +1,11 @@
+//datos del Usuario que se muestran junto al responsable
+export type UsuarioResumen = {
+  id: number;
+  nombre: string;
+  apellido: string;
+  email: string;
+};
+
 export class Responsable {
   constructor(
     //nombre, apellido y email viven en Usuario
@@ -8,5 +16,7 @@ export class Responsable {
     public readonly active: boolean = true,
     public readonly id?: number,
     public readonly fechaCreacion?: Date,
+    //solo viene cargado en el listado
+    public readonly usuario?: UsuarioResumen,
   ) {}
 }

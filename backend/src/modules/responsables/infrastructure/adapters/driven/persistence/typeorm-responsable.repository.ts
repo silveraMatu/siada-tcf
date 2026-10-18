@@ -63,6 +63,24 @@ export class TypeOrmResponsableRepositoryAdapter implements ResponsableRepositor
     );
   }
 
+  async listar(filtros?: { sinOrganismo?: boolean }): Promise<Responsable[]> {
+    const consulta = this.repository
+      .createQueryBuilder('responsable')
+      .leftJoin('responsable.usuario', 'usuario')
+      .addSelect([
+        'usuario.id',
+        'usuario.nombre',
+        'usuario.apellido',
+        'usuario.email',
+      ])
+      .orderBy('responsable.id', 'ASC');
+    if (filtros?.sinOrganismo) {
+      consulta.where('responsable.organismoId IS NULL');
+    }
+    const entities = await consulta.getMany();
+    return entities.map((entity) => ResponsableMapper.toDomain(entity));
+  }
+
   async buscarPorOrganismo(organismoId: number): Promise<Responsable[]> {
     const entities = await this.repository.find({
       where: { organismoId },

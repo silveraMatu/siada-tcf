@@ -16,13 +16,21 @@ describe('Seguridad: JWT y roles (e2e)', () => {
   let jwtService: JwtService;
   let bearerAdmin: string;
 
-  //los 3 endpoints que exigen el rol ADMIN; `autorizacion` es el valor del header Authorization (opcional)
+  //los endpoints que exigen el rol ADMIN; `autorizacion` es el valor del header Authorization (opcional)
   const protegidos: [string, (autorizacion?: string) => request.Test][] = [
     [
       'GET /usuarios',
       (autorizacion) =>
         conHeader(
           request(app.getHttpServer()).get('/api/v1/usuarios'),
+          autorizacion,
+        ),
+    ],
+    [
+      'GET /responsables',
+      (autorizacion) =>
+        conHeader(
+          request(app.getHttpServer()).get('/api/v1/responsables'),
           autorizacion,
         ),
     ],

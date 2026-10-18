@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -26,8 +27,11 @@ import { AsignarOrganismoDto } from './dto/asignar-organismo.dto.js';
 import { ResponsableIdParamsDto } from './dto/responsable-id-params.dto.js';
 import { ResponsableParamsDto } from './dto/responsable-params.dto.js';
 import { ResponsableResponseDto } from './dto/responsable-response.dto.js';
+import { ResponsableConUsuarioResponseDto } from './dto/responsable-con-usuario-response.dto.js';
+import { ListarResponsablesQueryDto } from './dto/listar-responsables-query.dto.js';
 import { CrearResponsableUseCase } from '../../application/use-cases/crear-responsable.use-case.js';
 import { AsignarOrganismoAResponsableUseCase } from '../../application/use-cases/asignar-organismo.use-case.js';
+import { ListarResponsablesUseCase } from '../../application/use-cases/listar-responsables.use-case.js';
 import { ObtenerResponsablesPorOrganismoUseCase } from '../../application/use-cases/obtener-responsables-por-organismo.use-case.js';
 import type { Responsable } from '../../domain/entities/responsable.domain.js';
 
@@ -36,6 +40,7 @@ import type { Responsable } from '../../domain/entities/responsable.domain.js';
 export class ResponsablesController {
   constructor(
     private readonly crearResponsableUseCase: CrearResponsableUseCase,
+    private readonly listarResponsablesUseCase: ListarResponsablesUseCase,
     private readonly obtenerResponsablesPorOrganismoUseCase: ObtenerResponsablesPorOrganismoUseCase,
     private readonly asignarOrganismoAResponsableUseCase: AsignarOrganismoAResponsableUseCase,
   ) {}
@@ -48,6 +53,52 @@ export class ResponsablesController {
       organismoId: responsable.organismoId,
       fechaCreacion: responsable.fechaCreacion!.toISOString(),
     };
+  }
+
+  private toResponseConUsuario(
+    responsable: Responsable,
+  ): ResponsableConUsuarioResponseDto {
+    const { id, usuarioId, active, organismoId, fechaCreacion } =
+      this.toResponse(responsable);
+    return {
+      id,
+      usuarioId,
+      active,
+      organismoId,
+      fechaCreacion,
+      usuario: responsable.usuario!,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Rol.ADMIN)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+  @ApiForbiddenResponse({ description: 'Requiere el rol ADMIN' })
+  @Get('responsables')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Endpoint administrativo para listar los responsables con los datos de su usuario',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Responsables recuperados (lista vacía si no hay ninguno)',
+    type: [ResponsableConUsuarioResponseDto],
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'El filtro sinOrganismo debe ser true o false',
+  })
+  async listar(
+    @Query() { sinOrganismo }: ListarResponsablesQueryDto,
+  ): Promise<ResponsableConUsuarioResponseDto[]> {
+    const responsables = await this.listarResponsablesUseCase.execute({
+      sinOrganismo,
+    });
+    return responsables.map((responsable) =>
+      this.toResponseConUsuario(responsable),
+    );
   }
 
   @Post('responsables')

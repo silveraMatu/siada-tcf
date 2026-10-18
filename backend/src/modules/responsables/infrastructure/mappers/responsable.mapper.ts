@@ -9,6 +9,14 @@ export class ResponsableMapper {
       entity.active,
       entity.id,
       entity.fechaCreacion,
+      entity.usuario
+        ? {
+            id: entity.usuario.id,
+            nombre: entity.usuario.nombre,
+            apellido: entity.usuario.apellido,
+            email: entity.usuario.email,
+          }
+        : undefined,
     );
   }
 

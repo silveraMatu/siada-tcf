@@ -209,6 +209,92 @@ describe('Responsables (e2e)', () => {
     });
   });
 
+  describe('GET /responsables', () => {
+    const listar = (query = '') =>
+      request(app.getHttpServer())
+        .get(`/api/v1/responsables${query}`)
+        .set('Authorization', bearer);
+    const asignarOrganismo = (id: number) =>
+      request(app.getHttpServer())
+        .patch(`/api/v1/responsables/${id}/organismo`)
+        .set('Authorization', bearer)
+        .send({ organismoId })
+        .expect(200);
+    const buscar = (
+      body: { id: number; organismoId: number | null }[],
+      id: number,
+    ) => body.find((r) => r.id === id);
+
+    it('200: cada responsable trae los datos de su usuario, sin dni, roles ni password', async () => {
+      const { id, usuarioId } = await nuevoResponsable();
+      const [usuario] = await dataSource.query(
+        `SELECT nombre, apellido, email, password, dni FROM usuarios WHERE id = $1`,
+        [usuarioId],
+      );
+
+      const res = await listar().expect(200);
+
+      expect(buscar(res.body, id)).toEqual({
+        id,
+        usuarioId,
+        active: true,
+        organismoId: null,
+        fechaCreacion: expect.any(String),
+        usuario: {
+          id: usuarioId,
+          nombre: usuario.nombre,
+          apellido: usuario.apellido,
+          email: usuario.email,
+        },
+      });
+      const json = JSON.stringify(res.body);
+      expect(json).not.toContain(usuario.password);
+      expect(json).not.toContain('"dni"');
+      expect(json).not.toContain('"roles"');
+    });
+
+    it('200: ordena por id ascendente', async () => {
+      await nuevoResponsable();
+      await nuevoResponsable();
+      const res = await listar().expect(200);
+      const ids: number[] = res.body.map((r: { id: number }) => r.id);
+      expect(ids).toEqual([...ids].sort((a, b) => a - b));
+    });
+
+    it('200: sinOrganismo=true excluye a los responsables ya asignados', async () => {
+      const libre = await nuevoResponsable();
+      const asignado = await nuevoResponsable();
+      await asignarOrganismo(asignado.id);
+
+      const res = await listar('?sinOrganismo=true').expect(200);
+
+      expect(buscar(res.body, libre.id)).toBeDefined();
+      expect(buscar(res.body, asignado.id)).toBeUndefined();
+      for (const r of res.body) expect(r.organismoId).toBeNull();
+    });
+
+    it.each(['', '?sinOrganismo=false'])(
+      '200: sin filtro (%s) devuelve asignados y libres',
+      async (query) => {
+        const libre = await nuevoResponsable();
+        const asignado = await nuevoResponsable();
+        await asignarOrganismo(asignado.id);
+
+        const res = await listar(query).expect(200);
+
+        expect(buscar(res.body, libre.id)?.organismoId).toBeNull();
+        expect(buscar(res.body, asignado.id)?.organismoId).toBe(organismoId);
+      },
+    );
+
+    it.each(['si', '1', 'TRUE', ''])(
+      '400: sinOrganismo="%s" no es un booleano valido',
+      async (valor) => {
+        await listar(`?sinOrganismo=${valor}`).expect(400);
+      },
+    );
+  });
+
   describe('GET /organismos/:organismoId/responsables', () => {
     it('200: lista solo los responsables asignados al organismo', async () => {
       const asignado = await nuevoResponsable();

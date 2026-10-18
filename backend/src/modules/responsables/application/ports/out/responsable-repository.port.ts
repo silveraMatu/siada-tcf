@@ -14,6 +14,9 @@ export abstract class ResponsableRepositoryPort {
     datos: Partial<Responsable>,
   ): Promise<Responsable>;
 
+  //cada responsable trae su usuario (sin password ni dni)
+  abstract listar(filtros?: { sinOrganismo?: boolean }): Promise<Responsable[]>;
+
   //lista vacía si el organismo no tiene responsables
   abstract buscarPorOrganismo(organismoId: number): Promise<Responsable[]>;
 }

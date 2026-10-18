@@ -8,6 +8,7 @@ import { TypeOrmResponsableRepositoryAdapter } from './infrastructure/adapters/d
 import { ResponsablesController } from './infrastructure/http/responsables.controller.js';
 import { CrearResponsableUseCase } from './application/use-cases/crear-responsable.use-case.js';
 import { AsignarOrganismoAResponsableUseCase } from './application/use-cases/asignar-organismo.use-case.js';
+import { ListarResponsablesUseCase } from './application/use-cases/listar-responsables.use-case.js';
 import { ObtenerResponsablesPorOrganismoUseCase } from './application/use-cases/obtener-responsables-por-organismo.use-case.js';
 
 @Module({
@@ -19,6 +20,7 @@ import { ObtenerResponsablesPorOrganismoUseCase } from './application/use-cases/
   controllers: [ResponsablesController],
   providers: [
     CrearResponsableUseCase,
+    ListarResponsablesUseCase,
     ObtenerResponsablesPorOrganismoUseCase,
     AsignarOrganismoAResponsableUseCase,
     {
