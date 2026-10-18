@@ -1,6 +1,11 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { type FindOptionsSelect, QueryFailedError, Repository } from 'typeorm';
+import {
+  type FindOptionsSelect,
+  QueryFailedError,
+  Raw,
+  Repository,
+} from 'typeorm';
 import {
   type CambiosAdministrativos,
   UsuarioRepositoryPort,
@@ -55,7 +60,12 @@ export class TypeOrmUsuarioRepositoryAdapter implements UsuarioRepositoryPort {
   }
 
   async buscarPorEmail(email: string): Promise<Usuario | null> {
-    const entity = await this.repository.findOne({ where: { email } });
+    //sin distinguir mayusculas, igual que el indice lower(email)
+    const entity = await this.repository.findOne({
+      where: {
+        email: Raw((alias) => `lower(${alias}) = lower(:email)`, { email }),
+      },
+    });
     return entity ? UsuarioMapper.toDomain(entity) : null;
   }
 

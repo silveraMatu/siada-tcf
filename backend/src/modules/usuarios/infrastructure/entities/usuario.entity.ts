@@ -4,14 +4,18 @@ import {
   Column,
   CreateDateColumn,
   Check,
+  Index,
 } from 'typeorm';
 import { Rol } from '../../domain/enums/rol.enum.js';
+
+export const INDICE_EMAIL_UNICO = 'UQ_usuarios_email_lower';
 
 //un usuario activo siempre tiene al menos un rol
 @Check(
   'CHK_usuarios_activo_con_rol',
   'NOT "active" OR cardinality("roles") > 0',
 )
+@Index(INDICE_EMAIL_UNICO, { synchronize: false })
 @Entity('usuarios')
 export class UsuarioEntity {
   @PrimaryGeneratedColumn()

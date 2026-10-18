@@ -133,6 +133,21 @@ describe('Auth (e2e)', () => {
       expect(JSON.stringify(mismo.body)).not.toContain(existente.email);
     });
 
+    it('409: el email ya existe guardado con otra capitalización (insertado directo en la base)', async () => {
+      const { email, dni } = unico();
+      const conMayusculas = email
+        .replace('e2e', 'E2E')
+        .replace('example', 'Example');
+      await dataSource.query(
+        `INSERT INTO usuarios (nombre, apellido, dni, email, password) VALUES ('Directo', 'E2E', $1, $2, 'hash')`,
+        [dni, conMayusculas],
+      );
+
+      const res = await registrar(valido({ email })).expect(409);
+
+      expect(res.body.message).toBe(MENSAJE_CONFLICTO);
+    });
+
     it('409: DNI ya registrado (también con otro formato), con mensaje genérico', async () => {
       const existente = valido();
       await registrar(existente).expect(201);

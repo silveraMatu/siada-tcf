@@ -290,4 +290,41 @@ describe('Usuarios (e2e)', () => {
       });
     });
   });
+  describe('indice unico de email sin distinguir mayusculas', () => {
+    const NOMBRE_INDICE = 'UQ_usuarios_email_lower';
+    const insertarDirecto = (email: string) =>
+      dataSource.query(
+        `INSERT INTO usuarios (nombre, apellido, dni, email, password) VALUES ('Directo', 'E2E', $1, $2, 'hash')`,
+        [dniNuevo(), email],
+      );
+    const filasDelIndice = () =>
+      dataSource.query(
+        `SELECT indexdef FROM pg_indexes WHERE tablename = 'usuarios' AND indexname = $1`,
+        [NOMBRE_INDICE],
+      );
+
+    it('existe un indice unico sobre lower(email)', async () => {
+      const filas = await filasDelIndice();
+
+      expect(filas).toHaveLength(1);
+      expect(filas[0].indexdef).toMatch(/UNIQUE/i);
+      expect(filas[0].indexdef).toMatch(/lower/i);
+    });
+
+    it('la base rechaza dos emails que difieren solo en mayusculas aunque se salte la API', async () => {
+      const email = `e2e-caso-${Date.now()}@example.com`;
+      await insertarDirecto(email);
+
+      await expect(insertarDirecto(email.toUpperCase())).rejects.toThrow(
+        new RegExp(NOMBRE_INDICE),
+      );
+    });
+
+    it('la sincronizacion del esquema no elimina el indice', async () => {
+      //TypeORM elimina los indices que no conoce salvo los declarados con synchronize: false
+      await dataSource.synchronize();
+
+      expect(await filasDelIndice()).toHaveLength(1);
+    });
+  });
 });
