@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { RegistroPage } from '@/features/auth/components/RegistroPage';
 import { LandingPage } from '@/features/landing/components/LandingPage';
 import { LibroBancoPage } from '@/features/libro-banco/components/LibroBancoPage';
 import { OrganismosPage } from '@/features/organismos/components/OrganismosPage';
@@ -8,6 +9,7 @@ import { ResponsablesPage } from '@/features/responsables/components/Responsable
 
 const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
+  { path: '/registro', element: <RegistroPage /> },
   {
     element: <DashboardLayout />,
     children: [
