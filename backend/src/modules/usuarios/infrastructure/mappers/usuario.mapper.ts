@@ -9,7 +9,7 @@ export class UsuarioMapper {
     return new Usuario(
       entity.nombre,
       entity.apellido,
-      entity.cuitDni,
+      entity.dni,
       entity.email,
       entity.password,
       entity.active,
@@ -19,12 +19,12 @@ export class UsuarioMapper {
     );
   }
 
-  //no lee entity.password: las consultas que lo usan ni siquiera lo traen de la base
+  //no lee password: estas consultas no la traen de la base
   static toDomainSinPassword(entity: UsuarioEntity): UsuarioSinPassword {
     return {
       nombre: entity.nombre,
       apellido: entity.apellido,
-      cuitDni: entity.cuitDni,
+      dni: entity.dni,
       email: entity.email,
       active: entity.active,
       roles: entity.roles,
@@ -38,7 +38,7 @@ export class UsuarioMapper {
     if (domain.id) entity.id = domain.id;
     entity.nombre = domain.nombre;
     entity.apellido = domain.apellido;
-    entity.cuitDni = domain.cuitDni;
+    entity.dni = domain.dni;
     entity.email = domain.email;
     entity.password = domain.password;
     entity.active = domain.active;

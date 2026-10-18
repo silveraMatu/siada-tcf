@@ -2,8 +2,7 @@ import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { Rol } from '../../../domain/enums/rol.enum.js';
 
-//los roles reemplazan a los actuales. Regla: un usuario activo debe tener al menos un rol;
-//un usuario inactivo puede tener cualquier combinacion de roles (incluso ninguno)
+//un usuario activo debe tener al menos un rol; uno inactivo puede quedar sin roles
 export const ActivarUsuarioSchema = z
   .object({
     active: z.boolean({

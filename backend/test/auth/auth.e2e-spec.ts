@@ -3,6 +3,11 @@ import bcrypt from 'bcrypt';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../helpers/create-test-app.js';
+import {
+  dniDeSieteDigitosLibre,
+  dniNuevo,
+  inicializarDnis,
+} from '../helpers/fixtures.js';
 
 //Corre contra la base de datos real y NO limpia lo que crea: los datos quedan persistidos.
 describe('Auth (e2e)', () => {
@@ -11,16 +16,16 @@ describe('Auth (e2e)', () => {
 
   const PASSWORD = 'clave-segura-123';
 
-  //cada usuario usa email y cuitDni propios de la corrida para que los tests sean idempotentes
+  //cada usuario usa email y DNI propios para que los tests sean idempotentes
   const base = Date.now() % 1_000_000_000;
   let contador = 0;
   const unico = () => {
     contador += 1;
-    return {
-      email: `e2e-${base}-${contador}@example.com`,
-      cuitDni: `20${String(base + contador).padStart(9, '0')}`,
-    };
+    return { email: `e2e-${base}-${contador}@example.com`, dni: dniNuevo() };
   };
+  //12345678 => 12.345.678
+  const conPuntos = (dni: string) =>
+    `${dni.slice(0, -6)}.${dni.slice(-6, -3)}.${dni.slice(-3)}`;
   const valido = (extra: Record<string, unknown> = {}) => ({
     nombre: 'Ana',
     apellido: 'Pérez',
@@ -36,6 +41,7 @@ describe('Auth (e2e)', () => {
 
   beforeAll(async () => {
     ({ app, dataSource } = await createTestApp());
+    await inicializarDnis(dataSource);
   });
 
   afterAll(async () => {
@@ -52,7 +58,7 @@ describe('Auth (e2e)', () => {
         id: expect.any(Number),
         nombre: 'Ana',
         apellido: 'Pérez',
-        cuitDni: body.cuitDni,
+        dni: body.dni,
         email: body.email,
         active: false,
         roles: [],
@@ -72,7 +78,7 @@ describe('Auth (e2e)', () => {
       );
       expect(fila).toMatchObject({
         email: body.email,
-        cuit_dni: body.cuitDni,
+        dni: body.dni,
         active: false,
         //pg devuelve los arrays de enums personalizados como texto crudo
         roles: '{}',
@@ -89,21 +95,22 @@ describe('Auth (e2e)', () => {
       expect(res.body).toMatchObject({ active: false, roles: [] });
     });
 
-    it('201: normaliza email (minúsculas), espacios y separadores del cuitDni', async () => {
-      const { email, cuitDni } = unico();
+    it('201: normaliza email (minúsculas), espacios y puntos del DNI', async () => {
+      const { email, dni } = unico();
       const res = await registrar(
         valido({
           nombre: '  Luis  ',
           email: `  ${email.toUpperCase()}  `,
-          cuitDni: `${cuitDni.slice(0, 2)}-${cuitDni.slice(2, 10)}-${cuitDni.slice(10)}`,
+          dni: conPuntos(dni),
         }),
       ).expect(201);
-      expect(res.body).toMatchObject({ nombre: 'Luis', email, cuitDni });
+      expect(res.body).toMatchObject({ nombre: 'Luis', email, dni });
     });
 
-    it('201: acepta un DNI de 8 dígitos', async () => {
-      const dni = String(10_000_000 + (base % 80_000_000) + contador++);
-      await registrar(valido({ cuitDni: dni })).expect(201);
+    it('201: acepta un DNI de 7 dígitos', async () => {
+      const dni = await dniDeSieteDigitosLibre(dataSource);
+      const res = await registrar(valido({ dni })).expect(201);
+      expect(res.body.dni).toBe(dni);
     });
 
     //mismo mensaje en todos los casos: no debe revelar cual dato existe ni incluirlo
@@ -126,21 +133,18 @@ describe('Auth (e2e)', () => {
       expect(JSON.stringify(mismo.body)).not.toContain(existente.email);
     });
 
-    it('409: cuitDni ya registrado (también con otro formato), con mensaje genérico', async () => {
+    it('409: DNI ya registrado (también con otro formato), con mensaje genérico', async () => {
       const existente = valido();
       await registrar(existente).expect(201);
 
-      const mismo = await registrar(
-        valido({ cuitDni: existente.cuitDni }),
-      ).expect(409);
-      const conGuiones = `${existente.cuitDni.slice(0, 2)}-${existente.cuitDni.slice(2, 10)}-${existente.cuitDni.slice(10)}`;
+      const mismo = await registrar(valido({ dni: existente.dni })).expect(409);
       const otroFormato = await registrar(
-        valido({ cuitDni: conGuiones }),
+        valido({ dni: conPuntos(existente.dni) }),
       ).expect(409);
 
       expect(mismo.body.message).toBe(MENSAJE_CONFLICTO);
       expect(otroFormato.body.message).toBe(MENSAJE_CONFLICTO);
-      expect(JSON.stringify(mismo.body)).not.toContain(existente.cuitDni);
+      expect(JSON.stringify(mismo.body)).not.toContain(existente.dni);
     });
 
     it('409 (no 500): dos registros concurrentes con el mismo email, con el mismo mensaje genérico', async () => {
@@ -165,12 +169,19 @@ describe('Auth (e2e)', () => {
       ['sin apellido', () => valido({ apellido: undefined })],
       ['sin email', () => valido({ email: undefined })],
       ['email invalido', () => valido({ email: 'no-es-un-email' })],
-      ['sin cuitDni', () => valido({ cuitDni: undefined })],
-      ['cuitDni vacio', () => valido({ cuitDni: '' })],
-      ['cuitDni con letras', () => valido({ cuitDni: '2012345678A' })],
-      ['cuitDni demasiado corto', () => valido({ cuitDni: '123456' })],
-      ['cuitDni de 9 digitos', () => valido({ cuitDni: '123456789' })],
-      ['cuitDni de 12 digitos', () => valido({ cuitDni: '201234567890' })],
+      ['sin dni', () => valido({ dni: undefined })],
+      ['dni vacio', () => valido({ dni: '' })],
+      ['dni con letras', () => valido({ dni: '1234567A' })],
+      ['dni demasiado corto (6 digitos)', () => valido({ dni: '123456' })],
+      ['dni de 9 digitos', () => valido({ dni: '123456789' })],
+      [
+        'un CUIT de 11 digitos ya no se acepta',
+        () => valido({ dni: '20123456789' }),
+      ],
+      [
+        'formato anterior con cuitDni en lugar de dni',
+        () => valido({ dni: undefined, cuitDni: '20123456789' }),
+      ],
       ['sin password', () => valido({ password: undefined })],
       ['password de 7 caracteres', () => valido({ password: '1234567' })],
       [
@@ -188,6 +199,11 @@ describe('Auth (e2e)', () => {
 
     it('201: acepta una contraseña de exactamente 72 bytes', async () => {
       await registrar(valido({ password: 'a'.repeat(72) })).expect(201);
+    });
+
+    //el limite de 10mb es solo para la ingesta de libros: este endpoint es publico
+    it('413: rechaza bodies de más de 100kb antes de validar', async () => {
+      await registrar(valido({ nombre: 'n'.repeat(150_000) })).expect(413);
     });
   });
 });

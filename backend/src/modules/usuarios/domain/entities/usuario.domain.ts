@@ -4,7 +4,8 @@ export class Usuario {
   constructor(
     public readonly nombre: string,
     public readonly apellido: string,
-    public readonly cuitDni: string,
+    //7 u 8 dígitos, único por usuario
+    public readonly dni: string,
     public readonly email: string,
     public readonly password: string,
     //nace inactivo, un administrador debe aprobarlo antes de que pueda operar

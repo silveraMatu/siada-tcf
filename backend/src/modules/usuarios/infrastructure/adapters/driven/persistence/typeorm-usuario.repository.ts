@@ -1,7 +1,10 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { type FindOptionsSelect, QueryFailedError, Repository } from 'typeorm';
-import { UsuarioRepositoryPort } from '../../../../application/ports/out/usuario-repository.port.js';
+import {
+  type CambiosAdministrativos,
+  UsuarioRepositoryPort,
+} from '../../../../application/ports/out/usuario-repository.port.js';
 import {
   Usuario,
   type UsuarioSinPassword,
@@ -17,7 +20,7 @@ const SELECT_SIN_PASSWORD: FindOptionsSelect<UsuarioEntity> = {
   id: true,
   nombre: true,
   apellido: true,
-  cuitDni: true,
+  dni: true,
   email: true,
   active: true,
   roles: true,
@@ -56,8 +59,8 @@ export class TypeOrmUsuarioRepositoryAdapter implements UsuarioRepositoryPort {
     return entity ? UsuarioMapper.toDomain(entity) : null;
   }
 
-  async buscarPorCuitDni(cuitDni: string): Promise<Usuario | null> {
-    const entity = await this.repository.findOne({ where: { cuitDni } });
+  async buscarPorDni(dni: string): Promise<Usuario | null> {
+    const entity = await this.repository.findOne({ where: { dni } });
     return entity ? UsuarioMapper.toDomain(entity) : null;
   }
 
@@ -71,10 +74,9 @@ export class TypeOrmUsuarioRepositoryAdapter implements UsuarioRepositoryPort {
 
   async actualizar(
     id: number,
-    datos: Partial<UsuarioSinPassword>,
+    datos: CambiosAdministrativos,
   ): Promise<UsuarioSinPassword> {
-    const { id: _id, fechaCreacion: _fechaCreacion, ...campos } = datos;
-    await this.repository.update(id, campos);
+    await this.repository.update(id, datos);
     return UsuarioMapper.toDomainSinPassword(
       await this.repository.findOneOrFail({
         select: SELECT_SIN_PASSWORD,
@@ -86,7 +88,7 @@ export class TypeOrmUsuarioRepositoryAdapter implements UsuarioRepositoryPort {
   async listar(filtros?: { active?: boolean }): Promise<UsuarioSinPassword[]> {
     const entities = await this.repository.find({
       select: SELECT_SIN_PASSWORD,
-      //el filtro se aplica solo si viene definido (false es un valor valido)
+      //false tambien es un filtro valido
       where: filtros?.active === undefined ? {} : { active: filtros.active },
       order: { id: 'ASC' },
     });

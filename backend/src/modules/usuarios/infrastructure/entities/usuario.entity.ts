@@ -7,7 +7,7 @@ import {
 } from 'typeorm';
 import { Rol } from '../../domain/enums/rol.enum.js';
 
-//garantia final en la base: un usuario activo siempre tiene al menos un rol
+//un usuario activo siempre tiene al menos un rol
 @Check(
   'CHK_usuarios_activo_con_rol',
   'NOT "active" OR cardinality("roles") > 0',
@@ -23,8 +23,8 @@ export class UsuarioEntity {
   @Column({ type: 'varchar', length: 255 })
   apellido: string;
 
-  @Column({ type: 'varchar', length: 20, name: 'cuit_dni', unique: true })
-  cuitDni: string;
+  @Column({ type: 'varchar', length: 8, unique: true })
+  dni: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;

@@ -13,9 +13,9 @@ import { ActivarUsuarioDto } from './dto/activar-usuario.dto.js';
 import { ListarUsuariosQueryDto } from './dto/listar-usuarios-query.dto.js';
 import { UsuarioIdParamsDto } from './dto/usuario-id-params.dto.js';
 import { UsuarioResponseDto } from './dto/usuario-response.dto.js';
+import { toUsuarioResponse } from './usuario-response.mapper.js';
 import { ListarUsuariosUseCase } from '../../application/use-cases/listar-usuarios.use-case.js';
 import { ActivarUsuarioYAsignarRolesUseCase } from '../../application/use-cases/activar-usuario-y-asignar-roles.use-case.js';
-import type { UsuarioSinPassword } from '../../domain/entities/usuario.domain.js';
 
 @ApiTags('Usuarios')
 @Controller('usuarios')
@@ -24,19 +24,6 @@ export class UsuariosController {
     private readonly listarUsuariosUseCase: ListarUsuariosUseCase,
     private readonly activarUsuarioYAsignarRolesUseCase: ActivarUsuarioYAsignarRolesUseCase,
   ) {}
-
-  private toResponse(usuario: UsuarioSinPassword): UsuarioResponseDto {
-    return {
-      id: usuario.id!,
-      nombre: usuario.nombre,
-      apellido: usuario.apellido,
-      cuitDni: usuario.cuitDni,
-      email: usuario.email,
-      active: usuario.active,
-      roles: usuario.roles,
-      fechaCreacion: usuario.fechaCreacion!.toISOString(),
-    };
-  }
 
   // TODO: Proteger con @UseGuards() y @Roles('ADMIN') en el futuro
   @Get()
@@ -60,7 +47,7 @@ export class UsuariosController {
     @Query() { active }: ListarUsuariosQueryDto,
   ): Promise<UsuarioResponseDto[]> {
     const usuarios = await this.listarUsuariosUseCase.execute({ active });
-    return usuarios.map((usuario) => this.toResponse(usuario));
+    return usuarios.map((usuario) => toUsuarioResponse(usuario));
   }
 
   // TODO: Proteger con @UseGuards() y @Roles('ADMIN') en el futuro
@@ -95,6 +82,6 @@ export class UsuariosController {
       active,
       roles,
     );
-    return this.toResponse(usuario);
+    return toUsuarioResponse(usuario);
   }
 }

@@ -1,11 +1,9 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RegistroDto } from './dto/registro.dto.js';
-import { UsuarioResponseDto } from './dto/usuario-response.dto.js';
-import {
-  RegistrarUsuarioUseCase,
-  type UsuarioSinPassword,
-} from '../../application/use-cases/registrar-usuario.use-case.js';
+import { UsuarioResponseDto } from '../../../usuarios/infrastructure/http/dto/usuario-response.dto.js';
+import { toUsuarioResponse } from '../../../usuarios/infrastructure/http/usuario-response.mapper.js';
+import { RegistrarUsuarioUseCase } from '../../application/use-cases/registrar-usuario.use-case.js';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -13,19 +11,6 @@ export class AuthController {
   constructor(
     private readonly registrarUsuarioUseCase: RegistrarUsuarioUseCase,
   ) {}
-
-  private toResponse(usuario: UsuarioSinPassword): UsuarioResponseDto {
-    return {
-      id: usuario.id!,
-      nombre: usuario.nombre,
-      apellido: usuario.apellido,
-      cuitDni: usuario.cuitDni,
-      email: usuario.email,
-      active: usuario.active,
-      roles: usuario.roles,
-      fechaCreacion: usuario.fechaCreacion!.toISOString(),
-    };
-  }
 
   //endpoint público
   @Post('registro')
@@ -49,6 +34,6 @@ export class AuthController {
   })
   async registro(@Body() dto: RegistroDto): Promise<UsuarioResponseDto> {
     const usuario = await this.registrarUsuarioUseCase.execute(dto);
-    return this.toResponse(usuario);
+    return toUsuarioResponse(usuario);
   }
 }

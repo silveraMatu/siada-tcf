@@ -1,8 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-//`active` y `roles` no se aceptan: el usuario nace inactivo y sin roles hasta que un administrador lo apruebe
-//bcrypt solo considera los primeros 72 bytes de la contraseña, por eso ese es el tope
+//bcrypt solo usa los primeros 72 bytes: ese es el tope de la contraseña
 const MAX_PASSWORD_BYTES = 72;
 
 export const RegistroSchema = z.object({
@@ -16,16 +15,15 @@ export const RegistroSchema = z.object({
     .trim()
     .min(1, { message: 'El apellido es obligatorio' })
     .max(255, { message: 'El apellido no puede superar los 255 caracteres' }),
-  //se quitan separadores ('20-12345678-9' => '20123456789') para que la unicidad no se eluda por formato
-  cuitDni: z
+  //solo DNI y sin separadores: evita registrar a la misma persona dos veces
+  dni: z
     .string()
     .trim()
-    .min(1, { message: 'El CUIT/DNI es obligatorio' })
+    .min(1, { message: 'El DNI es obligatorio' })
     .transform((valor) => valor.replace(/[-.\s]/g, ''))
     .pipe(
-      z.string().regex(/^(\d{7,8}|\d{11})$/, {
-        message:
-          'El CUIT/DNI debe tener 7 u 8 dígitos (DNI) o 11 dígitos (CUIT)',
+      z.string().regex(/^\d{7,8}$/, {
+        message: 'El DNI debe tener 7 u 8 dígitos',
       }),
     ),
   //en minúsculas para que la unicidad no dependa de las mayúsculas

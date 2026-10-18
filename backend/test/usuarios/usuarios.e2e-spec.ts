@@ -2,15 +2,18 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../helpers/create-test-app.js';
-import { ID_INEXISTENTE } from '../helpers/fixtures.js';
+import {
+  dniNuevo,
+  ID_INEXISTENTE,
+  inicializarDnis,
+} from '../helpers/fixtures.js';
 
 //Corre contra la base de datos real y NO limpia lo que crea: los datos quedan persistidos.
 describe('Usuarios (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
 
-  //cada usuario usa email y cuitDni propios de la corrida para que los tests sean idempotentes
-  //(prefijo '27' para no chocar con los cuitDni de auth.e2e-spec, que empiezan con '20')
+  //cada usuario usa email y DNI propios de la corrida para que los tests sean idempotentes
   const base = Date.now() % 1_000_000_000;
   let contador = 0;
 
@@ -24,7 +27,7 @@ describe('Usuarios (e2e)', () => {
         nombre: 'Admin',
         apellido: 'Panel',
         email,
-        cuitDni: `27${String(base + contador).padStart(9, '0')}`,
+        dni: dniNuevo(),
         password: 'clave-segura-123',
       })
       .expect(201);
@@ -42,6 +45,7 @@ describe('Usuarios (e2e)', () => {
 
   beforeAll(async () => {
     ({ app, dataSource } = await createTestApp());
+    await inicializarDnis(dataSource);
   });
 
   afterAll(async () => {
@@ -75,7 +79,7 @@ describe('Usuarios (e2e)', () => {
           id: expect.any(Number),
           nombre: expect.any(String),
           apellido: expect.any(String),
-          cuitDni: expect.any(String),
+          dni: expect.any(String),
           email: expect.any(String),
           active: expect.any(Boolean),
           roles: expect.any(Array),
@@ -140,7 +144,7 @@ describe('Usuarios (e2e)', () => {
         id,
         nombre: 'Admin',
         apellido: 'Panel',
-        cuitDni: expect.any(String),
+        dni: expect.any(String),
         email,
         active: true,
         roles: ['AUDITOR', 'JUEZ_TRAMITE'],

@@ -2,12 +2,12 @@ import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { Rol } from '../../../domain/enums/rol.enum.js';
 
-//contrato HTTP de salida: nunca incluye la contraseña (ni su hash)
+//nunca incluye la contraseña
 export const UsuarioResponseSchema = z.object({
   id: z.number().int(),
   nombre: z.string(),
   apellido: z.string(),
-  cuitDni: z.string(),
+  dni: z.string(),
   email: z.string(),
   active: z.boolean(),
   roles: z.array(z.enum(Rol)),

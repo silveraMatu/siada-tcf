@@ -2,8 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 
-//Datos y utilidades compartidos por los e2e de varios modulos.
-//Los datos no se limpian entre ejecuciones, por eso todo es find-or-create e idempotente.
+//compartido por los e2e de varios modulos; los datos no se limpian, por eso todo es idempotente
 
 export const ID_INEXISTENTE = 999999;
 
@@ -12,9 +11,14 @@ export const MES_CON_LIBRO = 3;
 export const MES_SIN_LIBRO = 12; //reservado: nunca se ingesta ningun libro en este mes
 
 //organismo inicial que usan los e2e de cuentas, libro-banco y responsables
-export async function obtenerOrganismoBaseId(dataSource: DataSource): Promise<number> {
+export async function obtenerOrganismoBaseId(
+  dataSource: DataSource,
+): Promise<number> {
   const nombre = '__E2E__ Organismo Base';
-  const existente = await dataSource.query(`SELECT id FROM organismos WHERE nombre = $1 LIMIT 1`, [nombre]);
+  const existente = await dataSource.query(
+    `SELECT id FROM organismos WHERE nombre = $1 LIMIT 1`,
+    [nombre],
+  );
   if (existente.length) return existente[0].id;
 
   const [creado] = await dataSource.query(
@@ -35,4 +39,38 @@ export async function resolverCuentaMensualId(
     .send({ organismoId, ejercicioFiscal: EJERCICIO, mes })
     .expect(200);
   return res.body.id;
+}
+
+//DNI de 8 digitos unicos: parten del maximo guardado y avanzan de a uno (al azar acabarian chocando)
+let proximoDni: number | null = null;
+
+export async function inicializarDnis(dataSource: DataSource): Promise<void> {
+  if (proximoDni !== null) return;
+  const [{ maximo }] = await dataSource.query(
+    `SELECT COALESCE(MAX(dni::bigint), 0) AS maximo FROM usuarios WHERE dni ~ '^[0-9]{8}$'`,
+  );
+  proximoDni = Math.max(Number(maximo) + 1, 10_000_000);
+}
+
+export function dniNuevo(): string {
+  if (proximoDni === null)
+    throw new Error(
+      'Llamar a inicializarDnis(dataSource) antes de generar DNI',
+    );
+  return String(proximoDni++);
+}
+
+//DNI de 7 digitos sin usar (dniNuevo genera siempre de 8)
+export async function dniDeSieteDigitosLibre(
+  dataSource: DataSource,
+): Promise<string> {
+  for (let intento = 0; intento < 50; intento++) {
+    const dni = String(1_000_000 + Math.floor(Math.random() * 9_000_000));
+    const ocupado = await dataSource.query(
+      `SELECT 1 FROM usuarios WHERE dni = $1`,
+      [dni],
+    );
+    if (!ocupado.length) return dni;
+  }
+  throw new Error('No se encontro un DNI de 7 digitos libre');
 }
