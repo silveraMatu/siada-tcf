@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { obtenerUsuariosPendientes } from '../api/usuarios.api';
-
-export const usuariosPendientesKey = ['usuarios', 'pendientes'] as const;
+import { usuariosKeys } from './usuarios.keys';
 
 export function useUsuariosPendientes() {
   return useQuery({
-    queryKey: usuariosPendientesKey,
+    queryKey: usuariosKeys.pendientes,
     queryFn: obtenerUsuariosPendientes,
     // Un 401/403 no se arregla reintentando.
     retry: false,

@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api';
 import { activarUsuario } from '../api/usuarios.api';
 import type { Rol } from '../types';
-import { usuariosPendientesKey } from './useUsuariosPendientes';
+import { usuariosKeys } from './usuarios.keys';
 
 export function useActivarUsuario() {
   const queryClient = useQueryClient();
@@ -13,8 +13,8 @@ export function useActivarUsuario() {
     mutationFn: ({ id, roles }: { id: number; roles: Rol[] }) =>
       activarUsuario(id, roles),
     onSuccess: (usuario) => {
-      // Al refrescar la lista, el usuario activado deja de aparecer como pendiente.
-      queryClient.invalidateQueries({ queryKey: usuariosPendientesKey });
+      // Sale de pendientes y pasa a la lista de activos.
+      queryClient.invalidateQueries({ queryKey: usuariosKeys.all });
       toast.success(`${usuario.nombre} ${usuario.apellido} fue activado`);
     },
     onError: (error) => toast.error(getErrorMessage(error)),

@@ -33,3 +33,20 @@ export function alternarRol(roles: Rol[], rol: Rol): Rol[] {
     : [...roles, rol];
   return ROLES.filter((r) => seleccionados.includes(r));
 }
+
+/**
+ * El servidor no impide que un administrador se desactive a sí mismo o se quite el
+ * rol ADMIN (y quede fuera del sistema), así que la UI lo bloquea para su propia cuenta.
+ */
+export function restriccionPropia(
+  usuarioId: number,
+  sub: number | string | null | undefined,
+  rolesNuevos: readonly Rol[],
+): { esPropia: boolean; noPuedeDesactivar: boolean; noPuedeQuitarseAdmin: boolean } {
+  const esPropia = sub !== null && sub !== undefined && Number(sub) === usuarioId;
+  return {
+    esPropia,
+    noPuedeDesactivar: esPropia,
+    noPuedeQuitarseAdmin: esPropia && !rolesNuevos.includes('ADMIN'),
+  };
+}

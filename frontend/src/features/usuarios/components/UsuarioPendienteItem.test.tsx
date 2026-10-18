@@ -10,7 +10,10 @@ import { UsuarioPendienteItem } from './UsuarioPendienteItem';
 
 vi.mock('../api/usuarios.api', () => ({
   activarUsuario: vi.fn(),
+  desactivarUsuario: vi.fn(),
+  obtenerUsuarios: vi.fn(),
   obtenerUsuariosPendientes: vi.fn(),
+  obtenerUsuariosActivos: vi.fn(),
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -25,14 +28,14 @@ const usuario: Usuario = {
   fechaCreacion: '2026-10-15T12:00:00.000Z',
 };
 
-function renderItem() {
+function renderItem(datos: Usuario = usuario) {
   const client = new QueryClient({
     defaultOptions: { mutations: { retry: false } },
   });
   render(
     <QueryClientProvider client={client}>
       <ul>
-        <UsuarioPendienteItem usuario={usuario} />
+        <UsuarioPendienteItem usuario={datos} />
       </ul>
     </QueryClientProvider>,
   );
@@ -51,6 +54,16 @@ afterEach(() => {
 });
 
 describe('UsuarioPendienteItem', () => {
+  it('marca los roles que el usuario ya tenía (p. ej. tras desactivarlo)', () => {
+    renderItem({ ...usuario, roles: ['AUDITOR'] });
+    expect(rol('Auditor', true)).toBeTruthy();
+    expect(rol('Responsable', false)).toBeTruthy();
+    expect(
+      (screen.getByRole('button', { name: 'Activar' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
+  });
+
   it('los badges de rol funcionan como toggles', async () => {
     const user = renderItem();
 

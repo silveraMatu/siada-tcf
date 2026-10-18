@@ -12,22 +12,21 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { useActivarUsuario } from '../hooks/useActivarUsuario';
-import { alternarRol, ROL_LABEL, ROLES, type Rol, type Usuario } from '../types';
+import { ROL_LABEL, type Rol, type Usuario } from '../types';
+import { RolesSelector } from './RolesSelector';
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' });
 
 export function UsuarioPendienteItem({ usuario }: { usuario: Usuario }) {
-  const [rolesSeleccionados, setRolesSeleccionados] = useState<Rol[]>([]);
+  // Un usuario desactivado conserva sus roles previos y vuelve con ellos ya marcados.
+  const [rolesSeleccionados, setRolesSeleccionados] = useState<Rol[]>(
+    usuario.roles,
+  );
   const [dialogAbierto, setDialogAbierto] = useState(false);
   const activar = useActivarUsuario();
 
   const sinRoles = rolesSeleccionados.length === 0;
-
-  function alternar(rol: Rol) {
-    setRolesSeleccionados((actuales) => alternarRol(actuales, rol));
-  }
 
   return (
     <li className="flex flex-col gap-5 rounded-xl border bg-card p-5 md:flex-row md:items-center md:justify-between">
@@ -45,33 +44,10 @@ export function UsuarioPendienteItem({ usuario }: { usuario: Usuario }) {
       </div>
 
       <div className="flex flex-col gap-3 md:items-end">
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Roles">
-          {ROLES.map((rol) => {
-            const seleccionado = rolesSeleccionados.includes(rol);
-            return (
-              <Badge
-                key={rol}
-                role="button"
-                tabIndex={0}
-                aria-pressed={seleccionado}
-                variant={seleccionado ? 'default' : 'outline'}
-                className={cn(
-                  'cursor-pointer select-none px-3 py-1 font-medium',
-                  !seleccionado && 'text-muted-foreground hover:bg-accent',
-                )}
-                onClick={() => alternar(rol)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    alternar(rol);
-                  }
-                }}
-              >
-                {ROL_LABEL[rol]}
-              </Badge>
-            );
-          })}
-        </div>
+        <RolesSelector
+          value={rolesSeleccionados}
+          onChange={setRolesSeleccionados}
+        />
         <div className="flex items-center gap-3">
           {sinRoles && (
             <span className="text-xs text-muted-foreground">
