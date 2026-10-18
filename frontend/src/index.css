@@ -1,4 +1,7 @@
 @import '@fontsource-variable/inter';
+@import '@fontsource-variable/libre-franklin';
+@import '@fontsource/courier-prime/400.css';
+@import '@fontsource/courier-prime/700.css';
 
 @tailwind base;
 @tailwind components;
@@ -35,5 +38,21 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'cv11', 'ss01';
+  }
+}
+
+@layer base {
+  ::selection {
+    background: #5b2d9e;
+    color: #fbfbf8;
+  }
+
+  :focus-visible {
+    outline: 2px solid #5b2d9e;
+    outline-offset: 3px;
+  }
+
+  .sobre-carpeta :focus-visible {
+    outline-color: #fbfbf8;
   }
 }

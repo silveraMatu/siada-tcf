@@ -1,35 +1,31 @@
 import { Link } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
-
 export function LandingNavbar() {
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-background/80 backdrop-blur">
+    <header className="sobre-carpeta sticky top-0 z-40 border-b border-white/10 bg-carpeta text-foja">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-8">
-        <Link to="/" className="flex items-center gap-3">
-          <span className="text-sm font-semibold tracking-tight text-slate-900">
-            HTC Formosa
-          </span>
-          <span className="h-4 w-px bg-slate-300" aria-hidden />
-          <span className="text-sm font-semibold tracking-tight text-blue-600">
+        <Link to="/" className="flex items-baseline gap-3">
+          <span className="font-prensa text-base font-extrabold tracking-tight">
             SIADA
           </span>
-          <span className="hidden text-xs text-slate-500 md:inline">
-            Sistema Integral de Auditoría
+          <span className="hidden text-sm text-[#cfd3f2] sm:inline">
+            Tribunal de Cuentas · Formosa
           </span>
         </Link>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/registro">Registrarse</Link>
-          </Button>
-          <Button
-            asChild
-            size="sm"
-            className="bg-blue-600 text-white hover:bg-blue-700"
+        <nav aria-label="Acceso" className="flex items-center gap-1 sm:gap-2">
+          <Link
+            to="/registro"
+            className="px-3 py-2 text-sm font-medium text-[#cfd3f2] transition-colors hover:text-foja"
           >
-            <Link to="/login">Iniciar Sesión</Link>
-          </Button>
-        </div>
+            Registrarse
+          </Link>
+          <Link
+            to="/login"
+            className="bg-foja px-4 py-2 text-sm font-bold text-carpeta transition-colors hover:bg-white"
+          >
+            Iniciar sesión
+          </Link>
+        </nav>
       </div>
     </header>
   );
