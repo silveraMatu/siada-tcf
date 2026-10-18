@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 
 import { cn } from '@/lib/utils';
-import { navigation } from './navigation';
+import { navigationGroups } from './navigation';
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
@@ -12,27 +12,31 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <span className="text-sm font-semibold tracking-tight">SIADA</span>
       </div>
-      <nav className="flex flex-col gap-0.5 px-3 py-2">
-        <p className="px-2 pb-1.5 text-xs font-medium text-muted-foreground">
-          Auditoría
-        </p>
-        {navigation.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors',
-                isActive
-                  ? 'bg-accent font-medium text-foreground'
-                  : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
-              )
-            }
-          >
-            <Icon className="size-4" strokeWidth={1.75} />
-            {label}
-          </NavLink>
+      <nav className="flex flex-col gap-6 px-3 py-2">
+        {navigationGroups.map(({ label: grupo, items }) => (
+          <div key={grupo} className="flex flex-col gap-0.5">
+            <p className="px-2 pb-1.5 text-xs font-medium text-muted-foreground">
+              {grupo}
+            </p>
+            {items.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={onNavigate}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors',
+                    isActive
+                      ? 'bg-accent font-medium text-foreground'
+                      : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+                  )
+                }
+              >
+                <Icon className="size-4" strokeWidth={1.75} />
+                {label}
+              </NavLink>
+            ))}
+          </div>
         ))}
       </nav>
     </div>
