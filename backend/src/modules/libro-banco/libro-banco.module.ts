@@ -11,10 +11,7 @@ import { ObtenerLibroBancoUseCase } from './application/use-cases/obtener-libro-
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      LibroBancoEntity,
-      TransaccionLibroBancoEntity,
-    ]),
+    TypeOrmModule.forFeature([LibroBancoEntity, TransaccionLibroBancoEntity]),
     CuentasModule,
   ],
   controllers: [LibroBancoController],
@@ -26,9 +23,6 @@ import { ObtenerLibroBancoUseCase } from './application/use-cases/obtener-libro-
       useClass: TypeOrmLibroBancoRepositoryAdapter,
     },
   ],
-  exports: [
-    IngestarLibroBancoUseCase,
-    ObtenerLibroBancoUseCase
-  ],
+  exports: [IngestarLibroBancoUseCase, ObtenerLibroBancoUseCase],
 })
 export class LibroBancoModule {}

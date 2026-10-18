@@ -13,10 +13,7 @@ import { ResolverCuentaMensualUseCase } from './application/use-cases/resolver-c
 @Module({
   imports: [
     OrganismosModule,
-    TypeOrmModule.forFeature([
-      CuentaAnualEntity,
-      CuentaMensualEntity,
-    ]),
+    TypeOrmModule.forFeature([CuentaAnualEntity, CuentaMensualEntity]),
   ],
   controllers: [CuentasController],
   providers: [
@@ -30,9 +27,6 @@ import { ResolverCuentaMensualUseCase } from './application/use-cases/resolver-c
       useClass: TypeOrmCuentaMensualRepositoryAdapter,
     },
   ],
-  exports: [
-    CuentaMensualRepositoryPort,
-    ResolverCuentaMensualUseCase
-  ],
+  exports: [CuentaMensualRepositoryPort, ResolverCuentaMensualUseCase],
 })
 export class CuentasModule {}

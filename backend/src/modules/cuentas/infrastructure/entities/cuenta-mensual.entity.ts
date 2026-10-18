@@ -7,11 +7,10 @@ import {
   JoinColumn,
   CreateDateColumn,
   Unique,
-  type Relation
+  type Relation,
 } from 'typeorm';
 import { CuentaAnualEntity } from './cuenta-anual.entity.js';
 import { LibroBancoEntity } from '../../../libro-banco/infrastructure/entities/libro-banco.entity.js';
-
 
 export enum EstadoCuentaMensual {
   PENDIENTE_CARGA = 'pendiente_carga',
@@ -22,7 +21,6 @@ export enum EstadoCuentaMensual {
   RECHAZADA = 'rechazada',
   CERRADA = 'cerrada',
 }
-
 
 @Entity('cuentas_mensuales')
 @Unique('UQ_cuenta_mensual_anual_mes', ['cuentaAnualId', 'mes'])
@@ -37,9 +35,10 @@ export class CuentaMensualEntity {
   cuentaAnualId: number;
 
   @Column({
-    type: 'enum', 
-    name: 'estado', 
-    enum: EstadoCuentaMensual, default: EstadoCuentaMensual.PENDIENTE_CARGA 
+    type: 'enum',
+    name: 'estado',
+    enum: EstadoCuentaMensual,
+    default: EstadoCuentaMensual.PENDIENTE_CARGA,
   })
   estado: string;
 

@@ -6,7 +6,7 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
-  type Relation
+  type Relation,
 } from 'typeorm';
 import { TransaccionLibroBancoEntity } from './transaccion-libro-banco.entity.js';
 import { CuentaMensualEntity } from '../../../cuentas/infrastructure/entities/cuenta-mensual.entity.js';

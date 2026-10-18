@@ -7,4 +7,6 @@ export const ResolverCuentaMensualSchema = z.object({
   mes: z.number().int().min(1).max(12),
 });
 
-export class ResolverCuentaMensualDto extends createZodDto(ResolverCuentaMensualSchema) {}
+export class ResolverCuentaMensualDto extends createZodDto(
+  ResolverCuentaMensualSchema,
+) {}

@@ -4,7 +4,7 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
-  type Relation
+  type Relation,
 } from 'typeorm';
 import { LibroBancoEntity } from './libro-banco.entity.js';
 import { decimalTransformer } from '../transformers/decimal.transformer.js';
@@ -23,23 +23,38 @@ export class TransaccionLibroBancoEntity {
   @Column({ type: 'text', name: 'a_la_orden_de' })
   aLaOrdenDe: string;
 
-  @Column({ type: 'decimal', precision: 14, scale: 2, default: 0, transformer: decimalTransformer })
+  @Column({
+    type: 'decimal',
+    precision: 14,
+    scale: 2,
+    default: 0,
+    transformer: decimalTransformer,
+  })
   depositos: number;
 
-  @Column({ type: 'decimal', precision: 14, scale: 2, default: 0, transformer: decimalTransformer })
+  @Column({
+    type: 'decimal',
+    precision: 14,
+    scale: 2,
+    default: 0,
+    transformer: decimalTransformer,
+  })
   retiro: number;
 
-  @Column({ type: 'decimal', precision: 14, scale: 2, transformer: decimalTransformer })
+  @Column({
+    type: 'decimal',
+    precision: 14,
+    scale: 2,
+    transformer: decimalTransformer,
+  })
   saldo: number;
 
   @Column({ type: 'int', name: 'libro_banco_id' })
   libroBancoId: number;
 
-  @ManyToOne(
-    () => LibroBancoEntity,
-    (libroBanco) => libroBanco.transacciones,
-    { onDelete: 'CASCADE' },
-  )
+  @ManyToOne(() => LibroBancoEntity, (libroBanco) => libroBanco.transacciones, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'libro_banco_id' })
   libroBanco: Relation<LibroBancoEntity>;
 }

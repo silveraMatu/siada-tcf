@@ -3,7 +3,7 @@ import { LibroBancoRepositoryPort } from '../../application/ports/out/libro-banc
 import { CuentaMensualRepositoryPort } from '../../../cuentas/application/ports/out/cuenta-mensual-repository.port.js';
 import { LibroBanco } from '../../domain/entities/libro-banco.domain.js';
 
-@Injectable() 
+@Injectable()
 export class ObtenerLibroBancoUseCase {
   constructor(
     private readonly libroBancoRepository: LibroBancoRepositoryPort,
@@ -11,11 +11,16 @@ export class ObtenerLibroBancoUseCase {
   ) {}
 
   async execute(cuentaMensualId: number): Promise<LibroBanco[]> {
-    const existeCuenta = await this.cuentaMensualRepository.existe(cuentaMensualId);
+    const existeCuenta =
+      await this.cuentaMensualRepository.existe(cuentaMensualId);
     if (!existeCuenta) {
-      throw new NotFoundException(`La Cuenta Mensual con ID ${cuentaMensualId} no existe.`);
+      throw new NotFoundException(
+        `La Cuenta Mensual con ID ${cuentaMensualId} no existe.`,
+      );
     }
 
-    return await this.libroBancoRepository.buscarPorCuentaMensualId(cuentaMensualId);
+    return await this.libroBancoRepository.buscarPorCuentaMensualId(
+      cuentaMensualId,
+    );
   }
 }

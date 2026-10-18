@@ -7,13 +7,16 @@ import {
   JoinColumn,
   CreateDateColumn,
   Unique,
-  type Relation
+  type Relation,
 } from 'typeorm';
 import { OrganismoEntity } from '../../../organismos/infrastructure/entities/organismo.entity.js';
 import { CuentaMensualEntity } from './cuenta-mensual.entity.js';
 
 @Entity('cuentas_anuales')
-@Unique('UQ_cuenta_anual_organismo_ejercicio', ['organismoId', 'ejercicioFiscal'])
+@Unique('UQ_cuenta_anual_organismo_ejercicio', [
+  'organismoId',
+  'ejercicioFiscal',
+])
 export class CuentaAnualEntity {
   @PrimaryGeneratedColumn()
   id: number;

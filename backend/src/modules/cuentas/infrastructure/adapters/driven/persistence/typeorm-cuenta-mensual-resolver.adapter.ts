@@ -11,7 +11,11 @@ import { CuentaMensualMapper } from '../../../mappers/cuenta-mensual.mapper.js';
 export class TypeOrmCuentaMensualResolverAdapter implements CuentaMensualResolverPort {
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-  async resolver(organismoId: number, ejercicioFiscal: number, mes: number): Promise<CuentaMensual> {
+  async resolver(
+    organismoId: number,
+    ejercicioFiscal: number,
+    mes: number,
+  ): Promise<CuentaMensual> {
     return await this.dataSource.transaction(async (manager) => {
       await manager
         .createQueryBuilder()
@@ -21,7 +25,10 @@ export class TypeOrmCuentaMensualResolverAdapter implements CuentaMensualResolve
         .orIgnore()
         .execute();
 
-      const cuentaAnual = await manager.findOneByOrFail(CuentaAnualEntity, { organismoId, ejercicioFiscal });
+      const cuentaAnual = await manager.findOneByOrFail(CuentaAnualEntity, {
+        organismoId,
+        ejercicioFiscal,
+      });
 
       await manager
         .createQueryBuilder()

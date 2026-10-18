@@ -54,11 +54,6 @@ export class OrganismosController {
   })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   async crear(@Body() dto: CrearOrganismoDto): Promise<OrganismoResponseDto> {
-    /*
-    El estado inicial (active) lo define el dominio y no se recibe del cliente.
-    Más adelante el organismo deberá ser aprobado por un administrador para poder
-    realizar sus respectivas rendiciones
-    */
     const organismo = await this.crearOrganismoUseCase.execute(
       dto.nombre,
       dto.rubro,

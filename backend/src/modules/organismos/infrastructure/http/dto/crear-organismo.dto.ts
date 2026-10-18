@@ -1,8 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-//los largos maximos replican los de la columna en OrganismoEntity
-//`active` no se acepta: el estado inicial lo define el dominio
+//largos maximos iguales a los de la columna; active no se acepta (lo define el dominio)
 export const CrearOrganismoSchema = z.object({
   nombre: z
     .string()

@@ -13,7 +13,9 @@ export class ObtenerResponsablesPorOrganismoUseCase {
   async execute(organismoId: number): Promise<Responsable[]> {
     const organismo = await this.organismoRepository.buscarPorId(organismoId);
     if (!organismo) {
-      throw new NotFoundException(`El Organismo con ID ${organismoId} no existe.`);
+      throw new NotFoundException(
+        `El Organismo con ID ${organismoId} no existe.`,
+      );
     }
 
     return await this.responsableRepository.buscarPorOrganismo(organismoId);
