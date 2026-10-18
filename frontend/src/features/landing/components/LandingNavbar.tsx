@@ -18,9 +18,18 @@ export function LandingNavbar() {
             Sistema Integral de Auditoría
           </span>
         </Link>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/organismos">Acceso a Organismos</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/registro">Registrarse</Link>
+          </Button>
+          <Button
+            asChild
+            size="sm"
+            className="bg-blue-600 text-white hover:bg-blue-700"
+          >
+            <Link to="/login">Iniciar Sesión</Link>
+          </Button>
+        </div>
       </div>
     </header>
   );

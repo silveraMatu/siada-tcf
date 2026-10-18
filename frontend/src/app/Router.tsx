@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { AuditoriaPage } from '@/features/auditoria/components/AuditoriaPage';
 import { LoginPage } from '@/features/auth/components/LoginPage';
 import { RegistroPage } from '@/features/auth/components/RegistroPage';
 import { AdminUsuariosPage } from '@/features/usuarios/components/AdminUsuariosPage';
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { path: 'organismos', element: <OrganismosPage /> },
       { path: 'responsables', element: <ResponsablesPage /> },
       { path: 'libro-banco', element: <LibroBancoPage /> },
+      { path: 'auditoria', element: <AuditoriaPage /> },
       { path: 'admin/usuarios', element: <AdminUsuariosPage /> },
     ],
   },

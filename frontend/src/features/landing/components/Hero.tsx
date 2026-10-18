@@ -29,18 +29,28 @@ export function Hero() {
           mensuales, detecte inconsistencias al instante y potencie el control
           constructivo mediante Inteligencia Artificial.
         </p>
-        <Button
-          asChild
-          size="lg"
-          className={cn(
-            'mt-10 h-12 bg-blue-600 px-7 text-base text-white hover:bg-blue-700',
-          )}
-        >
-          <Link to="/organismos">
-            Ingresar al Dashboard
-            <ArrowRight />
-          </Link>
-        </Button>
+        <div className="mt-10 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
+          <Button
+            asChild
+            size="lg"
+            className={cn(
+              'h-12 w-full bg-blue-600 px-7 text-base text-white hover:bg-blue-700 sm:w-auto',
+            )}
+          >
+            <Link to="/login">
+              Iniciar Sesión
+              <ArrowRight />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="h-12 w-full px-7 text-base sm:w-auto"
+          >
+            <Link to="/registro">Registrarse</Link>
+          </Button>
+        </div>
       </div>
     </section>
   );

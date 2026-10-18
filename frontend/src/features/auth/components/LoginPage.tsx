@@ -20,6 +20,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { rutaInicial } from '@/components/layout/navigation';
+import { useAuthStore } from '../hooks/useAuth';
 import { useLogin } from '../hooks/useLogin';
 import { LoginSchema, type LoginFormValues } from '../types';
 import { AuthShell } from './AuthShell';
@@ -36,7 +38,11 @@ export function LoginPage() {
   });
 
   function onSubmit(values: LoginFormValues) {
-    login.mutate(values, { onSuccess: () => navigate('/organismos') });
+    login.mutate(values, {
+      // Cada rol aterriza en la primera sección que su menú le permite ver.
+      onSuccess: () =>
+        navigate(rutaInicial(useAuthStore.getState().user?.roles ?? [])),
+    });
   }
 
   return (
