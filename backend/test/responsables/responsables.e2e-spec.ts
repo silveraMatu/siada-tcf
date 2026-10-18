@@ -327,6 +327,43 @@ describe('Responsables (e2e)', () => {
       expect(await organismoDe(responsableId)).toBeNull();
     });
 
+    //el usuario puede ser desactivado o perder el rol despues de crear el responsable
+    it('409: el usuario del responsable fue desactivado, sin modificar al responsable', async () => {
+      const { id: responsableId, usuarioId } = await nuevoResponsable();
+      await request(app.getHttpServer())
+        .patch(`/api/v1/usuarios/${usuarioId}/activar`)
+        .send({ active: false, roles: [] })
+        .expect(200);
+
+      const res = await asignar(responsableId, { organismoId }).expect(409);
+
+      expect(res.body.message).toContain('RESPONSABLE');
+      expect(await organismoDe(responsableId)).toBeNull();
+    });
+
+    it('409: al usuario del responsable le quitaron el rol RESPONSABLE, sin modificar al responsable', async () => {
+      const { id: responsableId, usuarioId } = await nuevoResponsable();
+      await habilitarUsuario(app, usuarioId, ['AUDITOR']);
+
+      await asignar(responsableId, { organismoId }).expect(409);
+
+      expect(await organismoDe(responsableId)).toBeNull();
+    });
+
+    it('200: si el usuario vuelve a habilitarse como RESPONSABLE, la asignacion vuelve a funcionar', async () => {
+      const { id: responsableId, usuarioId } = await nuevoResponsable();
+      await request(app.getHttpServer())
+        .patch(`/api/v1/usuarios/${usuarioId}/activar`)
+        .send({ active: false, roles: [] })
+        .expect(200);
+      await asignar(responsableId, { organismoId }).expect(409);
+
+      await habilitarUsuario(app, usuarioId, ['RESPONSABLE']);
+
+      await asignar(responsableId, { organismoId }).expect(200);
+      expect(await organismoDe(responsableId)).toBe(organismoId);
+    });
+
     it('409: organismo inactivo, sin modificar al responsable', async () => {
       const { id: responsableId } = await nuevoResponsable();
       const inactivoId = await nuevoOrganismo();
@@ -348,6 +385,15 @@ describe('Responsables (e2e)', () => {
 
       //responsable inactivo + organismo inexistente => 409 (no 404)
       await asignar(inactivoId, { organismoId: ID_INEXISTENTE }).expect(409);
+      //usuario deshabilitado + organismo inexistente => 409 (el usuario se valida antes)
+      const { id: conUsuarioInactivo, usuarioId } = await nuevoResponsable();
+      await request(app.getHttpServer())
+        .patch(`/api/v1/usuarios/${usuarioId}/activar`)
+        .send({ active: false, roles: [] })
+        .expect(200);
+      await asignar(conUsuarioInactivo, { organismoId: ID_INEXISTENTE }).expect(
+        409,
+      );
       //responsable inexistente + organismo inexistente => 404 por el responsable
       const res = await asignar(ID_INEXISTENTE, {
         organismoId: ID_INEXISTENTE,
