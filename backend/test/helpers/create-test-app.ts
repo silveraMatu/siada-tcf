@@ -1,10 +1,12 @@
 import 'reflect-metadata';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ZodValidationPipe } from 'nestjs-zod';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { TypeOrmModule, type TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { configurarApp } from '../../src/app.setup.js';
+import databaseConfig from '../../src/config/database.config.js';
 import { OrganismosModule } from '../../src/modules/organismos/organismos.module.js';
 import { CuentasModule } from '../../src/modules/cuentas/cuentas.module.js';
 import { LibroBancoModule } from '../../src/modules/libro-banco/libro-banco.module.js';
@@ -12,21 +14,22 @@ import { ResponsablesModule } from '../../src/modules/responsables/responsables.
 import { UsuariosModule } from '../../src/modules/usuarios/usuarios.module.js';
 import { AuthModule } from '../../src/modules/auth/auth.module.js';
 
-//Replica AppModule/main.ts contra la base real. No usa AppModule porque su config carga las
-//entidades por glob (*.entity.ts) con import nativo, que Node no puede parsear fuera de la compilacion.
-export async function createTestApp(): Promise<{ app: INestApplication; dataSource: DataSource }> {
+//replica AppModule/main.ts: misma config y setup; solo cambian las entidades (autoLoadEntities en vez del glob, que Node no parsea fuera del build)
+export async function createTestApp(): Promise<{
+  app: INestApplication;
+  dataSource: DataSource;
+}> {
   const moduleRef = await Test.createTestingModule({
     imports: [
-      ConfigModule.forRoot({ isGlobal: true }),
-      TypeOrmModule.forRoot({
-        type: 'postgres',
-        host: process.env.POSTGRES_HOST || 'localhost',
-        port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
-        username: process.env.POSTGRES_USER || 'admin',
-        password: process.env.POSTGRES_PASS || 'password',
-        database: process.env.POSTGRES_DB || 'siada_db',
-        autoLoadEntities: true,
-        synchronize: true,
+      ConfigModule.forRoot({ isGlobal: true, load: [databaseConfig] }),
+      TypeOrmModule.forRootAsync({
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService): TypeOrmModuleOptions => ({
+          ...configService.get('database')!,
+          entities: undefined,
+          autoLoadEntities: true,
+        }),
       }),
       OrganismosModule,
       CuentasModule,
@@ -37,9 +40,10 @@ export async function createTestApp(): Promise<{ app: INestApplication; dataSour
     ],
   }).compile();
 
-  const app = moduleRef.createNestApplication();
-  app.setGlobalPrefix('api/v1');
-  app.useGlobalPipes(new ZodValidationPipe());
+  const app = moduleRef.createNestApplication<NestExpressApplication>({
+    bodyParser: false,
+  });
+  configurarApp(app);
   await app.init();
 
   return { app, dataSource: app.get(DataSource) };
