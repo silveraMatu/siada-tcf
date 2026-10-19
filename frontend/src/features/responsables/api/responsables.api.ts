@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios';
 
 import { api } from '@/lib/api';
+import type { Organismo } from '@/features/organismos/types';
 import type { Responsable } from '../types';
 
 /** Requiere un JWT de ADMIN. */
@@ -10,6 +11,15 @@ export async function obtenerResponsablesSinOrganismo(): Promise<
   const { data } = await api.get<Responsable[]>('/responsables', {
     params: { sinOrganismo: true },
   });
+  return data;
+}
+
+/**
+ * Organismo del responsable autenticado. Requiere el rol RESPONSABLE; responde
+ * 404 si no tiene Responsable y 409 si está inactivo o sin organismo activo.
+ */
+export async function obtenerMiOrganismo(): Promise<Organismo> {
+  const { data } = await api.get<Organismo>('/responsables/me/organismo');
   return data;
 }
 

@@ -10,7 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useOrganismosActivos } from '@/features/organismos/hooks/useOrganismos';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useMiOrganismo } from '@/features/responsables/hooks/useMiOrganismo';
+import { getErrorMessage } from '@/lib/api';
 import { EJERCICIOS_FISCALES, MESES } from '../constants';
 import { useResolverCuentaMensual } from '../hooks/useResolverCuentaMensual';
 import type { ContextoCuenta, CuentaMensual } from '../types';
@@ -22,14 +24,13 @@ interface ContextoFormProps {
 }
 
 export function ContextoForm({ onResuelta, onCambio }: ContextoFormProps) {
-  const organismos = useOrganismosActivos();
+  const organismo = useMiOrganismo();
   const resolver = useResolverCuentaMensual();
 
-  const [organismoId, setOrganismoId] = useState('');
   const [ejercicio, setEjercicio] = useState('');
   const [mes, setMes] = useState('');
 
-  const completo = organismoId !== '' && ejercicio !== '' && mes !== '';
+  const completo = organismo.isSuccess && ejercicio !== '' && mes !== '';
 
   function cambiar(setter: (valor: string) => void) {
     return (valor: string) => {
@@ -39,12 +40,11 @@ export function ContextoForm({ onResuelta, onCambio }: ContextoFormProps) {
   }
 
   function confirmar() {
-    const organismo = organismos.data?.find((o) => o.id === Number(organismoId));
-    if (!completo || !organismo) return;
+    if (!completo) return;
 
     const contexto: ContextoCuenta = {
-      organismoId: organismo.id,
-      organismoNombre: organismo.nombre,
+      organismoId: organismo.data.id,
+      organismoNombre: organismo.data.nombre,
       ejercicioFiscal: Number(ejercicio),
       mes: Number(mes),
     };
@@ -58,44 +58,28 @@ export function ContextoForm({ onResuelta, onCambio }: ContextoFormProps) {
     );
   }
 
-  const sinOrganismos = organismos.isSuccess && organismos.data.length === 0;
-
   return (
     <section className="rounded-xl border bg-card p-6">
       <div className="grid gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <div className="space-y-2">
-          <Label htmlFor="organismo">Organismo</Label>
-          <Select
-            value={organismoId}
-            onValueChange={cambiar(setOrganismoId)}
-            disabled={organismos.isPending || sinOrganismos}
-          >
-            <SelectTrigger id="organismo">
-              <SelectValue
-                placeholder={
-                  organismos.isPending
-                    ? 'Cargando organismos…'
-                    : sinOrganismos
-                      ? 'No hay organismos activos'
-                      : 'Seleccione un organismo'
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {organismos.data?.map((o) => (
-                <SelectItem key={o.id} value={String(o.id)}>
-                  {o.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {organismos.isError && (
+          <Label id="organismo-label">Organismo</Label>
+          {organismo.isPending ? (
+            <Skeleton className="h-9 w-full" />
+          ) : (
+            <div
+              aria-labelledby="organismo-label"
+              className="flex h-9 items-center rounded-md border bg-muted px-3 text-sm"
+            >
+              {organismo.data?.nombre ?? '—'}
+            </div>
+          )}
+          {organismo.isError && (
             <p className="text-xs text-destructive">
-              No se pudieron cargar los organismos.{' '}
+              {getErrorMessage(organismo.error)}{' '}
               <button
                 type="button"
                 className="underline underline-offset-2"
-                onClick={() => organismos.refetch()}
+                onClick={() => organismo.refetch()}
               >
                 Reintentar
               </button>
@@ -137,10 +121,7 @@ export function ContextoForm({ onResuelta, onCambio }: ContextoFormProps) {
       </div>
 
       <div className="mt-6 flex justify-end">
-        <Button
-          onClick={confirmar}
-          disabled={!completo || resolver.isPending}
-        >
+        <Button onClick={confirmar} disabled={!completo || resolver.isPending}>
           {resolver.isPending && <Loader2 className="animate-spin" />}
           Confirmar Contexto
         </Button>

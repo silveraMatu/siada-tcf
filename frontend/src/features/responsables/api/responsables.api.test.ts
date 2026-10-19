@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import {
   asegurarResponsable,
   asignarOrganismo,
+  obtenerMiOrganismo,
   obtenerResponsablesSinOrganismo,
 } from './responsables.api';
 
@@ -23,6 +24,13 @@ describe('responsables.api', () => {
     expect(get).toHaveBeenCalledWith('/responsables', {
       params: { sinOrganismo: true },
     });
+  });
+
+  it('consulta el organismo del responsable autenticado', async () => {
+    const organismo = { id: 3, nombre: 'Municipalidad', active: true };
+    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: organismo });
+    expect(await obtenerMiOrganismo()).toBe(organismo);
+    expect(get).toHaveBeenCalledWith('/responsables/me/organismo');
   });
 
   it('asigna el organismo con PATCH', async () => {
