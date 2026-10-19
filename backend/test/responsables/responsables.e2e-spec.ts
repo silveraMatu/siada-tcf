@@ -9,6 +9,7 @@ import {
   ID_INEXISTENTE,
   obtenerOrganismoBaseId,
   registrarUsuario,
+  registrarUsuarioConCredenciales,
 } from '../helpers/fixtures.js';
 
 //Corre contra la base de datos real y NO limpia lo que crea: los datos quedan persistidos.
@@ -508,6 +509,115 @@ describe('Responsables (e2e)', () => {
       }
       await asignar('abc', { organismoId }).expect(400);
       expect(await organismoDe(responsableId)).toBeNull();
+    });
+  });
+
+  describe('GET /responsables/me/organismo', () => {
+    const miOrganismo = (bearerToken?: string) => {
+      const consulta = request(app.getHttpServer()).get(
+        '/api/v1/responsables/me/organismo',
+      );
+      return bearerToken
+        ? consulta.set('Authorization', bearerToken)
+        : consulta;
+    };
+
+    //usuario RESPONSABLE con credenciales: devuelve su bearer, su usuarioId y su responsableId (si se pide)
+    const responsableConSesion = async (
+      conResponsable: boolean,
+    ): Promise<{ bearer: string; responsableId?: number }> => {
+      const { id, email, password } =
+        await registrarUsuarioConCredenciales(app);
+      await habilitarUsuario(app, id, ['RESPONSABLE']);
+      let responsableId: number | undefined;
+      if (conResponsable) {
+        const res = await crearResponsable({ usuarioId: id }).expect(201);
+        responsableId = res.body.id;
+      }
+      const login = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ email, password })
+        .expect(200);
+      return { bearer: `Bearer ${login.body.accessToken}`, responsableId };
+    };
+
+    const asignarOrganismo = (responsableId: number, id: number) =>
+      dataSource.query(
+        `UPDATE responsables SET organismo_id = $1 WHERE id = $2`,
+        [id, responsableId],
+      );
+
+    //organismo inactivo fijo (find-or-create): ningun test lo activa
+    const obtenerOrganismoInactivoId = async (): Promise<number> => {
+      const nombre = '__E2E__ Organismo Inactivo';
+      const existente = await dataSource.query(
+        `SELECT id FROM organismos WHERE nombre = $1 LIMIT 1`,
+        [nombre],
+      );
+      if (existente.length) return existente[0].id;
+      const [creado] = await dataSource.query(
+        `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'E2E', false) RETURNING id`,
+        [nombre],
+      );
+      return creado.id;
+    };
+
+    it('200: devuelve el organismo asignado al responsable autenticado', async () => {
+      const { bearer: bearerResponsable, responsableId } =
+        await responsableConSesion(true);
+      await asignarOrganismo(responsableId!, organismoId);
+
+      const res = await miOrganismo(bearerResponsable).expect(200);
+      expect(res.body).toEqual({
+        id: organismoId,
+        nombre: '__E2E__ Organismo Base',
+        rubro: 'E2E',
+        active: true,
+        fechaCreacion: expect.any(String),
+      });
+    });
+
+    it('401: sin token o con token invalido', async () => {
+      await miOrganismo().expect(401);
+      await miOrganismo('Bearer token-invalido').expect(401);
+    });
+
+    it('403: un usuario sin el rol RESPONSABLE no puede consultarlo', async () => {
+      await miOrganismo(bearer).expect(403);
+    });
+
+    it('404: el usuario tiene el rol pero no tiene un Responsable asociado', async () => {
+      const { bearer: bearerSinPerfil } = await responsableConSesion(false);
+      const res = await miOrganismo(bearerSinPerfil).expect(404);
+      expect(res.body.message).toContain('Responsable');
+    });
+
+    it('409: el responsable todavia no tiene organismo asignado', async () => {
+      const { bearer: bearerSinOrganismo } = await responsableConSesion(true);
+      const res = await miOrganismo(bearerSinOrganismo).expect(409);
+      expect(res.body.message).toContain('organismo');
+    });
+
+    it('409: el responsable esta inactivo', async () => {
+      const { bearer: bearerInactivo, responsableId } =
+        await responsableConSesion(true);
+      await asignarOrganismo(responsableId!, organismoId);
+      await dataSource.query(
+        `UPDATE responsables SET active = false WHERE id = $1`,
+        [responsableId],
+      );
+      await miOrganismo(bearerInactivo).expect(409);
+    });
+
+    it('409: el organismo asignado esta inactivo', async () => {
+      const { bearer: bearerOrganismoInactivo, responsableId } =
+        await responsableConSesion(true);
+      await asignarOrganismo(
+        responsableId!,
+        await obtenerOrganismoInactivoId(),
+      );
+      const res = await miOrganismo(bearerOrganismoInactivo).expect(409);
+      expect(res.body.message).toContain('no está activo');
     });
   });
 });

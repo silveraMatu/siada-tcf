@@ -10,6 +10,7 @@ import { CrearResponsableUseCase } from './application/use-cases/crear-responsab
 import { AsignarOrganismoAResponsableUseCase } from './application/use-cases/asignar-organismo.use-case.js';
 import { ListarResponsablesUseCase } from './application/use-cases/listar-responsables.use-case.js';
 import { ObtenerResponsablesPorOrganismoUseCase } from './application/use-cases/obtener-responsables-por-organismo.use-case.js';
+import { ObtenerOrganismoDeResponsableUseCase } from './application/use-cases/obtener-organismo-de-responsable.use-case.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ObtenerResponsablesPorOrganismoUseCase } from './application/use-cases/
     ListarResponsablesUseCase,
     ObtenerResponsablesPorOrganismoUseCase,
     AsignarOrganismoAResponsableUseCase,
+    ObtenerOrganismoDeResponsableUseCase,
     {
       provide: ResponsableRepositoryPort,
       useClass: TypeOrmResponsableRepositoryAdapter,

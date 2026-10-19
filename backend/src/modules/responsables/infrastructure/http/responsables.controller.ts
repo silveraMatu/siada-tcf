@@ -21,7 +21,10 @@ import {
 import { JwtAuthGuard } from '../../../auth/infrastructure/security/jwt-auth.guard.js';
 import { Roles } from '../../../auth/infrastructure/security/roles.decorator.js';
 import { RolesGuard } from '../../../auth/infrastructure/security/roles.guard.js';
+import { UsuarioActual } from '../../../auth/infrastructure/security/usuario-actual.decorator.js';
+import type { UsuarioAutenticado } from '../../../auth/infrastructure/security/usuario-autenticado.js';
 import { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
+import { OrganismoResponseDto } from '../../../organismos/infrastructure/http/dto/organismo-response.dto.js';
 import { CrearResponsableDto } from './dto/crear-responsable.dto.js';
 import { AsignarOrganismoDto } from './dto/asignar-organismo.dto.js';
 import { ResponsableIdParamsDto } from './dto/responsable-id-params.dto.js';
@@ -33,6 +36,7 @@ import { CrearResponsableUseCase } from '../../application/use-cases/crear-respo
 import { AsignarOrganismoAResponsableUseCase } from '../../application/use-cases/asignar-organismo.use-case.js';
 import { ListarResponsablesUseCase } from '../../application/use-cases/listar-responsables.use-case.js';
 import { ObtenerResponsablesPorOrganismoUseCase } from '../../application/use-cases/obtener-responsables-por-organismo.use-case.js';
+import { ObtenerOrganismoDeResponsableUseCase } from '../../application/use-cases/obtener-organismo-de-responsable.use-case.js';
 import type { Responsable } from '../../domain/entities/responsable.domain.js';
 
 @ApiTags('Responsables')
@@ -43,6 +47,7 @@ export class ResponsablesController {
     private readonly listarResponsablesUseCase: ListarResponsablesUseCase,
     private readonly obtenerResponsablesPorOrganismoUseCase: ObtenerResponsablesPorOrganismoUseCase,
     private readonly asignarOrganismoAResponsableUseCase: AsignarOrganismoAResponsableUseCase,
+    private readonly obtenerOrganismoDeResponsableUseCase: ObtenerOrganismoDeResponsableUseCase,
   ) {}
 
   private toResponse(responsable: Responsable): ResponsableResponseDto {
@@ -150,6 +155,46 @@ export class ResponsablesController {
     const responsables =
       await this.obtenerResponsablesPorOrganismoUseCase.execute(organismoId);
     return responsables.map((responsable) => this.toResponse(responsable));
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Rol.RESPONSABLE)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+  @ApiForbiddenResponse({ description: 'Requiere el rol RESPONSABLE' })
+  @Get('responsables/me/organismo')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Obtener el organismo al que está vinculado el responsable autenticado',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Organismo del responsable',
+    type: OrganismoResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'El usuario no tiene Responsable o el Organismo no existe',
+  })
+  @ApiResponse({
+    status: 409,
+    description:
+      'El Responsable está inactivo, no tiene organismo asignado o el Organismo no está activo',
+  })
+  async obtenerMiOrganismo(
+    @UsuarioActual() usuario: UsuarioAutenticado,
+  ): Promise<OrganismoResponseDto> {
+    const organismo = await this.obtenerOrganismoDeResponsableUseCase.execute(
+      usuario.id,
+    );
+    return {
+      id: organismo.id!,
+      nombre: organismo.nombre,
+      rubro: organismo.rubro,
+      active: organismo.active,
+      fechaCreacion: organismo.fechaCreacion!.toISOString(),
+    };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
