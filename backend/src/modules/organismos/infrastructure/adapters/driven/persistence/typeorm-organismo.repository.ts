@@ -37,7 +37,7 @@ export class TypeOrmOrganismoRepositoryAdapter implements OrganismoRepositoryPor
   }
 
   async buscarTodos(): Promise<Organismo[]> {
-    const entities = await this.repository.find({ order: { id: 'ASC' } });
+    const entities = await this.repository.find({order: { id: 'ASC' } });
     return entities.map((entity) => this.toDomain(entity));
   }
 
