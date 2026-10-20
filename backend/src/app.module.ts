@@ -9,6 +9,7 @@ import { LibroBancoModule } from './modules/libro-banco/libro-banco.module.js';
 import { ResponsablesModule } from './modules/responsables/responsables.module.js';
 import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { AuditoriaModule } from './modules/auditoria/auditoria.module.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
     ResponsablesModule,
     UsuariosModule,
     AuthModule,
+    AuditoriaModule,
   ],
   controllers: [],
   providers: [],
