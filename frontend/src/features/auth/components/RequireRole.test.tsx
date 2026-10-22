@@ -66,6 +66,25 @@ describe('RequireRole', () => {
     expect(screen.getByText('Panel del auditor')).toBeTruthy();
   });
 
+  it('sin roles exigidos basta con tener sesión', () => {
+    useAuthStore.setState({
+      token: 'token',
+      user: { sub: 1, email: 'a@b.gob.ar', roles: ['RESPONSABLE'] },
+      isAuthenticated: true,
+    });
+    render(
+      <MemoryRouter initialEntries={['/cualquiera']}>
+        <Routes>
+          <Route element={<RequireRole />}>
+            <Route path="/cualquiera" element={<p>Pantalla común</p>} />
+          </Route>
+          <Route path="/login" element={<p>Pantalla de login</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Pantalla común')).toBeTruthy();
+  });
+
   it('deja pasar si uno de varios roles alcanza', () => {
     sesion(['RESPONSABLE', 'AUDITOR']);
     renderRuta();

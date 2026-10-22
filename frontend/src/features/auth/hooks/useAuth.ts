@@ -1,8 +1,10 @@
 import { jwtDecode } from 'jwt-decode';
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { create } from 'zustand';
 
+import { registrarManejadorSesionExpirada } from '@/lib/api';
 import { clearToken, getToken, setToken } from '@/lib/auth-token';
 import { queryClient } from '@/lib/query-client';
 import { ROLES, type Rol } from '@/features/usuarios/types';
@@ -90,6 +92,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ ...sinSesion });
   },
 }));
+
+// Un 401 con token enviado = sesión vencida o usuario desactivado: se cierra y los guards
+// de las rutas (que escuchan el store) llevan al login.
+registrarManejadorSesionExpirada(() => {
+  if (!useAuthStore.getState().isAuthenticated) return;
+  useAuthStore.getState().logout();
+  toast.info('Su sesión venció o ya no es válida. Inicie sesión nuevamente.');
+});
 
 export function useAuth() {
   const navigate = useNavigate();

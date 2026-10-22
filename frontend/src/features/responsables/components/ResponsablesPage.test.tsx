@@ -177,7 +177,7 @@ describe('ResponsablesPage', () => {
     );
     renderPagina();
     expect(
-      await screen.findByText(/debe iniciar sesión como administrador/i),
+      await screen.findByText(/inicie sesión para ver esta información/i),
     ).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Iniciar sesión' })).toBeTruthy();
   });

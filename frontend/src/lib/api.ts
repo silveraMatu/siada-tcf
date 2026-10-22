@@ -13,6 +13,31 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let alExpirarSesion: (() => void) | null = null;
+
+/**
+ * Registra qué hacer cuando el servidor rechaza con 401 una petición que llevaba token (vencido,
+ * usuario desactivado, etc.). Lo registra la capa de autenticación: este módulo no la importa.
+ */
+export function registrarManejadorSesionExpirada(
+  manejador: (() => void) | null,
+) {
+  alExpirarSesion = manejador;
+}
+
+// El 401 de /auth/* es de las credenciales (login fallido), no de una sesión vencida.
+api.interceptors.response.use(undefined, (error: unknown) => {
+  if (
+    isAxiosError(error) &&
+    error.response?.status === 401 &&
+    error.config?.headers?.Authorization &&
+    !error.config.url?.startsWith('/auth/')
+  ) {
+    alExpirarSesion?.();
+  }
+  return Promise.reject(error);
+});
+
 /** Extrae el mensaje de error que devuelve la API (NestJS) o uno genérico. */
 export function getErrorMessage(error: unknown): string {
   if (isAxiosError(error)) {

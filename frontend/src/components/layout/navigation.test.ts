@@ -4,9 +4,37 @@ import {
   filtrarNavegacion,
   navigationGroups,
   puedeVer,
+  rolesPermitidos,
   rutaInicial,
   type NavGroup,
 } from './navigation';
+
+describe('rolesPermitidos', () => {
+  it.each([
+    ['/organismos', ['ADMIN', 'JUEZ_TRAMITE']],
+    ['/responsables', ['ADMIN']],
+    ['/libro-banco', ['RESPONSABLE']],
+    ['/auditoria', ['AUDITOR', 'ADMIN']],
+    ['/admin/usuarios', ['ADMIN']],
+  ])('%s admite %j', (ruta, roles) => {
+    expect(rolesPermitidos(ruta)).toEqual(roles);
+  });
+
+  it('coincide, para cada ítem del menú, con quién lo ve', () => {
+    for (const { to } of navigationGroups.flatMap((g) => g.items)) {
+      const roles = rolesPermitidos(to) ?? [];
+      for (const rol of ['ADMIN', 'JUEZ_TRAMITE', 'AUDITOR', 'RESPONSABLE']) {
+        expect(roles.includes(rol as never)).toBe(
+          rutasVisibles([rol]).includes(to),
+        );
+      }
+    }
+  });
+
+  it('lanza si la ruta no figura en el menú (error de programación, no un acceso denegado)', () => {
+    expect(() => rolesPermitidos('/no-existe')).toThrow(/no figura/);
+  });
+});
 
 const rutasVisibles = (roles: readonly string[] | null | undefined) =>
   filtrarNavegacion(navigationGroups, roles).flatMap((g) =>
@@ -70,7 +98,13 @@ describe('puedeVer', () => {
     const grupos: NavGroup[] = [
       {
         label: 'Público',
-        items: [{ to: '/ayuda', label: 'Ayuda', icon: navigationGroups[0].items[0].icon }],
+        items: [
+          {
+            to: '/ayuda',
+            label: 'Ayuda',
+            icon: navigationGroups[0].items[0].icon,
+          },
+        ],
       },
     ];
     expect(filtrarNavegacion(grupos, [])).toHaveLength(1);

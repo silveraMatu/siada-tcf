@@ -30,7 +30,7 @@ interface ListaUsuariosProps {
 
 function mensajeDeError(error: unknown): string {
   if (isAxiosError(error) && error.response?.status === 401) {
-    return 'Debe iniciar sesión como administrador para ver los usuarios.';
+    return 'Su sesión venció o no es válida. Inicie sesión para ver los usuarios.';
   }
   return getErrorMessage(error);
 }

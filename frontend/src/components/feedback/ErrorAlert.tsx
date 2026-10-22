@@ -23,7 +23,7 @@ export function ErrorAlert({ error, onRetry, retrying }: ErrorAlertProps) {
       <p className="flex items-start gap-2 text-sm">
         <AlertCircle className="mt-0.5 size-4 shrink-0" />
         {sinSesion
-          ? 'Debe iniciar sesión como administrador para ver esta información.'
+          ? 'Su sesión venció o no es válida. Inicie sesión para ver esta información.'
           : getErrorMessage(error)}
       </p>
       <div className="flex gap-2">

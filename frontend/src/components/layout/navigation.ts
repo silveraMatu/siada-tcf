@@ -88,7 +88,23 @@ export function filtrarNavegacion(
     .filter((grupo) => grupo.items.length > 0);
 }
 
+/**
+ * Roles que pueden entrar a una sección del menú, para que las rutas usen la misma fuente que el menú.
+ * `undefined` = cualquier usuario con sesión. Lanza si la ruta no está en el menú (error de programación).
+ */
+export function rolesPermitidos(ruta: string): readonly Rol[] | undefined {
+  const item = navigationGroups
+    .flatMap((grupo) => grupo.items)
+    .find((candidato) => candidato.to === ruta);
+  if (!item) {
+    throw new Error(`La ruta ${ruta} no figura en navigationGroups`);
+  }
+  return item.allowedRoles;
+}
+
 /** Primera sección que el usuario puede ver; `/` si no tiene ninguna. */
-export function rutaInicial(roles: readonly string[] | null | undefined): string {
+export function rutaInicial(
+  roles: readonly string[] | null | undefined,
+): string {
   return filtrarNavegacion(navigationGroups, roles)[0]?.items[0]?.to ?? '/';
 }
