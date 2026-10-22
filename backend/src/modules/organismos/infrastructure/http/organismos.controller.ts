@@ -5,8 +5,20 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../auth/infrastructure/security/jwt-auth.guard.js';
+import { Roles } from '../../../auth/infrastructure/security/roles.decorator.js';
+import { RolesGuard } from '../../../auth/infrastructure/security/roles.guard.js';
+import { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
 import { CrearOrganismoDto } from './dto/crear-organismo.dto.js';
 import { OrganismoResponseDto } from './dto/organismo-response.dto.js';
 import { CrearOrganismoUseCase } from '../../application/use-cases/crear-organismo.use-case.js';
@@ -31,6 +43,11 @@ export class OrganismosController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Rol.ADMIN, Rol.JUEZ_TRAMITE)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+  @ApiForbiddenResponse({ description: 'Requiere el rol ADMIN o JUEZ_TRAMITE' })
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Listar todos los organismos registrados' })
@@ -44,6 +61,11 @@ export class OrganismosController {
     return organismos.map((organismo) => this.toResponse(organismo));
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Rol.ADMIN)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+  @ApiForbiddenResponse({ description: 'Requiere el rol ADMIN' })
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Registrar un nuevo organismo' })

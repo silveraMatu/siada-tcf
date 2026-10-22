@@ -20,12 +20,16 @@ describe('Responsables (e2e)', () => {
   let organismoId: number;
   let bearer: string;
 
+  //crear responsables y listarlos por organismo son operaciones del ADMIN
   const crearResponsable = (body: unknown) =>
     request(app.getHttpServer())
       .post('/api/v1/responsables')
+      .set('Authorization', bearer)
       .send(body as object);
   const listarResponsables = (id: number | string) =>
-    request(app.getHttpServer()).get(`/api/v1/organismos/${id}/responsables`);
+    request(app.getHttpServer())
+      .get(`/api/v1/organismos/${id}/responsables`)
+      .set('Authorization', bearer);
 
   //crea un usuario habilitado como RESPONSABLE y su responsable; devuelve ambos ids
   const nuevoResponsable = async (): Promise<{
@@ -342,6 +346,7 @@ describe('Responsables (e2e)', () => {
     const nuevoOrganismo = async (): Promise<number> => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/organismos')
+        .set('Authorization', bearer)
         .send({
           nombre: `__E2E__ Asignacion ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           rubro: 'E2E',

@@ -2,20 +2,30 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { createTestApp } from '../helpers/create-test-app.js';
+import { crearSesionConRol, obtenerBearerAdmin } from '../helpers/fixtures.js';
 
 //Corre contra la base de datos real y NO limpia lo que crea: los datos quedan persistidos.
 describe('Organismos (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
 
-  const crear = (body: unknown) =>
-    request(app.getHttpServer())
-      .post('/api/v1/organismos')
-      .send(body as object);
-  const listar = () => request(app.getHttpServer()).get('/api/v1/organismos');
+  let bearerAdmin: string;
+
+  //por defecto con la sesión de un ADMIN; `null` = sin token
+  const crear = (body: unknown, bearer: string | null = bearerAdmin) => {
+    const peticion = request(app.getHttpServer()).post('/api/v1/organismos');
+    return (bearer ? peticion.set('Authorization', bearer) : peticion).send(
+      body as object,
+    );
+  };
+  const listar = (bearer: string | null = bearerAdmin) => {
+    const peticion = request(app.getHttpServer()).get('/api/v1/organismos');
+    return bearer ? peticion.set('Authorization', bearer) : peticion;
+  };
 
   beforeAll(async () => {
     ({ app, dataSource } = await createTestApp());
+    bearerAdmin = await obtenerBearerAdmin(app);
   });
 
   afterAll(async () => {
@@ -130,6 +140,51 @@ describe('Organismos (e2e)', () => {
         `SELECT COUNT(*)::int AS total FROM organismos`,
       );
       expect(res.body).toHaveLength(total);
+    });
+  });
+
+  describe('autorización', () => {
+    const cuerpoNuevo = () => ({
+      nombre: `__E2E__ Autorizacion ${Date.now()}`,
+      rubro: 'E2E',
+    });
+    const contarOrganismos = async (): Promise<number> => {
+      const [{ total }] = await dataSource.query(
+        `SELECT COUNT(*)::int AS total FROM organismos`,
+      );
+      return total;
+    };
+
+    it('401: sin token no se puede listar ni crear', async () => {
+      await listar(null).expect(401);
+      const antes = await contarOrganismos();
+
+      await crear(cuerpoNuevo(), null).expect(401);
+
+      expect(await contarOrganismos()).toBe(antes);
+    });
+
+    it.each(['AUDITOR', 'RESPONSABLE'] as const)(
+      '403: un %s no puede listar ni crear organismos',
+      async (rol) => {
+        const bearer = await crearSesionConRol(app, rol);
+        const antes = await contarOrganismos();
+
+        await listar(bearer).expect(403);
+        await crear(cuerpoNuevo(), bearer).expect(403);
+
+        expect(await contarOrganismos()).toBe(antes);
+      },
+    );
+
+    it('JUEZ_TRAMITE puede listar pero no crear organismos', async () => {
+      const bearer = await crearSesionConRol(app, 'JUEZ_TRAMITE');
+      const antes = await contarOrganismos();
+
+      await listar(bearer).expect(200);
+      await crear(cuerpoNuevo(), bearer).expect(403);
+
+      expect(await contarOrganismos()).toBe(antes);
     });
   });
 });

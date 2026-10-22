@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { IngestaDialog } from '@/features/libro-banco/components/IngestaDialog';
 import { LibroGuardado } from '@/features/libro-banco/components/LibroGuardado';
+import { useLibrosBanco } from '@/features/libro-banco/hooks/useLibrosBanco';
 import { ESTADOS, MESES } from '../constants';
 import { useResolverCuentaMensual } from '../hooks/useResolverCuentaMensual';
 import type { ContextoCuenta, CuentaMensual } from '../types';
@@ -27,6 +28,17 @@ export function CuentaMensualDetalle({
 
   // Solo en borrador se pueden cargar documentos: después la evidencia es inmutable.
   const enBorrador = cuenta.estado === 'EN_BORRADOR';
+
+  // Lo ya cargado: se ve en borrador (antes del paso irreversible de presentar) y habilita presentar.
+  const libros = useLibrosBanco(cuenta.id);
+  const sinLibros = !libros.data || libros.data.length === 0;
+  const resumen = libros.data && {
+    libros: libros.data.length,
+    transacciones: libros.data.reduce(
+      (total, libro) => total + libro.transacciones.length,
+      0,
+    ),
+  };
   const etiquetaEstado =
     ESTADOS[cuenta.estado as keyof typeof ESTADOS]?.label ?? cuenta.estado;
 
@@ -60,28 +72,46 @@ export function CuentaMensualDetalle({
         <div className="flex flex-col items-start gap-4 sm:items-end">
           <EstadoBadge estado={cuenta.estado} />
           {enBorrador && (
-            <div className="flex flex-col gap-2 sm:flex-row-reverse">
-              <PresentarRendicionDialog
-                cuentaId={cuenta.id}
-                onPresentada={onActualizada}
-                onDesactualizada={refrescar}
-              />
-              <Button variant="outline" onClick={() => setDialogAbierto(true)}>
-                <Upload />
-                Cargar Documentos
-              </Button>
-            </div>
+            <>
+              <div className="flex flex-col gap-2 sm:flex-row-reverse">
+                <PresentarRendicionDialog
+                  cuentaId={cuenta.id}
+                  onPresentada={onActualizada}
+                  onDesactualizada={refrescar}
+                  resumen={resumen}
+                  deshabilitado={sinLibros}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => setDialogAbierto(true)}
+                >
+                  <Upload />
+                  Cargar Documentos
+                </Button>
+              </div>
+              {sinLibros && !libros.isPending && (
+                <p className="text-xs text-muted-foreground">
+                  Cargue al menos un libro para poder presentar la rendición.
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
 
       {enBorrador ? (
-        <IngestaDialog
-          open={dialogAbierto}
-          onOpenChange={setDialogAbierto}
-          cuentaMensualId={cuenta.id}
-          onIngestada={refrescar}
-        />
+        <>
+          <div className="mt-6 space-y-3">
+            <h3 className="text-sm font-medium">Libros cargados</h3>
+            <LibroGuardado cuentaMensualId={cuenta.id} enBorrador />
+          </div>
+          <IngestaDialog
+            open={dialogAbierto}
+            onOpenChange={setDialogAbierto}
+            cuentaMensualId={cuenta.id}
+            onIngestada={refrescar}
+          />
+        </>
       ) : (
         <div className="mt-6 space-y-6">
           <Alert variant="info">

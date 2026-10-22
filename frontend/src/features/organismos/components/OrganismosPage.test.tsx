@@ -4,6 +4,8 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { useAuthStore } from '@/features/auth/hooks/useAuth';
+import type { Rol } from '@/features/usuarios/types';
 import { crearOrganismo, obtenerOrganismos } from '../api/organismos.api';
 import type { Organismo } from '../types';
 import { OrganismosPage } from './OrganismosPage';
@@ -22,8 +24,19 @@ const crear = (id: number, nombre: string, active = true): Organismo => ({
   fechaCreacion: '2026-10-15T12:00:00.000Z',
 });
 
-function renderPagina() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function iniciarSesion(roles: Rol[]) {
+  useAuthStore.setState({
+    token: 'token',
+    user: { sub: 1, email: 'a@b.gob.ar', roles },
+    isAuthenticated: true,
+  });
+}
+
+function renderPagina(roles: Rol[] = ['ADMIN']) {
+  iniciarSesion(roles);
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   render(
     <QueryClientProvider client={client}>
       <OrganismosPage />
@@ -35,6 +48,7 @@ function renderPagina() {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  useAuthStore.setState({ token: null, user: null, isAuthenticated: false });
 });
 
 describe('OrganismosPage', () => {
@@ -61,6 +75,31 @@ describe('OrganismosPage', () => {
     expect(
       await screen.findByText('Aún no hay organismos registrados'),
     ).toBeTruthy();
+  });
+
+  it.each([['JUEZ_TRAMITE'], ['AUDITOR']] as const)(
+    'un %s consulta los organismos pero no puede registrar uno nuevo',
+    async (rol) => {
+      vi.mocked(obtenerOrganismos).mockResolvedValue([
+        crear(1, 'Comisión de Fomento'),
+      ]);
+      renderPagina([rol]);
+
+      expect(await screen.findByText('Comisión de Fomento')).toBeTruthy();
+      expect(
+        screen.queryByRole('button', { name: /nuevo organismo/i }),
+      ).toBeNull();
+    },
+  );
+
+  it('el estado vacío solo invita a registrar el primer organismo a un administrador', async () => {
+    vi.mocked(obtenerOrganismos).mockResolvedValue([]);
+    renderPagina(['JUEZ_TRAMITE']);
+
+    expect(
+      await screen.findByText('Un administrador debe registrar el primero.'),
+    ).toBeTruthy();
+    expect(screen.queryByText(/botón «Nuevo Organismo»/)).toBeNull();
   });
 
   it('muestra el error del servidor con la opción de reintentar', async () => {

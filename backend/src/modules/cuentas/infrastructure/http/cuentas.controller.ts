@@ -55,10 +55,19 @@ export class CuentasController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Rol.RESPONSABLE, Rol.ADMIN)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+  @ApiForbiddenResponse({
+    description: 'Requiere el rol RESPONSABLE (solo de su organismo) o ADMIN',
+  })
   @Post('resolver')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Obtiene o genera idempotentemente el ID de la Cuenta Mensual',
+    description:
+      'Un RESPONSABLE solo puede resolver cuentas de su propio organismo; un ADMIN, de cualquiera.',
   })
   @ApiResponse({
     status: 200,
@@ -76,11 +85,16 @@ export class CuentasController {
   })
   async resolver(
     @Body() dto: ResolverCuentaMensualDto,
+    @UsuarioActual() usuario: UsuarioAutenticado,
   ): Promise<CuentaMensualResponseDto> {
     const cuentaMensual = await this.resolverCuentaMensualUseCase.execute(
       dto.organismoId,
       dto.ejercicioFiscal,
       dto.mes,
+      {
+        usuarioId: usuario.id,
+        esAdmin: usuario.roles.includes(Rol.ADMIN),
+      },
     );
     return this.toResponse(cuentaMensual);
   }
@@ -145,7 +159,10 @@ export class CuentasController {
       'Falta el rol RESPONSABLE o la cuenta no pertenece al organismo del responsable',
   })
   @ApiResponse({ status: 404, description: 'La Cuenta Mensual no existe' })
-  @ApiResponse({ status: 409, description: 'La cuenta ya fue presentada' })
+  @ApiResponse({
+    status: 409,
+    description: 'La cuenta ya fue presentada o no tiene ningún libro cargado',
+  })
   async presentar(
     @Param() { id }: CuentaMensualParamsDto,
     @UsuarioActual() usuario: UsuarioAutenticado,

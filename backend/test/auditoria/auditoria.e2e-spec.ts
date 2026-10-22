@@ -6,6 +6,7 @@ import {
   ID_INEXISTENTE,
   MES_AUDITORIA,
   MES_SIN_LIBRO,
+  crearResponsableConSesion,
   habilitarUsuario,
   obtenerBearerAdmin,
   obtenerOrganismoBaseId,
@@ -33,9 +34,9 @@ describe('Auditoría (e2e)', () => {
       `/api/v1/auditoria/cuentas-mensuales/${id}/observaciones`,
     );
   const libros = (id: number) =>
-    request(app.getHttpServer()).get(
-      `/api/v1/cuentas-mensuales/${id}/libro-banco`,
-    );
+    request(app.getHttpServer())
+      .get(`/api/v1/cuentas-mensuales/${id}/libro-banco`)
+      .set('Authorization', bearerAdmin);
 
   //inicia sesión con un usuario nuevo activo y con los roles indicados
   const bearerConRoles = async (roles: string[]): Promise<string> => {
@@ -64,13 +65,15 @@ describe('Auditoría (e2e)', () => {
       MES_SIN_LIBRO,
     );
 
-    //find-or-create: cada ingesta crea un libro nuevo, así que solo se carga si el mes está vacío
+    //find-or-create: solo se carga el libro si el mes está vacío (lo carga el responsable del organismo)
     const existentes = await libros(cuentaMensualId).expect(200);
     if (existentes.body.length === 0) {
+      const responsable = await crearResponsableConSesion(app, organismoId);
       await request(app.getHttpServer())
         .post(
           `/api/v1/cuentas-mensuales/${cuentaMensualId}/libro-banco/ingestar`,
         )
+        .set('Authorization', responsable.bearer)
         .send({
           numeroCuentaCte: '999-AUDITORIA/E2E',
           transacciones: [

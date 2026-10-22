@@ -2,9 +2,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { obtenerLibrosBanco } from '@/features/libro-banco/api/libro-banco.api';
+import type { LibroBancoGuardado } from '@/features/libro-banco/types';
 import { presentarCuentaMensual } from '../api/cuentas.api';
 import type { ContextoCuenta, CuentaMensual } from '../types';
 import { CuentaMensualDetalle } from './CuentaMensualDetalle';
@@ -34,6 +35,27 @@ const cuenta = (estado: string): CuentaMensual => ({
   fechaCreacion: '2026-10-15T12:00:00.000Z',
 });
 
+/** Libro guardado con `cantidad` transacciones idénticas. */
+const libro = (
+  id: number,
+  numeroCuentaCte: string,
+  cantidad = 1,
+): LibroBancoGuardado => ({
+  id,
+  cuentaMensualId: 5,
+  numeroCuentaCte,
+  fechaCreacion: '2026-10-15T12:00:00.000Z',
+  transacciones: Array.from({ length: cantidad }, (_, i) => ({
+    id: id * 100 + i,
+    fecha: '2026-03-02',
+    cheque: null,
+    aLaOrdenDe: 'Proveedor SA',
+    depositos: 0,
+    retiro: 1500.5,
+    saldo: 8499.5,
+  })),
+});
+
 function renderDetalle(estado: string, onActualizada = vi.fn()) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -50,6 +72,11 @@ function renderDetalle(estado: string, onActualizada = vi.fn()) {
   return { user: userEvent.setup(), onActualizada };
 }
 
+const botonPresentar = () =>
+  screen.getByRole('button', {
+    name: 'Presentar Rendición Definitiva',
+  }) as HTMLButtonElement;
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -57,28 +84,64 @@ afterEach(() => {
 
 describe('CuentaMensualDetalle', () => {
   describe('en borrador', () => {
-    it('ofrece cargar documentos y presentar, sin el aviso de bloqueo', () => {
+    beforeEach(() => {
+      vi.mocked(obtenerLibrosBanco).mockResolvedValue([
+        libro(1, '100234/1', 2),
+        libro(2, '100234/2', 1),
+      ]);
+    });
+
+    it('ofrece cargar documentos y presentar, sin el aviso de bloqueo', async () => {
       renderDetalle('EN_BORRADOR');
 
       expect(
         screen.getByRole('button', { name: 'Cargar Documentos' }),
       ).toBeTruthy();
-      expect(
-        screen.getByRole('button', { name: 'Presentar Rendición Definitiva' }),
-      ).toBeTruthy();
+      expect(botonPresentar()).toBeTruthy();
       expect(screen.queryByText(/bloqueada para modificaciones/)).toBeNull();
-      expect(obtenerLibrosBanco).not.toHaveBeenCalled();
+      await waitFor(() => expect(botonPresentar().disabled).toBe(false));
     });
 
-    it('advierte antes de presentar y no envía si se cancela', async () => {
-      const { user } = renderDetalle('EN_BORRADOR');
+    it('muestra los libros ya cargados antes de presentar', async () => {
+      renderDetalle('EN_BORRADOR');
 
-      await user.click(
-        screen.getByRole('button', { name: 'Presentar Rendición Definitiva' }),
-      );
+      expect(screen.getByText('Libros cargados')).toBeTruthy();
+      expect(await screen.findByText(/Cta\. Cte\. 100234\/1/)).toBeTruthy();
+      expect(screen.getByText(/Cta\. Cte\. 100234\/2/)).toBeTruthy();
+      expect(vi.mocked(obtenerLibrosBanco).mock.calls[0][0]).toBe(5);
+    });
+
+    it('sin ningún libro cargado no se puede presentar y se invita a cargar uno', async () => {
+      vi.mocked(obtenerLibrosBanco).mockResolvedValue([]);
+      renderDetalle('EN_BORRADOR');
+
+      expect(
+        await screen.findByText('Todavía no cargó ningún libro'),
+      ).toBeTruthy();
+      expect(botonPresentar().disabled).toBe(true);
+      expect(
+        screen.getByText(/Cargue al menos un libro para poder presentar/),
+      ).toBeTruthy();
+      expect(
+        (
+          screen.getByRole('button', {
+            name: 'Cargar Documentos',
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false);
+    });
+
+    it('advierte antes de presentar, resume lo que se presenta y no envía si se cancela', async () => {
+      const { user } = renderDetalle('EN_BORRADOR');
+      await waitFor(() => expect(botonPresentar().disabled).toBe(false));
+
+      await user.click(botonPresentar());
       expect(
         await screen.findByText(/No podrá modificar ni subir más archivos/),
       ).toBeTruthy();
+      expect(screen.getByText(/Se presentarán/)).toBeTruthy();
+      expect(screen.getByText('2 libros')).toBeTruthy();
+      expect(screen.getByText('3 transacciones')).toBeTruthy();
 
       await user.click(screen.getByRole('button', { name: 'Cancelar' }));
       expect(presentarCuentaMensual).not.toHaveBeenCalled();
@@ -89,10 +152,9 @@ describe('CuentaMensualDetalle', () => {
         cuenta('LISTO_PARA_AUDITAR'),
       );
       const { user, onActualizada } = renderDetalle('EN_BORRADOR');
+      await waitFor(() => expect(botonPresentar().disabled).toBe(false));
 
-      await user.click(
-        screen.getByRole('button', { name: 'Presentar Rendición Definitiva' }),
-      );
+      await user.click(botonPresentar());
       await user.click(
         await screen.findByRole('button', { name: 'Presentar' }),
       );
@@ -112,25 +174,7 @@ describe('CuentaMensualDetalle', () => {
     ['AUDITADA', 'Auditada'],
   ])('presentada (%s)', (estado, etiqueta) => {
     it('bloquea la carga, indica el estado y muestra el libro guardado en solo lectura', async () => {
-      vi.mocked(obtenerLibrosBanco).mockResolvedValue([
-        {
-          id: 1,
-          cuentaMensualId: 5,
-          numeroCuentaCte: '123/4',
-          fechaCreacion: '2026-10-15T12:00:00.000Z',
-          transacciones: [
-            {
-              id: 10,
-              fecha: '2026-03-02',
-              cheque: null,
-              aLaOrdenDe: 'Proveedor SA',
-              depositos: 0,
-              retiro: 1500.5,
-              saldo: 8499.5,
-            },
-          ],
-        },
-      ]);
+      vi.mocked(obtenerLibrosBanco).mockResolvedValue([libro(1, '123/4')]);
       renderDetalle(estado);
 
       expect(
@@ -148,6 +192,7 @@ describe('CuentaMensualDetalle', () => {
 
       expect(await screen.findByText('Proveedor SA')).toBeTruthy();
       expect(screen.getByText(/Cta\. Cte\. 123\/4/)).toBeTruthy();
+      expect(screen.queryByText('Libros cargados')).toBeNull();
     });
   });
 

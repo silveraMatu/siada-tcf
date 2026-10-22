@@ -16,8 +16,53 @@ describe('Seguridad: JWT y roles (e2e)', () => {
   let jwtService: JwtService;
   let bearerAdmin: string;
 
-  //los endpoints que exigen el rol ADMIN; `autorizacion` es el valor del header Authorization (opcional)
+  //los endpoints que exigen una sesión y dejan pasar al ADMIN pero no a un AUDITOR
+  //`autorizacion` es el valor del header Authorization (opcional)
   const protegidos: [string, (autorizacion?: string) => request.Test][] = [
+    [
+      'GET /organismos',
+      (autorizacion) =>
+        conHeader(
+          request(app.getHttpServer()).get('/api/v1/organismos'),
+          autorizacion,
+        ),
+    ],
+    [
+      'POST /organismos',
+      (autorizacion) =>
+        conHeader(
+          request(app.getHttpServer()).post('/api/v1/organismos').send({}),
+          autorizacion,
+        ),
+    ],
+    [
+      'POST /responsables',
+      (autorizacion) =>
+        conHeader(
+          request(app.getHttpServer()).post('/api/v1/responsables').send({}),
+          autorizacion,
+        ),
+    ],
+    [
+      'GET /organismos/:id/responsables',
+      (autorizacion) =>
+        conHeader(
+          request(app.getHttpServer()).get(
+            `/api/v1/organismos/${ID_INEXISTENTE}/responsables`,
+          ),
+          autorizacion,
+        ),
+    ],
+    [
+      'POST /cuentas-mensuales/resolver',
+      (autorizacion) =>
+        conHeader(
+          request(app.getHttpServer())
+            .post('/api/v1/cuentas-mensuales/resolver')
+            .send({}),
+          autorizacion,
+        ),
+    ],
     [
       'GET /usuarios',
       (autorizacion) =>
@@ -151,7 +196,8 @@ describe('Seguridad: JWT y roles (e2e)', () => {
     it('pasa los guards con el rol ADMIN (responde 200 o el error propio del endpoint)', async () => {
       const res = await peticion(bearerAdmin);
 
-      expect([200, 404]).toContain(res.status);
+      //400 por el body vacío o 404 por el id inexistente: llegó al endpoint
+      expect([200, 400, 404]).toContain(res.status);
     });
   });
 
@@ -199,25 +245,47 @@ describe('Seguridad: JWT y roles (e2e)', () => {
   });
 
   describe('endpoints públicos', () => {
-    it('responden sin token', async () => {
+    it('solo el registro y el login responden sin token', async () => {
       const http = app.getHttpServer();
 
-      await request(http).get('/api/v1/organismos').expect(200);
       //400 por el body vacío: llegan a validar, no los frena la autenticación
       await request(http).post('/api/v1/auth/registro').send({}).expect(400);
       await request(http).post('/api/v1/auth/login').send({}).expect(400);
+    });
+  });
+
+  describe('endpoints de la rendición', () => {
+    it('401: ingestar y leer libros exigen sesión', async () => {
+      const http = app.getHttpServer();
+
       await request(http)
-        .post('/api/v1/cuentas-mensuales/resolver')
+        .post(
+          `/api/v1/cuentas-mensuales/${ID_INEXISTENTE}/libro-banco/ingestar`,
+        )
         .send({})
-        .expect(400);
-      await request(http).post('/api/v1/responsables').send({}).expect(400);
+        .expect(401);
+      await request(http)
+        .get(`/api/v1/cuentas-mensuales/${ID_INEXISTENTE}/libro-banco`)
+        .expect(401);
     });
 
-    it('crear un responsable sigue siendo público (el usuario ya debe estar habilitado)', async () => {
+    it('403: crear un responsable es solo del ADMIN, también para el propio RESPONSABLE', async () => {
+      const usuarioId = await crearUsuarioResponsable(app);
+      const { bearer } = await usuarioConRoles(['RESPONSABLE']);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/responsables')
+        .set('Authorization', bearer)
+        .send({ usuarioId })
+        .expect(403);
+    });
+
+    it('201: el ADMIN crea el responsable de un usuario habilitado', async () => {
       const usuarioId = await crearUsuarioResponsable(app);
 
       await request(app.getHttpServer())
         .post('/api/v1/responsables')
+        .set('Authorization', bearerAdmin)
         .send({ usuarioId })
         .expect(201);
     });

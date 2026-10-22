@@ -8,7 +8,9 @@ import {
   MES_CON_LIBRO,
   MES_PRESENTAR,
   MES_SIN_LIBRO,
+  cargarLibro,
   crearResponsableConSesion,
+  crearSesionConRol,
   fijarEstadoCuenta,
   habilitarUsuario,
   obtenerBearerAdmin,
@@ -26,10 +28,15 @@ describe('Cuentas (e2e)', () => {
   let cuentaMensualId: number;
   let bearerAdmin: string;
 
-  const resolver = (body: unknown) =>
-    request(app.getHttpServer())
-      .post('/api/v1/cuentas-mensuales/resolver')
-      .send(body as object);
+  //por defecto resuelve un ADMIN (que puede hacerlo para cualquier organismo); `null` = sin token
+  const resolver = (body: unknown, bearer: string | null = bearerAdmin) => {
+    const peticion = request(app.getHttpServer()).post(
+      '/api/v1/cuentas-mensuales/resolver',
+    );
+    return (bearer ? peticion.set('Authorization', bearer) : peticion).send(
+      body as object,
+    );
+  };
 
   beforeAll(async () => {
     ({ app, dataSource } = await createTestApp());
@@ -115,6 +122,86 @@ describe('Cuentas (e2e)', () => {
         mes: 3,
       }).expect(404);
     });
+
+    describe('autorización', () => {
+      //ejercicio que ningún otro test usa para el organismo base: sirve para comprobar que un 403 no crea nada
+      const EJERCICIO_SIN_USAR = 2031;
+      const cuentasAnualesDelBase = async (): Promise<number> => {
+        const [{ total }] = await dataSource.query(
+          `SELECT count(*)::int AS total FROM cuentas_anuales WHERE organismo_id = $1 AND ejercicio_fiscal = $2`,
+          [organismoId, EJERCICIO_SIN_USAR],
+        );
+        return total;
+      };
+
+      it('401: sin token', async () => {
+        await resolver(
+          { organismoId, ejercicioFiscal: EJERCICIO, mes: MES_CON_LIBRO },
+          null,
+        ).expect(401);
+      });
+
+      it('403: un AUDITOR no puede resolver cuentas', async () => {
+        const bearer = await crearSesionConRol(app, 'AUDITOR');
+
+        await resolver(
+          { organismoId, ejercicioFiscal: EJERCICIO, mes: MES_CON_LIBRO },
+          bearer,
+        ).expect(403);
+      });
+
+      it('200: el responsable resuelve la cuenta de su propio organismo', async () => {
+        const propio = await crearResponsableConSesion(app, organismoId);
+
+        const res = await resolver(
+          { organismoId, ejercicioFiscal: EJERCICIO, mes: MES_CON_LIBRO },
+          propio.bearer,
+        ).expect(200);
+
+        expect(res.body.id).toBe(cuentaMensualId);
+      });
+
+      it('403: el responsable de otro organismo no puede resolver ni crear cuentas del organismo base', async () => {
+        const ajeno = await crearResponsableConSesion(
+          app,
+          await obtenerOrganismoAjenoId(dataSource),
+        );
+        const antes = await cuentasAnualesDelBase();
+
+        await resolver(
+          {
+            organismoId,
+            ejercicioFiscal: EJERCICIO_SIN_USAR,
+            mes: MES_CON_LIBRO,
+          },
+          ajeno.bearer,
+        ).expect(403);
+
+        expect(await cuentasAnualesDelBase()).toBe(antes);
+      });
+
+      it('403 (y no 404): un responsable no averigua qué organismos existen', async () => {
+        const propio = await crearResponsableConSesion(app, organismoId);
+
+        await resolver(
+          {
+            organismoId: ID_INEXISTENTE,
+            ejercicioFiscal: EJERCICIO,
+            mes: MES_CON_LIBRO,
+          },
+          propio.bearer,
+        ).expect(403);
+      });
+
+      it('403: un usuario RESPONSABLE sin perfil de responsable no puede resolver', async () => {
+        const bearer = await crearSesionConRol(app, 'RESPONSABLE');
+
+        await resolver(
+          { organismoId, ejercicioFiscal: EJERCICIO, mes: MES_CON_LIBRO },
+          bearer,
+        ).expect(403);
+      });
+    });
   });
   describe('PATCH /cuentas-mensuales/:id/presentar', () => {
     let cuentaPresentarId: number;
@@ -133,6 +220,8 @@ describe('Cuentas (e2e)', () => {
       return fila.estado;
     };
 
+    let cuentaSinLibrosId: number;
+
     beforeAll(async () => {
       const res = await resolver({
         organismoId,
@@ -142,6 +231,29 @@ describe('Cuentas (e2e)', () => {
       cuentaPresentarId = res.body.id;
       //la presentacion no se deshace por la API: cada corrida parte de EN_BORRADOR
       await fijarEstadoCuenta(dataSource, cuentaPresentarId);
+      //presentar exige al menos un libro cargado
+      const propio = await crearResponsableConSesion(app, organismoId);
+      await cargarLibro(app, propio.bearer, cuentaPresentarId);
+
+      //el mes reservado sin libros nunca recibe uno: sirve para el rechazo por rendicion vacia
+      cuentaSinLibrosId = (
+        await resolver({
+          organismoId,
+          ejercicioFiscal: EJERCICIO,
+          mes: MES_SIN_LIBRO,
+        }).expect(200)
+      ).body.id;
+    });
+
+    it('409: una rendición sin ningún libro no se puede presentar', async () => {
+      const propio = await crearResponsableConSesion(app, organismoId);
+
+      const res = await presentar(cuentaSinLibrosId, propio.bearer).expect(409);
+
+      expect(res.body.message).toBe(
+        'Debe cargar al menos un libro antes de presentar la rendición.',
+      );
+      expect(await estadoEnBase(cuentaSinLibrosId)).toBe('EN_BORRADOR');
     });
 
     it('401: sin token', async () => {

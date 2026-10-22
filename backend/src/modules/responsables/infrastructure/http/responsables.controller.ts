@@ -106,6 +106,11 @@ export class ResponsablesController {
     );
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Rol.ADMIN)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+  @ApiForbiddenResponse({ description: 'Requiere el rol ADMIN' })
   @Post('responsables')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -136,6 +141,11 @@ export class ResponsablesController {
     return this.toResponse(responsable);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Rol.ADMIN)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+  @ApiForbiddenResponse({ description: 'Requiere el rol ADMIN' })
   @Get('organismos/:organismoId/responsables')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Listar los responsables de un organismo' })

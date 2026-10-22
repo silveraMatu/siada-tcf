@@ -25,9 +25,11 @@ import {
   LibroBancoParseError,
   parseLibroBanco,
 } from '../lib/parse-libro-banco';
-import type { ResultadoParseo } from '../types';
+import { leerLibroDuplicado } from '../lib/libro-duplicado';
+import type { LibroExistente, ResultadoParseo } from '../types';
 import { DropZone } from './DropZone';
 import { PreviewTable } from './PreviewTable';
+import { ReemplazarLibroDialog } from './ReemplazarLibroDialog';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -51,6 +53,7 @@ export function IngestaDialog({
   const [nombreArchivo, setNombreArchivo] = useState('');
   const [resultado, setResultado] = useState<ResultadoParseo | null>(null);
   const [numeroCuenta, setNumeroCuenta] = useState('');
+  const [duplicado, setDuplicado] = useState<LibroExistente | null>(null);
 
   const ingestar = useIngestarLibroBanco(cuentaMensualId);
 
@@ -59,6 +62,7 @@ export function IngestaDialog({
     setNombreArchivo('');
     setNumeroCuenta('');
     setError(null);
+    setDuplicado(null);
   }
 
   function cerrar() {
@@ -105,26 +109,35 @@ export function IngestaDialog({
   }
 
   const invalidas = resultado?.filas.filter((f) => f.errores.length > 0) ?? [];
+  // El N° de cuenta identifica el libro dentro de la rendición: sin él no se puede enviar.
+  const sinNumeroCuenta = numeroCuenta.trim() === '';
   const puedeEnviar =
-    resultado !== null && invalidas.length === 0 && !ingestar.isPending;
+    resultado !== null &&
+    invalidas.length === 0 &&
+    !sinNumeroCuenta &&
+    !ingestar.isPending;
 
-  function enviar() {
+  function enviar(reemplazar = false) {
     if (!resultado || !puedeEnviar) return;
     ingestar.mutate(
       {
-        ...(numeroCuenta.trim()
-          ? { numeroCuentaCte: numeroCuenta.trim() }
-          : {}),
+        numeroCuentaCte: numeroCuenta.trim(),
+        ...(reemplazar ? { reemplazar: true } : {}),
         transacciones: resultado.filas.map((f) => f.transaccion),
       },
       {
         onSuccess: () => {
           toast.success(
-            `Libro Banco enviado: ${resultado.filas.length} transacciones cargadas.`,
+            reemplazar
+              ? `Libro reemplazado: ${resultado.filas.length} transacciones cargadas.`
+              : `Libro Banco enviado: ${resultado.filas.length} transacciones cargadas.`,
           );
+          setDuplicado(null);
           cerrar();
           onIngestada();
         },
+        // Ya hay un libro con ese N°: se le ofrece reemplazarlo o rechazar; cualquier otro error ya mostró su aviso.
+        onError: (e) => setDuplicado(leerLibroDuplicado(e)),
       },
     );
   }
@@ -194,15 +207,30 @@ export function IngestaDialog({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="numero-cuenta" className="text-xs">
-                  N° de Cta. Cte.
+                  N° de Cta. Cte. *
                 </Label>
                 <Input
                   id="numero-cuenta"
                   value={numeroCuenta}
                   onChange={(e) => setNumeroCuenta(e.target.value)}
-                  placeholder="No detectado"
-                  className="h-8 w-48"
+                  placeholder="Ingrese el N° de cuenta"
+                  required
+                  aria-invalid={sinNumeroCuenta}
+                  aria-describedby="numero-cuenta-ayuda"
+                  className="h-8 w-56"
                 />
+                <p
+                  id="numero-cuenta-ayuda"
+                  className={
+                    sinNumeroCuenta
+                      ? 'text-xs text-danger'
+                      : 'text-xs text-muted-foreground'
+                  }
+                >
+                  {sinNumeroCuenta
+                    ? 'Complete el N° de cuenta corriente para poder enviar.'
+                    : 'Un solo libro por cuenta corriente en cada rendición.'}
+                </p>
               </div>
             </div>
 
@@ -231,12 +259,19 @@ export function IngestaDialog({
           >
             Cancelar
           </Button>
-          <Button onClick={enviar} disabled={!puedeEnviar}>
+          <Button onClick={() => enviar()} disabled={!puedeEnviar}>
             {ingestar.isPending && <Loader2 className="animate-spin" />}
             Enviar
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <ReemplazarLibroDialog
+        libro={duplicado}
+        enviando={ingestar.isPending}
+        onReemplazar={() => enviar(true)}
+        onCancelar={() => setDuplicado(null)}
+      />
     </Dialog>
   );
 }

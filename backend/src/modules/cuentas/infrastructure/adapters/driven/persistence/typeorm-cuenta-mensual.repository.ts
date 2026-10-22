@@ -5,6 +5,7 @@ import { CuentaMensualRepositoryPort } from '../../../../application/ports/out/c
 import { CuentaMensual } from '../../../../domain/entities/cuenta-mensual.domain.js';
 import { CuentaMensualListada } from '../../../../domain/entities/cuenta-mensual-listada.domain.js';
 import { EstadoCuentaMensual } from '../../../../domain/enums/estado-cuenta-mensual.enum.js';
+import { LibroBancoEntity } from '../../../../../libro-banco/infrastructure/entities/libro-banco.entity.js';
 import { CuentaMensualEntity } from '../../../entities/cuenta-mensual.entity.js';
 import { CuentaMensualMapper } from '../../../mappers/cuenta-mensual.mapper.js';
 
@@ -32,6 +33,12 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
       .where('cm.id = :id', { id })
       .getRawOne<{ organismoId: number }>();
     return fila ? fila.organismoId : null;
+  }
+
+  async tieneLibros(id: number): Promise<boolean> {
+    return await this.repository.manager.exists(LibroBancoEntity, {
+      where: { cuentaMensualId: id },
+    });
   }
 
   async cambiarEstado(

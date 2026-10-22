@@ -33,8 +33,18 @@ export const TransaccionLibroBancoSchema = z.object({
 export const UploadLibroBancoSchema = z.object({
   numeroCuentaCte: z
     .string()
-    .optional()
-    .describe('Número de Cta. Cte. extraído del libro'),
+    .trim()
+    .min(1, 'El N° de cuenta corriente es obligatorio')
+    .max(255)
+    .describe(
+      'Número de Cta. Cte. del libro; solo puede haber un libro por número en cada rendición',
+    ),
+  reemplazar: z
+    .boolean()
+    .default(false)
+    .describe(
+      'Si ya hay un libro con ese N° de cuenta: false lo rechaza (409), true lo reemplaza',
+    ),
   transacciones: z
     .array(TransaccionLibroBancoSchema)
     .min(1, 'Debe contener al menos una fila o transacción'),

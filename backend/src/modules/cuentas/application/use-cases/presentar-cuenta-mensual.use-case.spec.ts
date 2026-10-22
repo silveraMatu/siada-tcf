@@ -9,6 +9,7 @@ import { CuentaMensual } from '../../domain/entities/cuenta-mensual.domain.js';
 import { CuentaMensualListada } from '../../domain/entities/cuenta-mensual-listada.domain.js';
 import { EstadoCuentaMensual } from '../../domain/enums/estado-cuenta-mensual.enum.js';
 import { CuentaMensualRepositoryPort } from '../ports/out/cuenta-mensual-repository.port.js';
+import { ResponsableDelOrganismoService } from '../services/responsable-del-organismo.service.js';
 import { PresentarCuentaMensualUseCase } from './presentar-cuenta-mensual.use-case.js';
 
 const ID_CUENTA = 5;
@@ -20,6 +21,8 @@ class CuentaMensualRepositorioFalso extends CuentaMensualRepositoryPort {
   cambios: [EstadoCuentaMensual, EstadoCuentaMensual][] = [];
   //simula que otra presentación se coló entre la lectura y el update
   perderCarrera = false;
+  //si la cuenta tiene al menos un libro cargado
+  conLibros = true;
 
   constructor(
     public cuenta: CuentaMensual | null,
@@ -38,6 +41,10 @@ class CuentaMensualRepositorioFalso extends CuentaMensualRepositoryPort {
 
   obtenerOrganismoId(): Promise<number | null> {
     return Promise.resolve(this.organismoId);
+  }
+
+  tieneLibros(): Promise<boolean> {
+    return Promise.resolve(this.conLibros);
   }
 
   cambiarEstado(
@@ -105,7 +112,7 @@ const armar = (
   );
   const casoDeUso = new PresentarCuentaMensualUseCase(
     cuentas,
-    new ResponsableRepositorioFalso(resp),
+    new ResponsableDelOrganismoService(new ResponsableRepositorioFalso(resp)),
   );
   return { cuentas, casoDeUso };
 };
@@ -177,6 +184,33 @@ describe('PresentarCuentaMensualUseCase', () => {
       new ConflictException('La cuenta ya fue presentada'),
     );
     expect(cuentas.cambios).toEqual([]);
+  });
+
+  it('409 si la cuenta no tiene ningún libro cargado, sin cambiar nada', async () => {
+    const { cuentas, casoDeUso } = armar(
+      cuentaEn(EstadoCuentaMensual.EN_BORRADOR),
+      responsable(ID_ORGANISMO),
+    );
+    cuentas.conLibros = false;
+
+    await expect(casoDeUso.execute(ID_CUENTA, ID_USUARIO)).rejects.toThrow(
+      new ConflictException(
+        'Debe cargar al menos un libro antes de presentar la rendición.',
+      ),
+    );
+    expect(cuentas.cambios).toEqual([]);
+  });
+
+  it('el 409 por ya presentada va antes que el de sin libros', async () => {
+    const { cuentas, casoDeUso } = armar(
+      cuentaEn(EstadoCuentaMensual.LISTO_PARA_AUDITAR),
+      responsable(ID_ORGANISMO),
+    );
+    cuentas.conLibros = false;
+
+    await expect(casoDeUso.execute(ID_CUENTA, ID_USUARIO)).rejects.toThrow(
+      new ConflictException('La cuenta ya fue presentada'),
+    );
   });
 
   it('409 si otra presentación ganó la carrera (el update atómico no cambió nada)', async () => {

@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthStore } from '@/features/auth/hooks/useAuth';
 import {
   Table,
   TableBody,
@@ -22,6 +23,7 @@ const formatoFecha = new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' });
 export function OrganismosPage() {
   const { data, isPending, isError, error, refetch, isRefetching } =
     useOrganismos();
+  const esAdmin = useAuthStore((s) => s.user?.roles.includes('ADMIN') ?? false);
 
   const organismos = data
     ? [...data].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
@@ -34,7 +36,8 @@ export function OrganismosPage() {
           title="Gestión de Organismos"
           description="Consulte los organismos auditados y registre nuevos."
         />
-        <CrearOrganismoDialog />
+        {/* Registrar organismos es del administrador; los demás roles solo consultan. */}
+        {esAdmin && <CrearOrganismoDialog />}
       </div>
 
       {isPending && (
@@ -69,7 +72,11 @@ export function OrganismosPage() {
         <EmptyState
           icon={Building2}
           title="Aún no hay organismos registrados"
-          description="Registre el primero con el botón «Nuevo Organismo»."
+          description={
+            esAdmin
+              ? 'Registre el primero con el botón «Nuevo Organismo».'
+              : 'Un administrador debe registrar el primero.'
+          }
         />
       )}
 

@@ -23,12 +23,18 @@ interface PresentarRendicionDialogProps {
   onPresentada: (cuenta: CuentaMensual) => void;
   /** La cuenta ya no estaba en borrador (409): la vista debe traer el estado vigente. */
   onDesactualizada: () => void;
+  /** Lo que se presentará, para que el responsable lo vea antes del paso irreversible. */
+  resumen?: { libros: number; transacciones: number };
+  /** Sin ningún libro cargado no hay nada que presentar. */
+  deshabilitado?: boolean;
 }
 
 export function PresentarRendicionDialog({
   cuentaId,
   onPresentada,
   onDesactualizada,
+  resumen,
+  deshabilitado = false,
 }: PresentarRendicionDialogProps) {
   const [abierto, setAbierto] = useState(false);
   const presentar = usePresentarCuentaMensual();
@@ -57,7 +63,7 @@ export function PresentarRendicionDialog({
       onOpenChange={(valor) => !presentar.isPending && setAbierto(valor)}
     >
       <AlertDialogTrigger asChild>
-        <Button>
+        <Button disabled={deshabilitado}>
           <Send />
           Presentar Rendición Definitiva
         </Button>
@@ -70,6 +76,23 @@ export function PresentarRendicionDialog({
           <AlertDialogDescription>
             No podrá modificar ni subir más archivos a esta rendición una vez
             presentada. Quedará lista para que el auditor la revise.
+            {resumen && (
+              <>
+                {' '}
+                Se presentará{resumen.libros === 1 ? '' : 'n'}{' '}
+                <strong>
+                  {resumen.libros} {resumen.libros === 1 ? 'libro' : 'libros'}
+                </strong>{' '}
+                con{' '}
+                <strong>
+                  {resumen.transacciones}{' '}
+                  {resumen.transacciones === 1
+                    ? 'transacción'
+                    : 'transacciones'}
+                </strong>
+                .
+              </>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

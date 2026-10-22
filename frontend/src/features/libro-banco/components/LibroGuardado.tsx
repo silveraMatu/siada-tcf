@@ -7,12 +7,19 @@ import { useLibrosBanco } from '../hooks/useLibrosBanco';
 import { libroAFilas } from '../lib/libro-a-filas';
 import { PreviewTable } from './PreviewTable';
 
+const formatoFecha = new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' });
+
+interface LibroGuardadoProps {
+  cuentaMensualId: number;
+  /** En borrador el estado vacío invita a cargar el primer libro; presentada, solo informa. */
+  enBorrador?: boolean;
+}
+
 /** Libros ya guardados de una rendición, en solo lectura. */
 export function LibroGuardado({
   cuentaMensualId,
-}: {
-  cuentaMensualId: number;
-}) {
+  enBorrador = false,
+}: LibroGuardadoProps) {
   const { data, isPending, isError, error, refetch, isFetching } =
     useLibrosBanco(cuentaMensualId);
 
@@ -35,7 +42,13 @@ export function LibroGuardado({
   }
 
   if (data.length === 0) {
-    return (
+    return enBorrador ? (
+      <EmptyState
+        icon={FileSpreadsheet}
+        title="Todavía no cargó ningún libro"
+        description="Use «Cargar Documentos» para subir el Libro Banco de cada cuenta corriente."
+      />
+    ) : (
       <EmptyState
         icon={FileSpreadsheet}
         title="Esta rendición no tiene libros cargados"
@@ -55,7 +68,8 @@ export function LibroGuardado({
               · {libro.transacciones.length}{' '}
               {libro.transacciones.length === 1
                 ? 'transacción'
-                : 'transacciones'}
+                : 'transacciones'}{' '}
+              · cargado el {formatoFecha.format(new Date(libro.fechaCreacion))}
             </span>
           </h3>
           <PreviewTable filas={libroAFilas(libro)} />

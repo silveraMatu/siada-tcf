@@ -32,6 +32,7 @@ export async function obtenerOrganismoBaseId(
 }
 
 //resuelve (obtiene o crea) la cuenta mensual por el endpoint y devuelve su id
+//lo hace un ADMIN, que puede resolver la cuenta de cualquier organismo
 export async function resolverCuentaMensualId(
   app: INestApplication,
   organismoId: number,
@@ -39,6 +40,7 @@ export async function resolverCuentaMensualId(
 ): Promise<number> {
   const res = await request(app.getHttpServer())
     .post('/api/v1/cuentas-mensuales/resolver')
+    .set('Authorization', await obtenerBearerAdmin(app))
     .send({ organismoId, ejercicioFiscal: EJERCICIO, mes })
     .expect(200);
   return res.body.id;
@@ -187,6 +189,7 @@ export async function crearResponsableConSesion(
   await habilitarUsuario(app, usuarioId, ['RESPONSABLE']);
   const responsable = await request(app.getHttpServer())
     .post('/api/v1/responsables')
+    .set('Authorization', await obtenerBearerAdmin(app))
     .send({ usuarioId })
     .expect(201);
   await app
@@ -204,6 +207,41 @@ export async function crearResponsableConSesion(
     usuarioId,
     responsableId: responsable.body.id,
   };
+}
+
+//usuario nuevo y activo con un solo rol (sin perfil de responsable), ya con sesion iniciada
+export async function crearSesionConRol(
+  app: INestApplication,
+  rol: 'ADMIN' | 'JUEZ_TRAMITE' | 'AUDITOR' | 'RESPONSABLE',
+): Promise<string> {
+  const { id, email, password } = await registrarUsuarioConCredenciales(app);
+  await habilitarUsuario(app, id, [rol]);
+  const login = await request(app.getHttpServer())
+    .post('/api/v1/auth/login')
+    .send({ email, password })
+    .expect(200);
+  return `Bearer ${login.body.accessToken}`;
+}
+
+//carga un libro con la sesion del responsable de la cuenta; `reemplazar` lo vuelve repetible entre ejecuciones
+export async function cargarLibro(
+  app: INestApplication,
+  bearerResponsable: string,
+  cuentaMensualId: number,
+  numeroCuentaCte = 'E2E/BASE',
+): Promise<{ id: number }> {
+  const res = await request(app.getHttpServer())
+    .post(`/api/v1/cuentas-mensuales/${cuentaMensualId}/libro-banco/ingestar`)
+    .set('Authorization', bearerResponsable)
+    .send({
+      numeroCuentaCte,
+      reemplazar: true,
+      transacciones: [
+        { aLaOrdenDe: 'Proveedor E2E', depositos: 0, retiro: 10, saldo: 90 },
+      ],
+    })
+    .expect(201);
+  return res.body;
 }
 
 //deja la cuenta en el estado indicado (por defecto EN_BORRADOR): la presentacion no se puede deshacer por la API

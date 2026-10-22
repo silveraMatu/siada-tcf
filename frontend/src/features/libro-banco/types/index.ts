@@ -8,8 +8,19 @@ export interface TransaccionPayload {
 }
 
 export interface IngestaLibroBancoPayload {
-  numeroCuentaCte?: string;
+  /** Obligatorio: solo puede haber un libro por N° de cuenta corriente en cada rendición. */
+  numeroCuentaCte: string;
+  /** Con un libro ya cargado para ese N°: false lo rechaza (409), true lo reemplaza. */
+  reemplazar?: boolean;
   transacciones: TransaccionPayload[];
+}
+
+/** Libro ya cargado con el mismo N° de cuenta, tal como lo informa el 409 `LIBRO_DUPLICADO`. */
+export interface LibroExistente {
+  id: number;
+  numeroCuentaCte: string;
+  fechaCreacion: string | null;
+  cantidadTransacciones: number;
 }
 
 /** Fila del archivo ya transformada, con los problemas que impedirían enviarla. */

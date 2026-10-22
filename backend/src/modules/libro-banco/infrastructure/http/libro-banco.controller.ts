@@ -6,8 +6,22 @@ import {
   HttpStatus,
   Param,
   Post,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../auth/infrastructure/security/jwt-auth.guard.js';
+import { Roles } from '../../../auth/infrastructure/security/roles.decorator.js';
+import { RolesGuard } from '../../../auth/infrastructure/security/roles.guard.js';
+import { UsuarioActual } from '../../../auth/infrastructure/security/usuario-actual.decorator.js';
+import type { UsuarioAutenticado } from '../../../auth/infrastructure/security/usuario-autenticado.js';
+import { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
 import { LibroBancoParamsDto } from './dto/libro-banco-params.dto.js';
 import { UploadLibroBancoDto } from './dto/upload-libro-banco.dto.js';
 import { LibroBancoResponseDto } from './dto/libro-banco-response.dto.js';
@@ -41,11 +55,21 @@ export class LibroBancoController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Rol.RESPONSABLE)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+  @ApiForbiddenResponse({
+    description:
+      'Requiere el rol RESPONSABLE y que la cuenta sea de su organismo',
+  })
   @Post('ingestar')
   @HttpCode(HttpStatus.CREATED)
   //documentación para swagger
   @ApiOperation({
     summary: 'Ingestar y persistir las transacciones del Libro Banco',
+    description:
+      'Solo puede haber un libro por N° de cuenta corriente en cada rendición. Con otro N° el libro se suma a los ya cargados; con el mismo N° responde 409 (codigo LIBRO_DUPLICADO) salvo que se envíe reemplazar=true.',
   })
   @ApiResponse({
     status: 201,
@@ -57,17 +81,32 @@ export class LibroBancoController {
     status: 404,
     description: 'La Cuenta Mensual especificada no existe',
   })
+  @ApiResponse({
+    status: 409,
+    description:
+      'La cuenta ya fue enviada a auditoría, o ya hay un libro con ese N° de cuenta corriente (codigo LIBRO_DUPLICADO)',
+  })
   async ingestar(
     @Param() { cuentaMensualId }: LibroBancoParamsDto,
     @Body() dto: UploadLibroBancoDto,
+    @UsuarioActual() usuario: UsuarioAutenticado,
   ): Promise<LibroBancoResponseDto> {
     const libro = await this.ingestarLibroBancoUseCase.execute(
       cuentaMensualId,
       dto,
+      usuario.id,
     );
     return this.toResponse(libro);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Rol.RESPONSABLE, Rol.ADMIN, Rol.AUDITOR)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+  @ApiForbiddenResponse({
+    description:
+      'Requiere el rol RESPONSABLE (solo de su organismo), ADMIN o AUDITOR',
+  })
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -83,8 +122,16 @@ export class LibroBancoController {
   @ApiResponse({ status: 404, description: 'La Cuenta Mensual no existe' })
   async obtenerPorCuentaMensual(
     @Param() { cuentaMensualId }: LibroBancoParamsDto,
+    @UsuarioActual() usuario: UsuarioAutenticado,
   ): Promise<LibroBancoResponseDto[]> {
-    const libros = await this.obtenerLibroBancoUseCase.execute(cuentaMensualId);
+    //ADMIN y AUDITOR leen cualquier rendición; un RESPONSABLE, solo la de su organismo
+    const veTodo = usuario.roles.some(
+      (rol) => rol === Rol.ADMIN || rol === Rol.AUDITOR,
+    );
+    const libros = await this.obtenerLibroBancoUseCase.execute(
+      cuentaMensualId,
+      veTodo ? undefined : { usuarioId: usuario.id },
+    );
     return libros.map((libro) => this.toResponse(libro));
   }
 }
