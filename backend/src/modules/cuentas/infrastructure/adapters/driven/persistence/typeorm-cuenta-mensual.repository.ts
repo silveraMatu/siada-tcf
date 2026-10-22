@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CuentaMensualRepositoryPort } from '../../../../application/ports/out/cuenta-mensual-repository.port.js';
 import { CuentaMensual } from '../../../../domain/entities/cuenta-mensual.domain.js';
+import { CuentaMensualListada } from '../../../../domain/entities/cuenta-mensual-listada.domain.js';
 import { EstadoCuentaMensual } from '../../../../domain/enums/estado-cuenta-mensual.enum.js';
 import { CuentaMensualEntity } from '../../../entities/cuenta-mensual.entity.js';
 import { CuentaMensualMapper } from '../../../mappers/cuenta-mensual.mapper.js';
@@ -47,11 +48,46 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
 
   async listar(filtros?: {
     estado?: EstadoCuentaMensual;
-  }): Promise<CuentaMensual[]> {
-    const entities = await this.repository.find({
-      where: filtros?.estado ? { estado: filtros.estado } : {},
-      order: { id: 'ASC' },
-    });
-    return entities.map((entity) => CuentaMensualMapper.toDomain(entity));
+  }): Promise<CuentaMensualListada[]> {
+    //columnas en lista blanca: solo lo que necesita el listado, sin traer la entidad del organismo completa
+    const consulta = this.repository
+      .createQueryBuilder('cm')
+      .innerJoin('cm.cuentaAnual', 'ca')
+      .innerJoin('ca.organismo', 'o')
+      .select('cm.id', 'id')
+      .addSelect('cm.mes', 'mes')
+      .addSelect('cm.cuentaAnualId', 'cuentaAnualId')
+      .addSelect('cm.estado', 'estado')
+      .addSelect('cm.fechaCreacion', 'fechaCreacion')
+      .addSelect('ca.organismoId', 'organismoId')
+      .addSelect('o.nombre', 'organismoNombre')
+      .addSelect('ca.ejercicioFiscal', 'ejercicioFiscal')
+      .orderBy('cm.id', 'ASC');
+    if (filtros?.estado)
+      consulta.where('cm.estado = :estado', { estado: filtros.estado });
+
+    const filas = await consulta.getRawMany<{
+      id: number;
+      mes: number;
+      cuentaAnualId: number;
+      estado: EstadoCuentaMensual;
+      fechaCreacion: Date;
+      organismoId: number;
+      organismoNombre: string;
+      ejercicioFiscal: number;
+    }>();
+    return filas.map(
+      (fila) =>
+        new CuentaMensualListada(
+          fila.id,
+          fila.mes,
+          fila.cuentaAnualId,
+          fila.estado,
+          fila.fechaCreacion,
+          fila.organismoId,
+          fila.organismoNombre,
+          fila.ejercicioFiscal,
+        ),
+    );
   }
 }

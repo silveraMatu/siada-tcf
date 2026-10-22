@@ -1,12 +1,15 @@
-import { Upload } from 'lucide-react';
+import { Lock, Upload } from 'lucide-react';
 import { useState } from 'react';
 
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { IngestaDialog } from '@/features/libro-banco/components/IngestaDialog';
-import { MESES } from '../constants';
+import { LibroGuardado } from '@/features/libro-banco/components/LibroGuardado';
+import { ESTADOS, MESES } from '../constants';
 import { useResolverCuentaMensual } from '../hooks/useResolverCuentaMensual';
 import type { ContextoCuenta, CuentaMensual } from '../types';
 import { EstadoBadge } from './EstadoBadge';
+import { PresentarRendicionDialog } from './PresentarRendicionDialog';
 
 interface CuentaMensualDetalleProps {
   cuenta: CuentaMensual;
@@ -22,7 +25,12 @@ export function CuentaMensualDetalle({
   const [dialogAbierto, setDialogAbierto] = useState(false);
   const resolver = useResolverCuentaMensual();
 
-  // Tras cargar documentos se vuelve a resolver (es idempotente) para traer el estado vigente.
+  // Solo en borrador se pueden cargar documentos: después la evidencia es inmutable.
+  const enBorrador = cuenta.estado === 'EN_BORRADOR';
+  const etiquetaEstado =
+    ESTADOS[cuenta.estado as keyof typeof ESTADOS]?.label ?? cuenta.estado;
+
+  // Se vuelve a resolver (es idempotente) para traer el estado vigente de la cuenta.
   function refrescar() {
     resolver.mutate(
       {
@@ -51,19 +59,41 @@ export function CuentaMensualDetalle({
 
         <div className="flex flex-col items-start gap-4 sm:items-end">
           <EstadoBadge estado={cuenta.estado} />
-          <Button onClick={() => setDialogAbierto(true)}>
-            <Upload />
-            Cargar Documentos
-          </Button>
+          {enBorrador && (
+            <div className="flex flex-col gap-2 sm:flex-row-reverse">
+              <PresentarRendicionDialog
+                cuentaId={cuenta.id}
+                onPresentada={onActualizada}
+                onDesactualizada={refrescar}
+              />
+              <Button variant="outline" onClick={() => setDialogAbierto(true)}>
+                <Upload />
+                Cargar Documentos
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
-      <IngestaDialog
-        open={dialogAbierto}
-        onOpenChange={setDialogAbierto}
-        cuentaMensualId={cuenta.id}
-        onIngestada={refrescar}
-      />
+      {enBorrador ? (
+        <IngestaDialog
+          open={dialogAbierto}
+          onOpenChange={setDialogAbierto}
+          cuentaMensualId={cuenta.id}
+          onIngestada={refrescar}
+        />
+      ) : (
+        <div className="mt-6 space-y-6">
+          <Alert variant="info">
+            <Lock aria-hidden />
+            <AlertDescription>
+              Esta rendición ya ha sido presentada y se encuentra bloqueada para
+              modificaciones. Estado actual: <strong>{etiquetaEstado}</strong>
+            </AlertDescription>
+          </Alert>
+          <LibroGuardado cuentaMensualId={cuenta.id} />
+        </div>
+      )}
     </section>
   );
 }

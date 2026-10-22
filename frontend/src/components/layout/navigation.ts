@@ -48,7 +48,7 @@ export const navigationGroups: readonly NavGroup[] = [
         to: '/auditoria',
         label: 'Auditoría',
         icon: ClipboardCheck,
-        allowedRoles: ['AUDITOR', 'ADMIN', 'JUEZ_TRAMITE'],
+        allowedRoles: ['AUDITOR', 'ADMIN'],
       },
     ],
   },

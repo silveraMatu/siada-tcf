@@ -31,11 +31,8 @@ describe('filtrarNavegacion', () => {
     ]);
   });
 
-  it('JUEZ_TRAMITE ve organismos y auditoría', () => {
-    expect(rutasVisibles(['JUEZ_TRAMITE'])).toEqual([
-      '/organismos',
-      '/auditoria',
-    ]);
+  it('JUEZ_TRAMITE solo ve organismos (el panel de auditoría es de AUDITOR y ADMIN)', () => {
+    expect(rutasVisibles(['JUEZ_TRAMITE'])).toEqual(['/organismos']);
   });
 
   it('AUDITOR solo ve auditoría', () => {

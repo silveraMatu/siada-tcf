@@ -25,7 +25,10 @@ import { UsuarioActual } from '../../../auth/infrastructure/security/usuario-act
 import type { UsuarioAutenticado } from '../../../auth/infrastructure/security/usuario-autenticado.js';
 import { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
 import { ResolverCuentaMensualDto } from './dto/resolver-cuenta-mensual.dto.js';
-import { CuentaMensualResponseDto } from './dto/cuenta-mensual-response.dto.js';
+import {
+  CuentaMensualListadaResponseDto,
+  CuentaMensualResponseDto,
+} from './dto/cuenta-mensual-response.dto.js';
 import { CuentaMensualParamsDto } from './dto/cuenta-mensual-params.dto.js';
 import { ListarCuentasMensualesQueryDto } from './dto/listar-cuentas-mensuales-query.dto.js';
 import { ResolverCuentaMensualUseCase } from '../../application/use-cases/resolver-cuenta-mensual.use-case.js';
@@ -97,16 +100,25 @@ export class CuentasController {
   @ApiResponse({
     status: 200,
     description: 'Cuentas recuperadas (lista vacía si ninguna coincide)',
-    type: [CuentaMensualResponseDto],
+    type: [CuentaMensualListadaResponseDto],
   })
   @ApiResponse({ status: 400, description: 'El estado no es válido' })
   async listar(
     @Query() { estado }: ListarCuentasMensualesQueryDto,
-  ): Promise<CuentaMensualResponseDto[]> {
+  ): Promise<CuentaMensualListadaResponseDto[]> {
     const cuentas = await this.listarCuentasMensualesUseCase.execute({
       estado,
     });
-    return cuentas.map((cuenta) => this.toResponse(cuenta));
+    return cuentas.map((cuenta) => ({
+      id: cuenta.id,
+      mes: cuenta.mes,
+      cuentaAnualId: cuenta.cuentaAnualId,
+      estado: cuenta.estado,
+      fechaCreacion: cuenta.fechaCreacion.toISOString(),
+      organismoId: cuenta.organismoId,
+      organismoNombre: cuenta.organismoNombre,
+      ejercicioFiscal: cuenta.ejercicioFiscal,
+    }));
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

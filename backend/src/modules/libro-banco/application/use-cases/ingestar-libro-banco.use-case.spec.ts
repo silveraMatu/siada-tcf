@@ -1,5 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { CuentaMensual } from '../../../cuentas/domain/entities/cuenta-mensual.domain.js';
+import { CuentaMensualListada } from '../../../cuentas/domain/entities/cuenta-mensual-listada.domain.js';
 import { EstadoCuentaMensual } from '../../../cuentas/domain/enums/estado-cuenta-mensual.enum.js';
 import { CuentaMensualRepositoryPort } from '../../../cuentas/application/ports/out/cuenta-mensual-repository.port.js';
 import { LibroBanco } from '../../domain/entities/libro-banco.domain.js';
@@ -23,7 +24,7 @@ class CuentaMensualRepositorioFalso extends CuentaMensualRepositoryPort {
   cambiarEstado(): Promise<boolean> {
     return Promise.resolve(false);
   }
-  listar(): Promise<CuentaMensual[]> {
+  listar(): Promise<CuentaMensualListada[]> {
     return Promise.resolve([]);
   }
 }

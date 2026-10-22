@@ -1,4 +1,5 @@
 import { CuentaMensual } from '../../../domain/entities/cuenta-mensual.domain.js';
+import { CuentaMensualListada } from '../../../domain/entities/cuenta-mensual-listada.domain.js';
 import { EstadoCuentaMensual } from '../../../domain/enums/estado-cuenta-mensual.enum.js';
 
 export abstract class CuentaMensualRepositoryPort {
@@ -16,8 +17,8 @@ export abstract class CuentaMensualRepositoryPort {
     hacia: EstadoCuentaMensual,
   ): Promise<boolean>;
 
-  //ordenadas por id; sin filtros devuelve todas
+  //ordenadas por id; sin filtros devuelve todas. Incluye organismo y ejercicio de cada una
   abstract listar(filtros?: {
     estado?: EstadoCuentaMensual;
-  }): Promise<CuentaMensual[]>;
+  }): Promise<CuentaMensualListada[]>;
 }

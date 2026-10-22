@@ -1,9 +1,15 @@
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  Navigate,
+  RouterProvider,
+} from 'react-router-dom';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { AuditoriaPage } from '@/features/auditoria/components/AuditoriaPage';
+import { AuditarCuentaPage } from '@/features/auditoria/components/AuditarCuentaPage';
+import { DashboardAuditorPage } from '@/features/auditoria/components/DashboardAuditorPage';
 import { LoginPage } from '@/features/auth/components/LoginPage';
 import { RegistroPage } from '@/features/auth/components/RegistroPage';
+import { RequireRole } from '@/features/auth/components/RequireRole';
 import { AdminUsuariosPage } from '@/features/usuarios/components/AdminUsuariosPage';
 import { LandingPage } from '@/features/landing/components/LandingPage';
 import { LibroBancoPage } from '@/features/libro-banco/components/LibroBancoPage';
@@ -20,7 +26,13 @@ const router = createBrowserRouter([
       { path: 'organismos', element: <OrganismosPage /> },
       { path: 'responsables', element: <ResponsablesPage /> },
       { path: 'libro-banco', element: <LibroBancoPage /> },
-      { path: 'auditoria', element: <AuditoriaPage /> },
+      {
+        element: <RequireRole roles={['AUDITOR', 'ADMIN']} />,
+        children: [
+          { path: 'auditoria', element: <DashboardAuditorPage /> },
+          { path: 'auditoria/cuenta/:id', element: <AuditarCuentaPage /> },
+        ],
+      },
       { path: 'admin/usuarios', element: <AdminUsuariosPage /> },
     ],
   },

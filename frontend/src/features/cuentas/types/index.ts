@@ -14,6 +14,13 @@ export interface CuentaMensual {
   fechaCreacion: string;
 }
 
+/** Ítem de `GET /cuentas-mensuales`: la cuenta con el organismo y el ejercicio a los que pertenece. */
+export interface CuentaMensualListada extends CuentaMensual {
+  organismoId: number;
+  organismoNombre: string;
+  ejercicioFiscal: number;
+}
+
 export interface ResolverCuentaMensualPayload {
   organismoId: number;
   ejercicioFiscal: number;

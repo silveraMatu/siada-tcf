@@ -241,6 +241,24 @@ describe('Cuentas (e2e)', () => {
         expect(presentada).toMatchObject({ estado: 'LISTO_PARA_AUDITAR' });
       });
 
+      it('200: cada cuenta trae el organismo y el ejercicio a los que pertenece', async () => {
+        const res = await listar(
+          '?estado=LISTO_PARA_AUDITAR',
+          bearerAdmin,
+        ).expect(200);
+
+        const presentada = res.body.find(
+          (c: { id: number }) => c.id === cuentaPresentarId,
+        );
+        expect(presentada).toMatchObject({
+          mes: MES_PRESENTAR,
+          organismoId,
+          organismoNombre: '__E2E__ Organismo Base',
+          ejercicioFiscal: EJERCICIO,
+        });
+        expect(presentada.cuentaAnualId).toEqual(expect.any(Number));
+      });
+
       it('200: ?estado=LISTO_PARA_AUDITAR trae solo las presentadas (un AUDITOR puede)', async () => {
         const auditor = await registrarUsuarioConCredenciales(app);
         await habilitarUsuario(app, auditor.id, ['AUDITOR']);

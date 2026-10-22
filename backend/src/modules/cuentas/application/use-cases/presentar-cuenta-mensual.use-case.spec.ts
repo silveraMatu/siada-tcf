@@ -6,6 +6,7 @@ import {
 import { Responsable } from '../../../responsables/domain/entities/responsable.domain.js';
 import { ResponsableRepositoryPort } from '../../../responsables/application/ports/out/responsable-repository.port.js';
 import { CuentaMensual } from '../../domain/entities/cuenta-mensual.domain.js';
+import { CuentaMensualListada } from '../../domain/entities/cuenta-mensual-listada.domain.js';
 import { EstadoCuentaMensual } from '../../domain/enums/estado-cuenta-mensual.enum.js';
 import { CuentaMensualRepositoryPort } from '../ports/out/cuenta-mensual-repository.port.js';
 import { PresentarCuentaMensualUseCase } from './presentar-cuenta-mensual.use-case.js';
@@ -55,8 +56,9 @@ class CuentaMensualRepositorioFalso extends CuentaMensualRepositoryPort {
     return Promise.resolve(true);
   }
 
-  listar(): Promise<CuentaMensual[]> {
-    return Promise.resolve(this.cuenta ? [this.cuenta] : []);
+  //el caso de uso de presentar no lista cuentas
+  listar(): Promise<CuentaMensualListada[]> {
+    return Promise.resolve([]);
   }
 }
 

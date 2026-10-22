@@ -20,6 +20,25 @@ export interface FilaPreview {
   errores: string[];
 }
 
+/** Transacción tal como la devuelve `GET /cuentas-mensuales/:id/libro-banco`. */
+export interface TransaccionGuardada {
+  id: number;
+  fecha: string | null;
+  cheque: string | null;
+  aLaOrdenDe: string;
+  depositos: number;
+  retiro: number;
+  saldo: number;
+}
+
+export interface LibroBancoGuardado {
+  id: number;
+  cuentaMensualId: number;
+  numeroCuentaCte: string | null;
+  fechaCreacion: string;
+  transacciones: TransaccionGuardada[];
+}
+
 export interface ResultadoParseo {
   numeroCuentaCte?: string;
   filas: FilaPreview[];
