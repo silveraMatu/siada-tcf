@@ -5,11 +5,14 @@ import { ErrorAlert } from '@/components/feedback/ErrorAlert';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCuentasPorEstado } from '@/features/cuentas/hooks/useCuentasPorEstado';
-import { RendicionPendienteCard } from './RendicionPendienteCard';
+import { agruparPorOrganismo } from '../lib/agrupar-por-organismo';
+import { GrupoOrganismoPendiente } from './GrupoOrganismoPendiente';
 
 export function DashboardAuditorPage() {
   const { data, isPending, isError, error, refetch, isFetching } =
     useCuentasPorEstado('LISTO_PARA_AUDITAR');
+
+  const grupos = data ? agruparPorOrganismo(data) : [];
 
   return (
     <div className="space-y-8">
@@ -19,12 +22,9 @@ export function DashboardAuditorPage() {
       />
 
       {isPending && (
-        <div
-          aria-busy="true"
-          className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-        >
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-40 w-full rounded-xl" />
+        <div aria-busy="true" className="space-y-4">
+          {[0, 1].map((i) => (
+            <Skeleton key={i} className="h-56 w-full rounded-xl" />
           ))}
         </div>
       )}
@@ -48,14 +48,21 @@ export function DashboardAuditorPage() {
       {data && data.length > 0 && (
         <>
           <p className="text-sm text-muted-foreground">
-            {data.length}{' '}
             {data.length === 1
-              ? 'rendición esperando auditoría'
-              : 'rendiciones esperando auditoría'}
+              ? '1 rendición esperando auditoría'
+              : `${data.length} rendiciones esperando auditoría`}{' '}
+            {grupos.length === 1
+              ? 'en 1 organismo'
+              : `en ${grupos.length} organismos`}
           </p>
-          <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {data.map((cuenta) => (
-              <RendicionPendienteCard key={cuenta.id} cuenta={cuenta} />
+          <ul className="space-y-4">
+            {grupos.map((grupo) => (
+              <GrupoOrganismoPendiente
+                key={grupo.organismoId}
+                grupo={grupo}
+                // con un solo organismo no hay nada que elegir: se muestra abierto
+                abiertoInicialmente={grupos.length === 1}
+              />
             ))}
           </ul>
         </>
