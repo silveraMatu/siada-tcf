@@ -236,8 +236,22 @@ export async function cargarLibro(
     .send({
       numeroCuentaCte,
       reemplazar: true,
+      //fechas fuera de orden a propósito: el resumen toma la mínima y la máxima, no la primera y la última fila
       transacciones: [
-        { aLaOrdenDe: 'Proveedor E2E', depositos: 0, retiro: 10, saldo: 90 },
+        {
+          fecha: '2026-03-10',
+          aLaOrdenDe: 'Proveedor E2E',
+          depositos: 0,
+          retiro: 10,
+          saldo: 90,
+        },
+        {
+          fecha: '2026-03-02',
+          aLaOrdenDe: 'Cliente E2E',
+          depositos: 5,
+          retiro: 0,
+          saldo: 95,
+        },
       ],
     })
     .expect(201);

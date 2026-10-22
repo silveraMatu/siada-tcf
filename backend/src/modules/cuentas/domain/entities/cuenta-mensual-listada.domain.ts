@@ -1,6 +1,8 @@
 import { EstadoCuentaMensual } from '../enums/estado-cuenta-mensual.enum.js';
+import { ResumenLibro } from './resumen-libro.domain.js';
 
 //lectura para listados: la cuenta mensual con el organismo y el ejercicio a los que pertenece
+//y un resumen de los libros cargados en ella
 export class CuentaMensualListada {
   constructor(
     public readonly id: number,
@@ -11,5 +13,6 @@ export class CuentaMensualListada {
     public readonly organismoId: number,
     public readonly organismoNombre: string,
     public readonly ejercicioFiscal: number,
+    public readonly libros: ResumenLibro[],
   ) {}
 }

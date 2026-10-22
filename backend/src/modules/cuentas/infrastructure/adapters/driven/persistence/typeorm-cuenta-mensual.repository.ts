@@ -4,7 +4,9 @@ import { Repository } from 'typeorm';
 import { CuentaMensualRepositoryPort } from '../../../../application/ports/out/cuenta-mensual-repository.port.js';
 import { CuentaMensual } from '../../../../domain/entities/cuenta-mensual.domain.js';
 import { CuentaMensualListada } from '../../../../domain/entities/cuenta-mensual-listada.domain.js';
+import { ResumenLibro } from '../../../../domain/entities/resumen-libro.domain.js';
 import { EstadoCuentaMensual } from '../../../../domain/enums/estado-cuenta-mensual.enum.js';
+import { TipoLibro } from '../../../../domain/enums/tipo-libro.enum.js';
 import { LibroBancoEntity } from '../../../../../libro-banco/infrastructure/entities/libro-banco.entity.js';
 import { CuentaMensualEntity } from '../../../entities/cuenta-mensual.entity.js';
 import { CuentaMensualMapper } from '../../../mappers/cuenta-mensual.mapper.js';
@@ -83,6 +85,7 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
       organismoNombre: string;
       ejercicioFiscal: number;
     }>();
+    const librosPorCuenta = await this.resumirLibros(filas.map((f) => f.id));
     return filas.map(
       (fila) =>
         new CuentaMensualListada(
@@ -94,7 +97,56 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
           fila.organismoId,
           fila.organismoNombre,
           fila.ejercicioFiscal,
+          librosPorCuenta.get(fila.id) ?? [],
         ),
     );
+  }
+
+  //un solo GROUP BY para todas las cuentas del listado: cuenta las transacciones y toma sus fechas
+  //extremas en la base, sin traer las filas (un libro puede tener miles)
+  private async resumirLibros(
+    cuentaMensualIds: number[],
+  ): Promise<Map<number, ResumenLibro[]>> {
+    const porCuenta = new Map<number, ResumenLibro[]>();
+    if (cuentaMensualIds.length === 0) return porCuenta;
+
+    const filas = await this.repository.manager
+      .createQueryBuilder(LibroBancoEntity, 'l')
+      .leftJoin('l.transacciones', 't')
+      .select('l.id', 'id')
+      .addSelect('l.cuentaMensualId', 'cuentaMensualId')
+      .addSelect('l.numeroCuentaCte', 'numeroCuentaCte')
+      .addSelect('COUNT(t.id)', 'cantidadTransacciones')
+      .addSelect('MIN(t.fecha)', 'fechaDesde')
+      .addSelect('MAX(t.fecha)', 'fechaHasta')
+      .where('l.cuentaMensualId IN (:...cuentaMensualIds)', {
+        cuentaMensualIds,
+      })
+      .groupBy('l.id')
+      .orderBy('l.id', 'ASC')
+      .getRawMany<{
+        id: number;
+        cuentaMensualId: number;
+        numeroCuentaCte: string | null;
+        cantidadTransacciones: string;
+        fechaDesde: string | null;
+        fechaHasta: string | null;
+      }>();
+
+    for (const fila of filas) {
+      const resumen = new ResumenLibro(
+        fila.id,
+        TipoLibro.LIBRO_BANCO,
+        fila.numeroCuentaCte,
+        Number(fila.cantidadTransacciones), //COUNT llega como bigint (texto)
+        fila.fechaDesde,
+        fila.fechaHasta,
+      );
+      porCuenta.set(fila.cuentaMensualId, [
+        ...(porCuenta.get(fila.cuentaMensualId) ?? []),
+        resumen,
+      ]);
+    }
+    return porCuenta;
   }
 }

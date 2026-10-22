@@ -21,6 +21,7 @@ export abstract class CuentaMensualRepositoryPort {
   ): Promise<boolean>;
 
   //ordenadas por id; sin filtros devuelve todas. Incluye organismo y ejercicio de cada una
+  //y un resumen de sus libros (sin transacciones)
   abstract listar(filtros?: {
     estado?: EstadoCuentaMensual;
   }): Promise<CuentaMensualListada[]>;

@@ -109,7 +109,7 @@ export class CuentasController {
   @ApiOperation({
     summary: 'Listar cuentas mensuales, opcionalmente filtradas por estado',
     description:
-      'Pensado para el Auditor: ?estado=LISTO_PARA_AUDITAR trae solo las cuentas ya presentadas. Ordenadas por id.',
+      'Pensado para el Auditor: ?estado=LISTO_PARA_AUDITAR trae solo las cuentas ya presentadas. Ordenadas por id. Cada cuenta incluye un resumen de sus libros (N° de cuenta corriente, cantidad de transacciones y fechas extremas), sin las transacciones.',
   })
   @ApiResponse({
     status: 200,
@@ -132,6 +132,14 @@ export class CuentasController {
       organismoId: cuenta.organismoId,
       organismoNombre: cuenta.organismoNombre,
       ejercicioFiscal: cuenta.ejercicioFiscal,
+      libros: cuenta.libros.map((libro) => ({
+        id: libro.id,
+        tipo: libro.tipo,
+        numeroCuentaCte: libro.numeroCuentaCte,
+        cantidadTransacciones: libro.cantidadTransacciones,
+        fechaDesde: libro.fechaDesde,
+        fechaHasta: libro.fechaHasta,
+      })),
     }));
   }
 

@@ -371,6 +371,39 @@ describe('Cuentas (e2e)', () => {
         expect(presentada.cuentaAnualId).toEqual(expect.any(Number));
       });
 
+      it('200: cada cuenta trae el resumen de sus libros, sin las transacciones', async () => {
+        const res = await listar(
+          '?estado=LISTO_PARA_AUDITAR',
+          bearerAdmin,
+        ).expect(200);
+
+        const presentada = res.body.find(
+          (c: { id: number }) => c.id === cuentaPresentarId,
+        );
+        const libro = presentada.libros.find(
+          (l: { numeroCuentaCte: string }) => l.numeroCuentaCte === 'E2E/BASE',
+        );
+        //2 transacciones con fechas fuera de orden (10/03 y luego 02/03): el rango es mínima a máxima
+        expect(libro).toEqual({
+          id: expect.any(Number),
+          tipo: 'LIBRO_BANCO',
+          numeroCuentaCte: 'E2E/BASE',
+          cantidadTransacciones: 2,
+          fechaDesde: '2026-03-02',
+          fechaHasta: '2026-03-10',
+        });
+        expect(libro).not.toHaveProperty('transacciones');
+      });
+
+      it('200: una cuenta sin libros trae la lista de libros vacía', async () => {
+        const res = await listar('', bearerAdmin).expect(200);
+
+        const sinLibros = res.body.find(
+          (c: { id: number }) => c.id === cuentaSinLibrosId,
+        );
+        expect(sinLibros.libros).toEqual([]);
+      });
+
       it('200: ?estado=LISTO_PARA_AUDITAR trae solo las presentadas (un AUDITOR puede)', async () => {
         const auditor = await registrarUsuarioConCredenciales(app);
         await habilitarUsuario(app, auditor.id, ['AUDITOR']);
