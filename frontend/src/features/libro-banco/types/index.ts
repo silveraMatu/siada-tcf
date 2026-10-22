@@ -27,6 +27,8 @@ export interface LibroExistente {
 export interface FilaPreview {
   /** Número de fila en la planilla (base 1), para ubicar el error. */
   fila: number;
+  /** Id de la transacción, solo en filas de un libro ya guardado (permite ubicarla desde una observación). */
+  id?: number;
   transaccion: TransaccionPayload;
   errores: string[];
 }

@@ -1,4 +1,5 @@
 import { AlertCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   Table,
@@ -20,16 +21,58 @@ function monto(valor: number): string {
   return Number.isFinite(valor) ? formatoMonto.format(valor) : '—';
 }
 
+/** Cuánto dura marcada la fila a la que se llevó al auditor. */
+const DURACION_RESALTADO_MS = 4000;
+
+/** Fila a ubicar: `clave` cambia en cada pedido, así volver a pedir la misma fila la vuelve a marcar. */
+export interface FilaResaltada {
+  transaccionId: number;
+  clave: number;
+}
+
 export function PreviewTable({
   filas,
   className,
+  resaltar,
 }: {
   filas: FilaPreview[];
   /** Para cambiar el alto máximo (por defecto 320px) cuando la tabla es el contenido principal. */
   className?: string;
+  /** Lleva la vista hasta esa transacción, le da el foco y la marca unos segundos. */
+  resaltar?: FilaResaltada;
 }) {
+  const contenedor = useRef<HTMLDivElement>(null);
+  const [marcada, setMarcada] = useState<number | null>(null);
+
+  const transaccionId = resaltar?.transaccionId;
+  const clave = resaltar?.clave;
+
+  useEffect(() => {
+    if (transaccionId === undefined) return;
+    const fila = contenedor.current?.querySelector<HTMLElement>(
+      `[data-transaccion-id="${transaccionId}"]`,
+    );
+    if (!fila) return;
+
+    const sinMovimiento = window.matchMedia?.(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    fila.focus({ preventScroll: true });
+    fila.scrollIntoView({
+      block: 'center',
+      behavior: sinMovimiento ? 'auto' : 'smooth',
+    });
+    setMarcada(transaccionId);
+    const temporizador = setTimeout(
+      () => setMarcada(null),
+      DURACION_RESALTADO_MS,
+    );
+    return () => clearTimeout(temporizador);
+  }, [transaccionId, clave]);
+
   return (
     <div
+      ref={contenedor}
       className={cn('max-h-[320px] overflow-auto rounded-lg border', className)}
     >
       <Table>
@@ -45,11 +88,20 @@ export function PreviewTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filas.map(({ fila, transaccion: t, errores }) => (
+          {filas.map(({ fila, id, transaccion: t, errores }) => (
             <TableRow
               key={fila}
+              data-transaccion-id={id}
+              tabIndex={id === undefined ? undefined : -1}
+              aria-current={
+                id !== undefined && id === marcada ? 'true' : undefined
+              }
               className={cn(
+                'outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                 errores.length > 0 && 'bg-danger-subtle hover:bg-danger-subtle',
+                id !== undefined &&
+                  id === marcada &&
+                  'bg-warning-subtle ring-2 ring-inset ring-warning-border hover:bg-warning-subtle',
               )}
             >
               <TableCell className="text-right text-xs text-muted-foreground">

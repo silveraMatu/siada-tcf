@@ -2,12 +2,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ResumenLibro } from '@/features/cuentas/types';
 import { obtenerLibrosBanco } from '../api/libro-banco.api';
 import type { LibroBancoGuardado } from '../types';
-import { LibrosDeRendicion } from './LibrosDeRendicion';
+import { LibrosDeRendicion, type FocoLibro } from './LibrosDeRendicion';
 
 vi.mock('../api/libro-banco.api', () => ({
   obtenerLibrosBanco: vi.fn(),
@@ -48,23 +48,25 @@ const guardado = (
 
 const LIBROS = [resumen(1, '100234/1'), resumen(2, '100234/2')];
 
-function renderLibros(libros: ResumenLibro[] = LIBROS) {
+function renderLibros(libros: ResumenLibro[] = LIBROS, foco?: FocoLibro) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  const pintar = (items: ResumenLibro[]) => (
+  const pintar = (items: ResumenLibro[], pedido?: FocoLibro) => (
     <QueryClientProvider client={client}>
       <LibrosDeRendicion
         cuentaMensualId={5}
         libros={items}
         etiqueta="Libros de Abril 2026"
+        foco={pedido}
       />
     </QueryClientProvider>
   );
-  const vista = render(pintar(libros));
+  const vista = render(pintar(libros, foco));
   return {
     user: userEvent.setup(),
     cambiarLibros: (items: ResumenLibro[]) => vista.rerender(pintar(items)),
+    pedirFoco: (pedido: FocoLibro) => vista.rerender(pintar(libros, pedido)),
   };
 }
 
@@ -74,6 +76,12 @@ function datosDeLosLibros() {
     guardado(2, '100234/2', 'Proveedor Dos'),
   ]);
 }
+
+beforeEach(() => {
+  // jsdom no implementa estas dos: la tabla las usa para llevar la vista hasta la fila pedida
+  Element.prototype.scrollIntoView = vi.fn();
+  window.matchMedia = vi.fn().mockReturnValue({ matches: false });
+});
 
 afterEach(() => {
   cleanup();
@@ -229,5 +237,46 @@ describe('LibrosDeRendicion', () => {
 
     expect(await screen.findByText('Sin conexión')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeTruthy();
+  });
+  describe('ubicar una fila (foco)', () => {
+    it('abre la pestaña del libro pedido y marca la fila', async () => {
+      datosDeLosLibros();
+      const { pedirFoco } = renderLibros();
+
+      pedirFoco({ libroId: 2, transaccionId: 20, clave: 1 });
+
+      expect(
+        screen
+          .getByRole('tab', { name: 'Cta. Cte. 100234/2' })
+          .getAttribute('aria-selected'),
+      ).toBe('true');
+      const fila = (await screen.findByText('Proveedor Dos')).closest('tr');
+      expect(fila?.getAttribute('aria-current')).toBe('true');
+      expect(document.activeElement).toBe(fila);
+    });
+
+    it('un libro que no está en la rendición se ignora', () => {
+      datosDeLosLibros();
+      const { pedirFoco } = renderLibros();
+
+      pedirFoco({ libroId: 99, transaccionId: 1, clave: 1 });
+
+      expect(screen.getAllByRole('tab')).toHaveLength(1);
+    });
+
+    it('al cerrar la pestaña y reabrirla a mano no se vuelve a marcar la fila', async () => {
+      datosDeLosLibros();
+      const { user, pedirFoco } = renderLibros();
+      pedirFoco({ libroId: 2, transaccionId: 20, clave: 1 });
+      await screen.findByText('Proveedor Dos');
+      await user.click(screen.getByRole('button', { name: 'Cerrar' }));
+
+      await user.click(
+        screen.getByRole('button', { name: 'Cta. Cte. 100234/2' }),
+      );
+
+      const fila = (await screen.findByText('Proveedor Dos')).closest('tr');
+      expect(fila?.getAttribute('aria-current')).toBeNull();
+    });
   });
 });

@@ -9,11 +9,20 @@ import { ResumenLibroFila } from './ResumenLibroFila';
 const RESUMEN = 'resumen';
 const valorDeLibro = (id: number) => `libro-${id}`;
 
+/** Pedido de abrir un libro y marcar una de sus filas; `clave` cambia en cada pedido. */
+export interface FocoLibro {
+  libroId: number;
+  transaccionId: number;
+  clave: number;
+}
+
 interface LibrosDeRendicionProps {
   cuentaMensualId: number;
   libros: ResumenLibro[];
   /** Nombre accesible de la lista de resúmenes, por ejemplo «Libros de Abril 2026». */
   etiqueta?: string;
+  /** Abre la pestaña de ese libro y marca la fila, cada vez que cambia su `clave`. */
+  foco?: FocoLibro;
 }
 
 /**
@@ -24,9 +33,13 @@ export function LibrosDeRendicion({
   cuentaMensualId,
   libros,
   etiqueta = 'Libros de la rendición',
+  foco,
 }: LibrosDeRendicionProps) {
   const [abiertos, setAbiertos] = useState<number[]>([]);
   const [activa, setActiva] = useState(RESUMEN);
+  const [claveAtendida, setClaveAtendida] = useState<number | null>(null);
+  // La fila a marcar solo vale mientras esa pestaña siga abierta: al reabrirla no se vuelve a ubicar.
+  const [filaVigente, setFilaVigente] = useState<FocoLibro | null>(null);
 
   // Un libro que ya no está (p. ej. se reemplazó y cambió de id) cierra su pestaña.
   const pestanas = abiertos
@@ -43,7 +56,17 @@ export function LibrosDeRendicion({
     setActiva(valorDeLibro(id));
   }
 
+  // Pedido nuevo de ubicar una fila: se abre el libro (se ajusta durante el render, sin efecto extra).
+  if (foco && foco.clave !== claveAtendida) {
+    setClaveAtendida(foco.clave);
+    if (libros.some((libro) => libro.id === foco.libroId)) {
+      setFilaVigente(foco);
+      abrir(foco.libroId);
+    }
+  }
+
   function cerrar(id: number) {
+    if (filaVigente?.libroId === id) setFilaVigente(null);
     setAbiertos((actuales) => actuales.filter((abierto) => abierto !== id));
     setActiva(RESUMEN);
   }
@@ -96,6 +119,14 @@ export function LibrosDeRendicion({
             libroId={libro.id}
             nombre={nombreDeLibro(libro)}
             onCerrar={() => cerrar(libro.id)}
+            resaltar={
+              filaVigente?.libroId === libro.id
+                ? {
+                    transaccionId: filaVigente.transaccionId,
+                    clave: filaVigente.clave,
+                  }
+                : undefined
+            }
           />
         </TabsContent>
       ))}

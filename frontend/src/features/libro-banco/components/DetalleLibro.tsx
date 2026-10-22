@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useLibrosBanco } from '../hooks/useLibrosBanco';
 import { describirTransacciones } from '../lib/formato-libro';
 import { libroAFilas } from '../lib/libro-a-filas';
-import { PreviewTable } from './PreviewTable';
+import { PreviewTable, type FilaResaltada } from './PreviewTable';
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' });
 
@@ -15,6 +15,8 @@ interface DetalleLibroProps {
   libroId: number;
   nombre: string;
   onCerrar: () => void;
+  /** Fila a ubicar al abrir la pestaña (por ejemplo, la de una observación del auditor). */
+  resaltar?: FilaResaltada;
 }
 
 /**
@@ -26,6 +28,7 @@ export function DetalleLibro({
   libroId,
   nombre,
   onCerrar,
+  resaltar,
 }: DetalleLibroProps) {
   const { data, isPending, isError, error, refetch, isFetching } =
     useLibrosBanco(cuentaMensualId);
@@ -70,7 +73,11 @@ export function DetalleLibro({
       )}
 
       {libro && (
-        <PreviewTable filas={libroAFilas(libro)} className="max-h-[420px]" />
+        <PreviewTable
+          filas={libroAFilas(libro)}
+          className="max-h-[420px]"
+          resaltar={resaltar}
+        />
       )}
     </div>
   );

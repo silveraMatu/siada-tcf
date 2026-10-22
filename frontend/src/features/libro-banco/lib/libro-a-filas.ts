@@ -4,6 +4,7 @@ import type { FilaPreview, LibroBancoGuardado } from '../types';
 export function libroAFilas(libro: LibroBancoGuardado): FilaPreview[] {
   return libro.transacciones.map((t, i) => ({
     fila: i + 1,
+    id: t.id,
     transaccion: {
       fecha: t.fecha ?? undefined,
       cheque: t.cheque ?? undefined,
