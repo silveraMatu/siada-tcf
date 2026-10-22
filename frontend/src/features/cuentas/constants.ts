@@ -24,32 +24,24 @@ export const ESTADOS: Record<
   EstadoCuentaMensual,
   { label: string; className: string }
 > = {
-  pendiente_carga: {
-    label: 'Pendiente de Carga',
+  EN_BORRADOR: {
+    label: 'En Borrador',
     className: 'border-warning-border bg-warning-subtle text-warning',
   },
-  cargada: {
-    label: 'Cargada',
-    className: 'border-info-border bg-info-subtle text-info',
-  },
-  lista_para_auditar: {
-    label: 'Lista para Auditar',
+  LISTO_PARA_AUDITAR: {
+    label: 'Listo para Auditar',
     className: 'border-review-border bg-review-subtle text-review',
   },
-  con_observaciones: {
+  EN_AUDITORIA: {
+    label: 'En Auditoría',
+    className: 'border-info-border bg-info-subtle text-info',
+  },
+  CON_OBSERVACIONES: {
     label: 'Con Observaciones',
     className: 'border-caution-border bg-caution-subtle text-caution',
   },
-  auditada: {
+  AUDITADA: {
     label: 'Auditada',
     className: 'border-success-border bg-success-subtle text-success',
-  },
-  rechazada: {
-    label: 'Rechazada',
-    className: 'border-danger-border bg-danger-subtle text-danger',
-  },
-  cerrada: {
-    label: 'Cerrada',
-    className: 'border-inactivo-border bg-inactivo-subtle text-inactivo',
   },
 };

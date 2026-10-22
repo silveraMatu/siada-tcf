@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { LibroBancoRepositoryPort } from '../ports/out/libro-banco-repository.port.js';
 import { CuentaMensualRepositoryPort } from '../../../cuentas/application/ports/out/cuenta-mensual-repository.port.js';
 import { LibroBanco } from '../../domain/entities/libro-banco.domain.js';
@@ -29,11 +33,18 @@ export class IngestarLibroBancoUseCase {
     comando: IngestarLibroBancoComando,
   ): Promise<LibroBanco> {
     //validamos existencia de la cuenta mensual
-    const existeCuenta =
-      await this.cuentaMensualRepository.existe(cuentaMensualId);
-    if (!existeCuenta) {
+    const cuenta =
+      await this.cuentaMensualRepository.buscarPorId(cuentaMensualId);
+    if (!cuenta) {
       throw new NotFoundException(
         `La Cuenta Mensual con ID ${cuentaMensualId} no existe.`,
+      );
+    }
+
+    //candado: una cuenta ya enviada a auditoría no admite cambios en su evidencia
+    if (!cuenta.estaEnBorrador()) {
+      throw new ConflictException(
+        'No se pueden modificar ni subir libros a una cuenta que ya fue enviada a auditoría.',
       );
     }
 

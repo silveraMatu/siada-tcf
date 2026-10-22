@@ -10,6 +10,7 @@ export const ID_INEXISTENTE = 999999;
 export const EJERCICIO = 2026;
 export const MES_CON_LIBRO = 3;
 export const MES_SIN_LIBRO = 12; //reservado: nunca se ingesta ningun libro en este mes
+export const MES_PRESENTAR = 10; //reservado: los specs de presentar y del candado lo vuelven a EN_BORRADOR al empezar
 export const MES_AUDITORIA = 11; //reservado para auditoria: un unico libro con un saldo equivocado
 
 //organismo inicial que usan los e2e de cuentas, libro-banco y responsables
@@ -153,4 +154,66 @@ export async function crearUsuarioResponsable(
   const usuarioId = await registrarUsuario(app);
   await habilitarUsuario(app, usuarioId, ['RESPONSABLE']);
   return usuarioId;
+}
+
+//segundo organismo (find-or-create) para probar que un responsable no toca cuentas ajenas
+export async function obtenerOrganismoAjenoId(
+  dataSource: DataSource,
+): Promise<number> {
+  const nombre = '__E2E__ Organismo Ajeno';
+  const existente = await dataSource.query(
+    `SELECT id FROM organismos WHERE nombre = $1 LIMIT 1`,
+    [nombre],
+  );
+  if (existente.length) return existente[0].id;
+
+  const [creado] = await dataSource.query(
+    `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'E2E', true) RETURNING id`,
+    [nombre],
+  );
+  return creado.id;
+}
+
+//responsable nuevo (usuario RESPONSABLE activo) vinculado al organismo, ya con sesion iniciada
+export async function crearResponsableConSesion(
+  app: INestApplication,
+  organismoId: number,
+): Promise<{ bearer: string; usuarioId: number; responsableId: number }> {
+  const {
+    id: usuarioId,
+    email,
+    password,
+  } = await registrarUsuarioConCredenciales(app);
+  await habilitarUsuario(app, usuarioId, ['RESPONSABLE']);
+  const responsable = await request(app.getHttpServer())
+    .post('/api/v1/responsables')
+    .send({ usuarioId })
+    .expect(201);
+  await app
+    .get(DataSource)
+    .query(`UPDATE responsables SET organismo_id = $1 WHERE id = $2`, [
+      organismoId,
+      responsable.body.id,
+    ]);
+  const login = await request(app.getHttpServer())
+    .post('/api/v1/auth/login')
+    .send({ email, password })
+    .expect(200);
+  return {
+    bearer: `Bearer ${login.body.accessToken}`,
+    usuarioId,
+    responsableId: responsable.body.id,
+  };
+}
+
+//deja la cuenta en el estado indicado (por defecto EN_BORRADOR): la presentacion no se puede deshacer por la API
+export async function fijarEstadoCuenta(
+  dataSource: DataSource,
+  cuentaMensualId: number,
+  estado = 'EN_BORRADOR',
+): Promise<void> {
+  await dataSource.query(
+    `UPDATE cuentas_mensuales SET estado = $1 WHERE id = $2`,
+    [estado, cuentaMensualId],
+  );
 }

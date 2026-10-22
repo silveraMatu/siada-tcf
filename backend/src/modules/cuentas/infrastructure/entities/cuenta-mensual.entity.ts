@@ -11,16 +11,7 @@ import {
 } from 'typeorm';
 import { CuentaAnualEntity } from './cuenta-anual.entity.js';
 import { LibroBancoEntity } from '../../../libro-banco/infrastructure/entities/libro-banco.entity.js';
-
-export enum EstadoCuentaMensual {
-  PENDIENTE_CARGA = 'pendiente_carga',
-  CARGADA = 'cargada',
-  LISTA_PARA_AUDITAR = 'lista_para_auditar',
-  CON_OBSERVACIONES = 'con_observaciones',
-  AUDITADA = 'auditada',
-  RECHAZADA = 'rechazada',
-  CERRADA = 'cerrada',
-}
+import { EstadoCuentaMensual } from '../../domain/enums/estado-cuenta-mensual.enum.js';
 
 @Entity('cuentas_mensuales')
 @Unique('UQ_cuenta_mensual_anual_mes', ['cuentaAnualId', 'mes'])
@@ -38,9 +29,9 @@ export class CuentaMensualEntity {
     type: 'enum',
     name: 'estado',
     enum: EstadoCuentaMensual,
-    default: EstadoCuentaMensual.PENDIENTE_CARGA,
+    default: EstadoCuentaMensual.EN_BORRADOR,
   })
-  estado: string;
+  estado: EstadoCuentaMensual;
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;

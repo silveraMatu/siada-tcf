@@ -30,6 +30,6 @@ import { ObtenerOrganismoDeResponsableUseCase } from './application/use-cases/ob
       useClass: TypeOrmResponsableRepositoryAdapter,
     },
   ],
-  exports: [AsignarOrganismoAResponsableUseCase],
+  exports: [AsignarOrganismoAResponsableUseCase, ResponsableRepositoryPort],
 })
 export class ResponsablesModule {}

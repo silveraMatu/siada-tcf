@@ -5,7 +5,9 @@ import { createTestApp } from '../helpers/create-test-app.js';
 import {
   ID_INEXISTENTE,
   MES_CON_LIBRO,
+  MES_PRESENTAR,
   MES_SIN_LIBRO,
+  fijarEstadoCuenta,
   obtenerOrganismoBaseId,
   resolverCuentaMensualId,
 } from '../helpers/fixtures.js';
@@ -196,5 +198,69 @@ describe('Libro banco (e2e)', () => {
         await obtener(id).expect(400);
       },
     );
+  });
+  describe('candado: cuenta ya enviada a auditoría', () => {
+    let cuentaBloqueadaId: number;
+
+    const contarLibros = async (): Promise<number> => {
+      const [{ total }] = await dataSource.query(
+        `SELECT count(*)::int AS total FROM libros_banco WHERE cuenta_mensual_id = $1`,
+        [cuentaBloqueadaId],
+      );
+      return total;
+    };
+
+    beforeAll(async () => {
+      cuentaBloqueadaId = await resolverCuentaMensualId(
+        app,
+        await obtenerOrganismoBaseId(dataSource),
+        MES_PRESENTAR,
+      );
+    });
+
+    afterAll(async () => {
+      //no dejar la cuenta compartida bloqueada para otros specs
+      await fijarEstadoCuenta(dataSource, cuentaBloqueadaId);
+    });
+
+    it('201: en borrador la ingesta funciona', async () => {
+      await fijarEstadoCuenta(dataSource, cuentaBloqueadaId);
+      const antes = await contarLibros();
+
+      await ingestar(cuentaBloqueadaId, {
+        transacciones: transaccionesValidas(),
+      }).expect(201);
+
+      expect(await contarLibros()).toBe(antes + 1);
+    });
+
+    it.each([
+      'LISTO_PARA_AUDITAR',
+      'EN_AUDITORIA',
+      'AUDITADA',
+      'CON_OBSERVACIONES',
+    ])('409: con la cuenta en %s no se sube ningun libro', async (estado) => {
+      await fijarEstadoCuenta(dataSource, cuentaBloqueadaId, estado);
+      const antes = await contarLibros();
+
+      const res = await ingestar(cuentaBloqueadaId, {
+        transacciones: transaccionesValidas(),
+      }).expect(409);
+
+      expect(res.body.message).toBe(
+        'No se pueden modificar ni subir libros a una cuenta que ya fue enviada a auditoría.',
+      );
+      expect(await contarLibros()).toBe(antes);
+    });
+
+    it('GET: la lectura sigue funcionando con la cuenta bloqueada', async () => {
+      await fijarEstadoCuenta(
+        dataSource,
+        cuentaBloqueadaId,
+        'LISTO_PARA_AUDITAR',
+      );
+
+      await obtener(cuentaBloqueadaId).expect(200);
+    });
   });
 });

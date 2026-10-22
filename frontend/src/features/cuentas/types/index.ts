@@ -1,11 +1,9 @@
 export type EstadoCuentaMensual =
-  | 'pendiente_carga'
-  | 'cargada'
-  | 'lista_para_auditar'
-  | 'con_observaciones'
-  | 'auditada'
-  | 'rechazada'
-  | 'cerrada';
+  | 'EN_BORRADOR'
+  | 'LISTO_PARA_AUDITAR'
+  | 'EN_AUDITORIA'
+  | 'CON_OBSERVACIONES'
+  | 'AUDITADA';
 
 export interface CuentaMensual {
   id: number;
