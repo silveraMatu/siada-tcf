@@ -1,4 +1,4 @@
-import type { EstadoCuentaMensual } from './types';
+import type { EstadoCuentaMensual, TipoLibro } from './types';
 
 export const EJERCICIOS_FISCALES = Array.from(
   { length: 11 },
@@ -19,6 +19,10 @@ export const MESES = [
   'Noviembre',
   'Diciembre',
 ] as const;
+
+export const TIPOS_LIBRO: Record<TipoLibro, string> = {
+  LIBRO_BANCO: 'Libro Banco',
+};
 
 export const ESTADOS: Record<
   EstadoCuentaMensual,

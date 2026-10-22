@@ -20,9 +20,18 @@ function monto(valor: number): string {
   return Number.isFinite(valor) ? formatoMonto.format(valor) : '—';
 }
 
-export function PreviewTable({ filas }: { filas: FilaPreview[] }) {
+export function PreviewTable({
+  filas,
+  className,
+}: {
+  filas: FilaPreview[];
+  /** Para cambiar el alto máximo (por defecto 320px) cuando la tabla es el contenido principal. */
+  className?: string;
+}) {
   return (
-    <div className="max-h-[320px] overflow-auto rounded-lg border">
+    <div
+      className={cn('max-h-[320px] overflow-auto rounded-lg border', className)}
+    >
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-background">
           <TableRow>

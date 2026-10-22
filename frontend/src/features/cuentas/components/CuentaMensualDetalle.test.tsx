@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -111,6 +117,64 @@ describe('CuentaMensualDetalle', () => {
       expect(vi.mocked(obtenerLibrosBanco).mock.calls[0][0]).toBe(5);
     });
 
+    it('los libros se ven como un resumen, sin sus filas, igual que en auditoría', async () => {
+      renderDetalle('EN_BORRADOR');
+
+      const lista = await screen.findByRole('list', {
+        name: 'Libros cargados',
+      });
+      const filas = within(lista).getAllByRole('listitem');
+      expect(filas).toHaveLength(2);
+      expect(within(filas[0]).getByText('Libro Banco')).toBeTruthy();
+      expect(
+        within(filas[0]).getByRole('button', { name: 'Cta. Cte. 100234/1' }),
+      ).toBeTruthy();
+      expect(
+        within(filas[0]).getByText('2 transacciones · 02/03/2026'),
+      ).toBeTruthy();
+      expect(
+        within(filas[1]).getByText('1 transacción · 02/03/2026'),
+      ).toBeTruthy();
+      // solo la pestaña de resumen: ninguna tabla ni transacción a la vista
+      expect(screen.getAllByRole('tab')).toHaveLength(1);
+      expect(screen.queryByText('Proveedor SA')).toBeNull();
+    });
+
+    it('al clicar el nombre de un libro se abre su pestaña con las filas y columnas', async () => {
+      const { user } = renderDetalle('EN_BORRADOR');
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Cta. Cte. 100234/1' }),
+      );
+
+      const pestana = screen.getByRole('tab', { name: 'Cta. Cte. 100234/1' });
+      expect(pestana.getAttribute('aria-selected')).toBe('true');
+      expect(await screen.findAllByText('Proveedor SA')).toHaveLength(2);
+      expect(
+        screen.getByRole('columnheader', { name: 'Depósitos' }),
+      ).toBeTruthy();
+    });
+
+    it('la pestaña del libro se cierra y se vuelve al resumen', async () => {
+      const { user } = renderDetalle('EN_BORRADOR');
+      await user.click(
+        await screen.findByRole('button', { name: 'Cta. Cte. 100234/2' }),
+      );
+      await screen.findByText('Proveedor SA');
+
+      await user.click(screen.getByRole('button', { name: 'Cerrar' }));
+
+      expect(
+        screen.queryByRole('tab', { name: 'Cta. Cte. 100234/2' }),
+      ).toBeNull();
+      expect(
+        screen
+          .getByRole('tab', { name: /Resumen/ })
+          .getAttribute('aria-selected'),
+      ).toBe('true');
+      expect(screen.queryByText('Proveedor SA')).toBeNull();
+    });
+
     it('sin ningún libro cargado no se puede presentar y se invita a cargar uno', async () => {
       vi.mocked(obtenerLibrosBanco).mockResolvedValue([]);
       renderDetalle('EN_BORRADOR');
@@ -175,7 +239,7 @@ describe('CuentaMensualDetalle', () => {
   ])('presentada (%s)', (estado, etiqueta) => {
     it('bloquea la carga, indica el estado y muestra el libro guardado en solo lectura', async () => {
       vi.mocked(obtenerLibrosBanco).mockResolvedValue([libro(1, '123/4')]);
-      renderDetalle(estado);
+      const { user } = renderDetalle(estado);
 
       expect(
         screen.getByText(/ya ha sido presentada y se encuentra bloqueada/),
@@ -190,8 +254,13 @@ describe('CuentaMensualDetalle', () => {
         }),
       ).toBeNull();
 
+      //el libro está cargado pero cerrado: se ve su encabezado y la tabla se abre a pedido
+      const boton = await screen.findByRole('button', {
+        name: /Cta\. Cte\. 123\/4/,
+      });
+      expect(screen.queryByText('Proveedor SA')).toBeNull();
+      await user.click(boton);
       expect(await screen.findByText('Proveedor SA')).toBeTruthy();
-      expect(screen.getByText(/Cta\. Cte\. 123\/4/)).toBeTruthy();
       expect(screen.queryByText('Libros cargados')).toBeNull();
     });
   });

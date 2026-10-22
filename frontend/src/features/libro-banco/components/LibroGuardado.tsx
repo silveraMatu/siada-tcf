@@ -4,10 +4,8 @@ import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorAlert } from '@/components/feedback/ErrorAlert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLibrosBanco } from '../hooks/useLibrosBanco';
-import { libroAFilas } from '../lib/libro-a-filas';
-import { PreviewTable } from './PreviewTable';
-
-const formatoFecha = new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' });
+import { resumirLibro } from '../lib/resumir-libro';
+import { LibrosDeRendicion } from './LibrosDeRendicion';
 
 interface LibroGuardadoProps {
   cuentaMensualId: number;
@@ -15,7 +13,10 @@ interface LibroGuardadoProps {
   enBorrador?: boolean;
 }
 
-/** Libros ya guardados de una rendición, en solo lectura. */
+/**
+ * Libros ya guardados de una rendición, en solo lectura: el resumen de cada uno y, al clicar su
+ * nombre, una pestaña con sus filas y columnas.
+ */
 export function LibroGuardado({
   cuentaMensualId,
   enBorrador = false,
@@ -58,23 +59,10 @@ export function LibroGuardado({
   }
 
   return (
-    <div className="space-y-6">
-      {data.map((libro) => (
-        <section key={libro.id} className="space-y-3">
-          <h3 className="text-sm font-medium">
-            Libro Banco · Cta. Cte. {libro.numeroCuentaCte ?? 'sin número'}
-            <span className="font-normal text-muted-foreground">
-              {' '}
-              · {libro.transacciones.length}{' '}
-              {libro.transacciones.length === 1
-                ? 'transacción'
-                : 'transacciones'}{' '}
-              · cargado el {formatoFecha.format(new Date(libro.fechaCreacion))}
-            </span>
-          </h3>
-          <PreviewTable filas={libroAFilas(libro)} />
-        </section>
-      ))}
-    </div>
+    <LibrosDeRendicion
+      cuentaMensualId={cuentaMensualId}
+      libros={data.map(resumirLibro)}
+      etiqueta="Libros cargados"
+    />
   );
 }
