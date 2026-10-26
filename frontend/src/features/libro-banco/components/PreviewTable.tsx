@@ -1,5 +1,5 @@
 import { AlertCircle } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import {
   Table,
@@ -10,6 +10,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import {
+  useFilaResaltada,
+  type FilaResaltada,
+} from '../hooks/useFilaResaltada';
 import type { FilaPreview } from '../types';
 
 const formatoMonto = new Intl.NumberFormat('es-AR', {
@@ -21,14 +25,7 @@ function monto(valor: number): string {
   return Number.isFinite(valor) ? formatoMonto.format(valor) : '—';
 }
 
-/** Cuánto dura marcada la fila a la que se llevó al auditor. */
-const DURACION_RESALTADO_MS = 4000;
-
-/** Fila a ubicar: `clave` cambia en cada pedido, así volver a pedir la misma fila la vuelve a marcar. */
-export interface FilaResaltada {
-  transaccionId: number;
-  clave: number;
-}
+export type { FilaResaltada };
 
 export function PreviewTable({
   filas,
@@ -42,33 +39,7 @@ export function PreviewTable({
   resaltar?: FilaResaltada;
 }) {
   const contenedor = useRef<HTMLDivElement>(null);
-  const [marcada, setMarcada] = useState<number | null>(null);
-
-  const transaccionId = resaltar?.transaccionId;
-  const clave = resaltar?.clave;
-
-  useEffect(() => {
-    if (transaccionId === undefined) return;
-    const fila = contenedor.current?.querySelector<HTMLElement>(
-      `[data-transaccion-id="${transaccionId}"]`,
-    );
-    if (!fila) return;
-
-    const sinMovimiento = window.matchMedia?.(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
-    fila.focus({ preventScroll: true });
-    fila.scrollIntoView({
-      block: 'center',
-      behavior: sinMovimiento ? 'auto' : 'smooth',
-    });
-    setMarcada(transaccionId);
-    const temporizador = setTimeout(
-      () => setMarcada(null),
-      DURACION_RESALTADO_MS,
-    );
-    return () => clearTimeout(temporizador);
-  }, [transaccionId, clave]);
+  const marcada = useFilaResaltada(contenedor, resaltar);
 
   return (
     <div

@@ -5,10 +5,16 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ResumenLibro } from '@/features/cuentas/types';
+import { obtenerIngresosEgresos } from '@/features/ingresos-egresos/api/ingresos-egresos.api';
+import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
 import { obtenerLibrosBanco } from '../api/libro-banco.api';
 import type { LibroBancoGuardado } from '../types';
 import { LibrosDeRendicion, type FocoLibro } from './LibrosDeRendicion';
 
+vi.mock('@/features/ingresos-egresos/api/ingresos-egresos.api', () => ({
+  obtenerIngresosEgresos: vi.fn(),
+  ingestarIngresosEgresos: vi.fn(),
+}));
 vi.mock('../api/libro-banco.api', () => ({
   obtenerLibrosBanco: vi.fn(),
   ingestarLibroBanco: vi.fn(),
@@ -243,7 +249,12 @@ describe('LibrosDeRendicion', () => {
       datosDeLosLibros();
       const { pedirFoco } = renderLibros();
 
-      pedirFoco({ libroId: 2, transaccionId: 20, clave: 1 });
+      pedirFoco({
+        libroTipo: 'LIBRO_BANCO',
+        libroId: 2,
+        transaccionId: 20,
+        clave: 1,
+      });
 
       expect(
         screen
@@ -259,7 +270,12 @@ describe('LibrosDeRendicion', () => {
       datosDeLosLibros();
       const { pedirFoco } = renderLibros();
 
-      pedirFoco({ libroId: 99, transaccionId: 1, clave: 1 });
+      pedirFoco({
+        libroTipo: 'LIBRO_BANCO',
+        libroId: 99,
+        transaccionId: 1,
+        clave: 1,
+      });
 
       expect(screen.getAllByRole('tab')).toHaveLength(1);
     });
@@ -267,7 +283,12 @@ describe('LibrosDeRendicion', () => {
     it('al cerrar la pestaña y reabrirla a mano no se vuelve a marcar la fila', async () => {
       datosDeLosLibros();
       const { user, pedirFoco } = renderLibros();
-      pedirFoco({ libroId: 2, transaccionId: 20, clave: 1 });
+      pedirFoco({
+        libroTipo: 'LIBRO_BANCO',
+        libroId: 2,
+        transaccionId: 20,
+        clave: 1,
+      });
       await screen.findByText('Proveedor Dos');
       await user.click(screen.getByRole('button', { name: 'Cerrar' }));
 
@@ -277,6 +298,65 @@ describe('LibrosDeRendicion', () => {
 
       const fila = (await screen.findByText('Proveedor Dos')).closest('tr');
       expect(fila?.getAttribute('aria-current')).toBeNull();
+    });
+  });
+
+  describe('libro de Ingresos y Egresos', () => {
+    // comparte el id 2 con el segundo libro banco: las pestañas se distinguen por tipo
+    const ingresosEgresos: ResumenLibro = {
+      id: 2,
+      tipo: 'INGRESOS_EGRESOS',
+      numeroCuentaCte: null,
+      cantidadTransacciones: 2,
+      fechaDesde: '2026-03-02',
+      fechaHasta: '2026-03-03',
+    };
+    const guardadoIE = {
+      id: 2,
+      cuentaMensualId: 5,
+      numeroCuentaCte: null,
+      fechaCreacion: '2026-10-15T12:00:00.000Z',
+      transacciones: [
+        { id: 57, fila: 4, fecha: '2026-03-02', concepto: 'Cobro de tasas' },
+        { id: 58, fila: 5, fecha: '2026-03-03', concepto: 'Pago proveedor' },
+      ],
+    } as unknown as IngresosEgresosGuardado;
+
+    beforeEach(() => {
+      datosDeLosLibros();
+      vi.mocked(obtenerIngresosEgresos).mockResolvedValue(guardadoIE);
+    });
+
+    it('se lista como «Ingresos y Egresos» y su nombre abre sus filas, no las del libro banco con el mismo id', async () => {
+      const { user } = renderLibros([...LIBROS, ingresosEgresos]);
+
+      await user.click(
+        screen.getByRole('button', { name: 'Ingresos y Egresos' }),
+      );
+
+      const pestana = screen.getByRole('tab', { name: 'Ingresos y Egresos' });
+      expect(pestana.getAttribute('aria-selected')).toBe('true');
+      expect(await screen.findByText('Cobro de tasas')).toBeTruthy();
+      expect(screen.queryByText('Proveedor Dos')).toBeNull();
+    });
+
+    it('el foco abre su pestaña y marca la fila de la transacción pedida', async () => {
+      const { pedirFoco } = renderLibros([...LIBROS, ingresosEgresos]);
+
+      pedirFoco({
+        libroTipo: 'INGRESOS_EGRESOS',
+        libroId: 2,
+        transaccionId: 58,
+        clave: 1,
+      });
+
+      const fila = (await screen.findByText('Pago proveedor')).closest('tr');
+      expect(fila?.getAttribute('aria-current')).toBe('true');
+      expect(
+        screen
+          .getByRole('tab', { name: 'Ingresos y Egresos' })
+          .getAttribute('aria-selected'),
+      ).toBe('true');
     });
   });
 });

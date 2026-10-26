@@ -8,7 +8,8 @@ export function guardadoAFilas(
   libro: IngresosEgresosGuardado,
 ): FilaIngresoEgresoPreview[] {
   return libro.transacciones.map(
-    ({ id: _id, cheque, comprobante, cuentasVariasConcepto, ...resto }) => ({
+    ({ id, cheque, comprobante, cuentasVariasConcepto, ...resto }) => ({
+      id,
       transaccion: {
         ...resto,
         ...(cheque ? { cheque } : {}),

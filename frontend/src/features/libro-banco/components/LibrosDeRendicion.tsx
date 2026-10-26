@@ -2,15 +2,23 @@ import { useState } from 'react';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { ResumenLibro } from '@/features/cuentas/types';
+import { DetalleIngresosEgresos } from '@/features/ingresos-egresos/components/DetalleIngresosEgresos';
 import { nombreDeLibro } from '../lib/formato-libro';
 import { DetalleLibro } from './DetalleLibro';
 import { ResumenLibroFila } from './ResumenLibroFila';
 
 const RESUMEN = 'resumen';
-const valorDeLibro = (id: number) => `libro-${id}`;
+/** El id es único solo dentro de su tipo: un libro banco y el de Ingresos y Egresos pueden compartirlo. */
+const claveDeLibro = (libro: Pick<ResumenLibro, 'tipo' | 'id'>) =>
+  `${libro.tipo}:${libro.id}`;
+const valorDeLibro = (libro: Pick<ResumenLibro, 'tipo' | 'id'>) =>
+  `libro-${claveDeLibro(libro)}`;
+
+const claveDelFoco = (foco: FocoLibro) => `${foco.libroTipo}:${foco.libroId}`;
 
 /** Pedido de abrir un libro y marcar una de sus filas; `clave` cambia en cada pedido. */
 export interface FocoLibro {
+  libroTipo: string;
   libroId: number;
   transaccionId: number;
   clave: number;
@@ -35,7 +43,7 @@ export function LibrosDeRendicion({
   etiqueta = 'Libros de la rendición',
   foco,
 }: LibrosDeRendicionProps) {
-  const [abiertos, setAbiertos] = useState<number[]>([]);
+  const [abiertos, setAbiertos] = useState<string[]>([]);
   const [activa, setActiva] = useState(RESUMEN);
   const [claveAtendida, setClaveAtendida] = useState<number | null>(null);
   // La fila a marcar solo vale mientras esa pestaña siga abierta: al reabrirla no se vuelve a ubicar.
@@ -43,31 +51,38 @@ export function LibrosDeRendicion({
 
   // Un libro que ya no está (p. ej. se reemplazó y cambió de id) cierra su pestaña.
   const pestanas = abiertos
-    .map((id) => libros.find((libro) => libro.id === id))
+    .map((clave) => libros.find((libro) => claveDeLibro(libro) === clave))
     .filter((libro): libro is ResumenLibro => libro !== undefined);
   const pestanaVigente =
     activa === RESUMEN ||
-    pestanas.some((libro) => valorDeLibro(libro.id) === activa);
+    pestanas.some((libro) => valorDeLibro(libro) === activa);
 
-  function abrir(id: number) {
+  function abrir(libro: ResumenLibro) {
+    const clave = claveDeLibro(libro);
     setAbiertos((actuales) =>
-      actuales.includes(id) ? actuales : [...actuales, id],
+      actuales.includes(clave) ? actuales : [...actuales, clave],
     );
-    setActiva(valorDeLibro(id));
+    setActiva(valorDeLibro(libro));
   }
 
   // Pedido nuevo de ubicar una fila: se abre el libro (se ajusta durante el render, sin efecto extra).
   if (foco && foco.clave !== claveAtendida) {
     setClaveAtendida(foco.clave);
-    if (libros.some((libro) => libro.id === foco.libroId)) {
+    const libro = libros.find(
+      (candidato) => claveDeLibro(candidato) === claveDelFoco(foco),
+    );
+    if (libro) {
       setFilaVigente(foco);
-      abrir(foco.libroId);
+      abrir(libro);
     }
   }
 
-  function cerrar(id: number) {
-    if (filaVigente?.libroId === id) setFilaVigente(null);
-    setAbiertos((actuales) => actuales.filter((abierto) => abierto !== id));
+  function cerrar(libro: ResumenLibro) {
+    const clave = claveDeLibro(libro);
+    if (filaVigente && claveDelFoco(filaVigente) === clave) {
+      setFilaVigente(null);
+    }
+    setAbiertos((actuales) => actuales.filter((abierto) => abierto !== clave));
     setActiva(RESUMEN);
   }
 
@@ -94,7 +109,7 @@ export function LibrosDeRendicion({
           </span>
         </TabsTrigger>
         {pestanas.map((libro) => (
-          <TabsTrigger key={libro.id} value={valorDeLibro(libro.id)}>
+          <TabsTrigger key={claveDeLibro(libro)} value={valorDeLibro(libro)}>
             {nombreDeLibro(libro)}
           </TabsTrigger>
         ))}
@@ -107,36 +122,47 @@ export function LibrosDeRendicion({
         >
           {libros.map((libro) => (
             <ResumenLibroFila
-              key={libro.id}
+              key={claveDeLibro(libro)}
               libro={libro}
-              onAbrir={() => abrir(libro.id)}
+              onAbrir={() => abrir(libro)}
             />
           ))}
         </ul>
       </TabsContent>
 
-      {pestanas.map((libro) => (
-        <TabsContent
-          key={libro.id}
-          value={valorDeLibro(libro.id)}
-          className="mt-0"
-        >
-          <DetalleLibro
-            cuentaMensualId={cuentaMensualId}
-            libroId={libro.id}
-            nombre={nombreDeLibro(libro)}
-            onCerrar={() => cerrar(libro.id)}
-            resaltar={
-              filaVigente?.libroId === libro.id
-                ? {
-                    transaccionId: filaVigente.transaccionId,
-                    clave: filaVigente.clave,
-                  }
-                : undefined
-            }
-          />
-        </TabsContent>
-      ))}
+      {pestanas.map((libro) => {
+        const resaltar =
+          filaVigente && claveDelFoco(filaVigente) === claveDeLibro(libro)
+            ? {
+                transaccionId: filaVigente.transaccionId,
+                clave: filaVigente.clave,
+              }
+            : undefined;
+        return (
+          <TabsContent
+            key={claveDeLibro(libro)}
+            value={valorDeLibro(libro)}
+            className="mt-0"
+          >
+            {libro.tipo === 'INGRESOS_EGRESOS' ? (
+              <DetalleIngresosEgresos
+                cuentaMensualId={cuentaMensualId}
+                nombre={nombreDeLibro(libro)}
+                onCerrar={() => cerrar(libro)}
+                resaltar={resaltar}
+              />
+            ) : (
+              <DetalleLibro
+                cuentaMensualId={cuentaMensualId}
+                libroId={libro.id}
+                nombre={nombreDeLibro(libro)}
+                onCerrar={() => cerrar(libro)}
+                resaltar={resaltar}
+              />
+            )}
+          </TabsContent>
+        );
+      })}
     </Tabs>
   );
 }

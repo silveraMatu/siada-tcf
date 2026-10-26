@@ -36,6 +36,8 @@ export interface IngestaIngresosEgresosPayload {
 
 /** Fila del archivo ya transformada, con los problemas que impedirían enviarla. */
 export interface FilaIngresoEgresoPreview {
+  /** Id de la transacción, solo en filas de un libro ya guardado (permite ubicarla desde una observación). */
+  id?: number;
   transaccion: TransaccionIngresoEgreso;
   errores: string[];
 }

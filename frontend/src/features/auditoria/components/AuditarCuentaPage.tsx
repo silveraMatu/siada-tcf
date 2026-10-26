@@ -44,9 +44,14 @@ export function AuditarCuentaPage() {
   const cuenta = data?.find((candidata) => candidata.id === cuentaId);
 
   function verEnLibro(observacion: ObservacionUbicada) {
-    if (observacion.libroId === undefined || observacion.transaccionId === null)
+    if (
+      observacion.libroTipo === undefined ||
+      observacion.libroId === undefined ||
+      observacion.transaccionId === null
+    )
       return;
     setFoco({
+      libroTipo: observacion.libroTipo,
       libroId: observacion.libroId,
       transaccionId: observacion.transaccionId,
       clave: Date.now(),
@@ -112,10 +117,7 @@ export function AuditarCuentaPage() {
         </div>
       </div>
 
-      <PanelAuditoria
-        cuentaMensualId={cuenta.id}
-        onVerEnLibro={verEnLibro}
-      />
+      <PanelAuditoria cuentaMensualId={cuenta.id} onVerEnLibro={verEnLibro} />
 
       <section aria-labelledby="libros-titulo" className="space-y-3">
         <h2 id="libros-titulo" className="text-lg font-semibold tracking-tight">

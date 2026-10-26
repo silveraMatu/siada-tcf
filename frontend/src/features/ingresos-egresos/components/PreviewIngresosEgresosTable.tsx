@@ -1,4 +1,5 @@
 import { AlertCircle } from 'lucide-react';
+import { useRef } from 'react';
 
 import {
   Table,
@@ -8,6 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  useFilaResaltada,
+  type FilaResaltada,
+} from '@/features/libro-banco/hooks/useFilaResaltada';
 import { formatearFecha } from '@/features/libro-banco/lib/formato-libro';
 import { cn } from '@/lib/utils';
 import type {
@@ -53,14 +58,21 @@ const COLUMNAS_DETALLE: { campo: CampoMonto; titulo: string }[] = [
 export function PreviewIngresosEgresosTable({
   filas,
   className,
+  resaltar,
 }: {
   filas: FilaIngresoEgresoPreview[];
   /** Para cambiar el alto máximo (por defecto 320px). */
   className?: string;
+  /** Lleva la vista hasta esa transacción, le da el foco y la marca unos segundos. */
+  resaltar?: FilaResaltada;
 }) {
+  const contenedor = useRef<HTMLDivElement>(null);
+  const marcada = useFilaResaltada(contenedor, resaltar);
+
   return (
     // La planilla tiene 20 columnas: desplazamiento horizontal y vertical con el encabezado fijo.
     <div
+      ref={contenedor}
       className={cn(
         'max-h-[320px] overflow-auto overflow-x-auto rounded-lg border',
         className,
@@ -91,11 +103,20 @@ export function PreviewIngresosEgresosTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filas.map(({ transaccion: t, errores }) => (
+          {filas.map(({ id, transaccion: t, errores }) => (
             <TableRow
               key={t.fila}
+              data-transaccion-id={id}
+              tabIndex={id === undefined ? undefined : -1}
+              aria-current={
+                id !== undefined && id === marcada ? 'true' : undefined
+              }
               className={cn(
+                'outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                 errores.length > 0 && 'bg-danger-subtle hover:bg-danger-subtle',
+                id !== undefined &&
+                  id === marcada &&
+                  'bg-warning-subtle ring-2 ring-inset ring-warning-border hover:bg-warning-subtle',
               )}
             >
               <TableCell className="text-right text-xs text-muted-foreground">
