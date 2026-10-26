@@ -4,7 +4,9 @@ import { ErrorAlert } from '@/components/feedback/ErrorAlert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { FilaResaltada } from '@/features/libro-banco/hooks/useFilaResaltada';
+import { HuellaDocumento } from '@/features/libro-banco/components/HuellaDocumento';
 import { formatearMomento } from '@/features/libro-banco/lib/formato-libro';
+import { nombreCompleto } from '@/lib/persona';
 import { useIngresosEgresos } from '../hooks/useIngresosEgresos';
 import { guardadoAFilas } from '../lib/guardado-a-filas';
 import { PreviewIngresosEgresosTable } from './PreviewIngresosEgresosTable';
@@ -38,8 +40,10 @@ export function DetalleIngresosEgresos({
                 ? '1 fila'
                 : `${data.transacciones.length} filas`}{' '}
               · cargado el {formatearMomento(data.fechaCreacion)}
+              {data.subidoPor && ` por ${nombreCompleto(data.subidoPor)}`}
             </p>
           )}
+          {data && <HuellaDocumento hash={data.hashContenido} />}
         </div>
         <Button variant="ghost" size="sm" onClick={onCerrar}>
           <X />

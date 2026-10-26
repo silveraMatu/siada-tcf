@@ -37,6 +37,9 @@ const libro = (
   cuentaMensualId: 5,
   numeroCuentaCte: null,
   fechaCreacion: '2026-10-15T12:00:00.000Z',
+  subidoPorId: 1,
+  subidoPor: null,
+  hashContenido: 'a'.repeat(64),
   transacciones,
 });
 
@@ -55,6 +58,7 @@ describe('resumirIngresosEgresos', () => {
       fechaDesde: '2026-03-02',
       fechaHasta: '2026-03-10',
       cargadoEl: '2026-10-15T12:00:00.000Z',
+      subidoPor: null,
     });
   });
 

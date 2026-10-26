@@ -51,6 +51,9 @@ const GUARDADOS: LibroBancoGuardado[] = [
     cuentaMensualId: 5,
     numeroCuentaCte: '200/2',
     fechaCreacion: '2026-10-15T12:00:00.000Z',
+    subidoPorId: 1,
+    subidoPor: null,
+    hashContenido: 'a'.repeat(64),
     transacciones: [transaccion(10), transaccion(11), transaccion(12)],
   },
 ];
@@ -263,6 +266,9 @@ describe('PanelAuditoria', () => {
         cuentaMensualId: 5,
         numeroCuentaCte: null,
         fechaCreacion: '2026-10-15T12:00:00.000Z',
+        subidoPorId: 1,
+        subidoPor: null,
+        hashContenido: 'a'.repeat(64),
         transacciones: [
           { id: 57, fila: 4 },
           { id: 58, fila: 9 },

@@ -1,3 +1,5 @@
+import type { PersonaResumen } from '@/lib/persona';
+
 export interface TransaccionPayload {
   fecha?: string;
   cheque?: string;
@@ -48,7 +50,13 @@ export interface LibroBancoGuardado {
   id: number;
   cuentaMensualId: number;
   numeroCuentaCte: string | null;
+  /** Cuándo se subió (ISO). */
   fechaCreacion: string;
+  subidoPorId: number;
+  /** null si el usuario ya no se puede resolver. */
+  subidoPor: PersonaResumen | null;
+  /** SHA-256 del contenido recibido, 64 caracteres hexadecimales. */
+  hashContenido: string;
   transacciones: TransaccionGuardada[];
 }
 

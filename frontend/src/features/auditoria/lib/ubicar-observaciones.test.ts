@@ -21,6 +21,9 @@ const librosBanco: LibroBancoGuardado[] = [
     cuentaMensualId: 5,
     numeroCuentaCte: '100/1',
     fechaCreacion: '2026-10-15T12:00:00.000Z',
+    subidoPorId: 1,
+    subidoPor: null,
+    hashContenido: 'a'.repeat(64),
     transacciones: [transaccion(10), transaccion(11)],
   },
   {
@@ -28,6 +31,9 @@ const librosBanco: LibroBancoGuardado[] = [
     cuentaMensualId: 5,
     numeroCuentaCte: '200/2',
     fechaCreacion: '2026-10-15T12:00:00.000Z',
+    subidoPorId: 1,
+    subidoPor: null,
+    hashContenido: 'a'.repeat(64),
     transacciones: [transaccion(20), transaccion(21), transaccion(12)],
   },
 ];
@@ -38,6 +44,9 @@ const ingresosEgresos = {
   cuentaMensualId: 5,
   numeroCuentaCte: null,
   fechaCreacion: '2026-10-15T12:00:00.000Z',
+  subidoPorId: 1,
+  subidoPor: null,
+  hashContenido: 'a'.repeat(64),
   transacciones: [
     { id: 57, fila: 4 },
     { id: 58, fila: 9 },

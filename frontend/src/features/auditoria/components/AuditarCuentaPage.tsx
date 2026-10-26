@@ -16,7 +16,9 @@ import {
 import {
   describirLibrosCargados,
   describirTransacciones,
+  formatearMomento,
 } from '@/features/libro-banco/lib/formato-libro';
+import { nombreCompleto } from '@/lib/persona';
 import type { ObservacionUbicada } from '../types/auditoria.types';
 import { PanelAuditoria } from './PanelAuditoria';
 
@@ -114,6 +116,13 @@ export function AuditarCuentaPage() {
             {describirLibrosCargados(cuenta.libros.length)} ·{' '}
             {describirTransacciones(transacciones)}
           </span>
+          {cuenta.presentadaEn && (
+            <span>
+              Presentada el {formatearMomento(cuenta.presentadaEn)}
+              {cuenta.presentadaPor &&
+                ` por ${nombreCompleto(cuenta.presentadaPor)}`}
+            </span>
+          )}
         </div>
       </div>
 

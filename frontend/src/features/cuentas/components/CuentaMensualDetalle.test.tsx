@@ -45,6 +45,9 @@ const cuenta = (estado: string): CuentaMensual => ({
   cuentaAnualId: 9,
   estado,
   fechaCreacion: '2026-10-15T12:00:00.000Z',
+  presentadaPorId: null,
+  presentadaPor: null,
+  presentadaEn: null,
 });
 
 /** Libro guardado con `cantidad` transacciones idénticas. */
@@ -57,6 +60,9 @@ const libro = (
   cuentaMensualId: 5,
   numeroCuentaCte,
   fechaCreacion: '2026-10-15T12:00:00.000Z',
+  subidoPorId: 1,
+  subidoPor: null,
+  hashContenido: 'a'.repeat(64),
   transacciones: Array.from({ length: cantidad }, (_, i) => ({
     id: id * 100 + i,
     fecha: '2026-03-02',
@@ -74,6 +80,9 @@ const ingresosEgresos = (cantidad = 2): IngresosEgresosGuardado => ({
   cuentaMensualId: 5,
   numeroCuentaCte: null,
   fechaCreacion: '2026-10-15T12:00:00.000Z',
+  subidoPorId: 1,
+  subidoPor: null,
+  hashContenido: 'a'.repeat(64),
   transacciones: Array.from({ length: cantidad }, (_, i) => ({
     id: 900 + i,
     fila: 4 + i,
@@ -381,6 +390,44 @@ describe('CuentaMensualDetalle', () => {
         await screen.findByRole('button', { name: 'Ver filas' }),
       ).toBeTruthy();
     });
+  });
+
+  it('una presentada dice cuándo y quién la presentó', async () => {
+    vi.mocked(obtenerLibrosBanco).mockResolvedValue([libro(1, '123/4')]);
+    vi.mocked(obtenerIngresosEgresos).mockResolvedValue(ingresosEgresos());
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <CuentaMensualDetalle
+          cuenta={{
+            ...cuenta('LISTO_PARA_AUDITAR'),
+            presentadaPorId: 31,
+            presentadaPor: { id: 31, nombre: 'Ana', apellido: 'Pérez' },
+            presentadaEn: '2026-10-26T15:10:00.000Z',
+          }}
+          contexto={contexto}
+          onActualizada={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByText(/Presentada el .* por Ana Pérez/),
+    ).toBeTruthy();
+  });
+
+  it('el libro de Ingresos y Egresos dice quién lo cargó y muestra su huella', async () => {
+    vi.mocked(obtenerLibrosBanco).mockResolvedValue([libro(1, '123/4')]);
+    vi.mocked(obtenerIngresosEgresos).mockResolvedValue({
+      ...ingresosEgresos(),
+      subidoPorId: 31,
+      subidoPor: { id: 31, nombre: 'Ana', apellido: 'Pérez' },
+      hashContenido:
+        '9f2c1a7b3d4e5f60718293a4b5c6d7e8f9012345a6b7c8d9e0f1a2b3c4d5e6f7',
+    });
+    renderDetalle('EN_BORRADOR');
+
+    expect(await screen.findByText(/cargado el .* por Ana Pérez/)).toBeTruthy();
+    expect(screen.getByText('9f2c1a7b…d5e6f7')).toBeTruthy();
   });
 
   it('un estado desconocido también se trata como bloqueado', () => {

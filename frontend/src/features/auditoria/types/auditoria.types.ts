@@ -1,15 +1,12 @@
+import type { PersonaResumen } from '@/lib/persona';
+
 /** Resultado de una regla del motor determinístico (lo que devuelve `POST .../libro-banco/ejecutar`). */
 export type EstadoValidacion = 'VERIFICADO' | 'FALLO' | 'FALTAN_LIBROS';
 
 /** Qué decide el auditor sobre un hallazgo. */
 export type DecisionObservacion = 'CONFIRMAR' | 'DESCARTAR' | 'REABRIR';
 
-/** Quién hizo algo, sin más datos personales que el nombre. */
-export interface PersonaResumen {
-  id: number;
-  nombre: string;
-  apellido: string;
-}
+export type { PersonaResumen };
 
 /** Cómo va la revisión del auditor sobre un hallazgo. */
 export type EstadoObservacion = 'ABIERTA' | 'CONFIRMADA' | 'DESCARTADA';

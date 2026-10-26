@@ -3,9 +3,11 @@ import { X } from 'lucide-react';
 import { ErrorAlert } from '@/components/feedback/ErrorAlert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { nombreCompleto } from '@/lib/persona';
 import { useLibrosBanco } from '../hooks/useLibrosBanco';
 import { describirTransacciones } from '../lib/formato-libro';
 import { libroAFilas } from '../lib/libro-a-filas';
+import { HuellaDocumento } from './HuellaDocumento';
 import { PreviewTable, type FilaResaltada } from './PreviewTable';
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' });
@@ -43,8 +45,10 @@ export function DetalleLibro({
             <p className="text-sm text-muted-foreground">
               {describirTransacciones(libro.transacciones.length)} · cargado el{' '}
               {formatoFecha.format(new Date(libro.fechaCreacion))}
+              {libro.subidoPor && ` por ${nombreCompleto(libro.subidoPor)}`}
             </p>
           )}
+          {libro && <HuellaDocumento hash={libro.hashContenido} />}
         </div>
         <Button variant="ghost" size="sm" onClick={onCerrar}>
           <X />

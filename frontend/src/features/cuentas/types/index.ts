@@ -1,3 +1,5 @@
+import type { PersonaResumen } from '@/lib/persona';
+
 export type EstadoCuentaMensual =
   | 'EN_BORRADOR'
   | 'LISTO_PARA_AUDITAR'
@@ -12,6 +14,10 @@ export interface CuentaMensual {
   /** Puede llegar un estado nuevo del backend que aún no conocemos. */
   estado: EstadoCuentaMensual | (string & {});
   fechaCreacion: string;
+  /** Quién y cuándo la presentó; null mientras está en borrador. */
+  presentadaPorId: number | null;
+  presentadaPor: PersonaResumen | null;
+  presentadaEn: string | null;
 }
 
 /** Tipos de libro contable que puede traer una rendición. */

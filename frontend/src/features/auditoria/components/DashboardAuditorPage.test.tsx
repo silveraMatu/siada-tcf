@@ -50,6 +50,9 @@ const cuenta = (
   cuentaAnualId: 1,
   estado: 'LISTO_PARA_AUDITAR',
   fechaCreacion: '2026-10-15T12:00:00.000Z',
+  presentadaPorId: null,
+  presentadaPor: null,
+  presentadaEn: null,
   organismoId,
   organismoNombre,
   ejercicioFiscal,
@@ -394,6 +397,9 @@ describe('DashboardAuditorPage', () => {
           cuentaMensualId: 8,
           numeroCuentaCte: '100234/1',
           fechaCreacion: '2026-10-15T12:00:00.000Z',
+          subidoPorId: 1,
+          subidoPor: null,
+          hashContenido: 'a'.repeat(64),
           transacciones: [
             {
               id: 20,

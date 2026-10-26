@@ -39,6 +39,9 @@ const guardado = (
   cuentaMensualId: 5,
   numeroCuentaCte,
   fechaCreacion: '2026-10-15T12:00:00.000Z',
+  subidoPorId: 1,
+  subidoPor: null,
+  hashContenido: 'a'.repeat(64),
   transacciones: [
     {
       id: id * 10,
@@ -316,6 +319,9 @@ describe('LibrosDeRendicion', () => {
       cuentaMensualId: 5,
       numeroCuentaCte: null,
       fechaCreacion: '2026-10-15T12:00:00.000Z',
+      subidoPorId: 1,
+      subidoPor: null,
+      hashContenido: 'a'.repeat(64),
       transacciones: [
         { id: 57, fila: 4, fecha: '2026-03-02', concepto: 'Cobro de tasas' },
         { id: 58, fila: 5, fecha: '2026-03-03', concepto: 'Pago proveedor' },

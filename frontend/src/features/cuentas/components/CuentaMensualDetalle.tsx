@@ -7,6 +7,8 @@ import { IngestarIngresosEgresosDialog } from '@/features/ingresos-egresos/compo
 import { resumirIngresosEgresos } from '@/features/ingresos-egresos/lib/resumir-ingresos-egresos';
 import { IngestaDialog } from '@/features/libro-banco/components/IngestaDialog';
 import { useLibrosBanco } from '@/features/libro-banco/hooks/useLibrosBanco';
+import { formatearMomento } from '@/features/libro-banco/lib/formato-libro';
+import { nombreCompleto } from '@/lib/persona';
 import { ESTADOS, MESES } from '../constants';
 import { useResolverCuentaMensual } from '../hooks/useResolverCuentaMensual';
 import { documentosFaltantes } from '../lib/documentos-faltantes';
@@ -113,6 +115,13 @@ export function CuentaMensualDetalle({
             <AlertDescription>
               Esta rendición ya ha sido presentada y se encuentra bloqueada para
               modificaciones. Estado actual: <strong>{etiquetaEstado}</strong>
+              {cuenta.presentadaEn && (
+                <>
+                  . Presentada el {formatearMomento(cuenta.presentadaEn)}
+                  {cuenta.presentadaPor &&
+                    ` por ${nombreCompleto(cuenta.presentadaPor)}`}
+                </>
+              )}
             </AlertDescription>
           </Alert>
         )}

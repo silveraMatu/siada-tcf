@@ -8,12 +8,14 @@ import { PreviewIngresosEgresosTable } from '@/features/ingresos-egresos/compone
 import { guardadoAFilas } from '@/features/ingresos-egresos/lib/guardado-a-filas';
 import { resumirIngresosEgresos } from '@/features/ingresos-egresos/lib/resumir-ingresos-egresos';
 import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
+import { HuellaDocumento } from '@/features/libro-banco/components/HuellaDocumento';
 import { LibrosDeRendicion } from '@/features/libro-banco/components/LibrosDeRendicion';
 import {
   describirRangoFechas,
   formatearMomento,
 } from '@/features/libro-banco/lib/formato-libro';
 import { resumirLibro } from '@/features/libro-banco/lib/resumir-libro';
+import { nombreCompleto } from '@/lib/persona';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
 import { TOTAL_DOCUMENTOS } from '../lib/documentos-faltantes';
 import { FilaDocumento } from './FilaDocumento';
@@ -131,7 +133,7 @@ export function DocumentosDeRendicion({
           titulo="Ingresos y Egresos"
           descripcion={
             resumenIE
-              ? `${resumenIE.filas === 1 ? '1 fila' : `${resumenIE.filas} filas`} · ${describirRangoFechas(resumenIE.fechaDesde, resumenIE.fechaHasta)} · cargado el ${formatearMomento(resumenIE.cargadoEl)}`
+              ? `${resumenIE.filas === 1 ? '1 fila' : `${resumenIE.filas} filas`} · ${describirRangoFechas(resumenIE.fechaDesde, resumenIE.fechaHasta)} · cargado el ${formatearMomento(resumenIE.cargadoEl)}${resumenIE.subidoPor ? ` por ${nombreCompleto(resumenIE.subidoPor)}` : ''}`
               : 'Un solo libro por rendición. Excel con 3 filas de encabezado.'
           }
           estado={libroIE ? 'cargado' : enBorrador ? 'falta' : 'no-cargado'}
@@ -167,6 +169,7 @@ export function DocumentosDeRendicion({
           )}
           {libroIE && (
             <div className="space-y-3">
+              <HuellaDocumento hash={libroIE.hashContenido} />
               <Button
                 variant="ghost"
                 size="sm"

@@ -1,3 +1,5 @@
+import type { PersonaResumen } from '@/lib/persona';
+
 /** Fila del libro de Ingresos y Egresos, en el formato que espera la API. */
 export interface TransaccionIngresoEgreso {
   /** Número de fila en la planilla original (base 1). */
@@ -61,6 +63,12 @@ export interface IngresosEgresosGuardado {
   id: number;
   cuentaMensualId: number;
   numeroCuentaCte: string | null;
+  /** Cuándo se subió (ISO). */
   fechaCreacion: string;
+  subidoPorId: number;
+  /** null si el usuario ya no se puede resolver. */
+  subidoPor: PersonaResumen | null;
+  /** SHA-256 del contenido recibido, 64 caracteres hexadecimales. */
+  hashContenido: string;
   transacciones: TransaccionIngresoEgresoGuardada[];
 }

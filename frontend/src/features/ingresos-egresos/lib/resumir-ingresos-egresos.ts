@@ -1,3 +1,4 @@
+import type { PersonaResumen } from '@/lib/persona';
 import type { IngresosEgresosGuardado } from '../types';
 
 export interface ResumenIngresosEgresos {
@@ -7,6 +8,8 @@ export interface ResumenIngresosEgresos {
   fechaHasta: string | null;
   /** Cuándo se cargó, ISO. */
   cargadoEl: string;
+  /** Quién lo cargó; null si no se puede resolver. */
+  subidoPor: PersonaResumen | null;
 }
 
 /** Qué trae el libro cargado, sin abrirlo. Las fechas son ISO: el mínimo y el máximo salen comparando texto. */
@@ -22,5 +25,6 @@ export function resumirIngresosEgresos(
     fechaHasta:
       fechas.length > 0 ? fechas.reduce((a, b) => (a >= b ? a : b)) : null,
     cargadoEl: libro.fechaCreacion,
+    subidoPor: libro.subidoPor,
   };
 }

@@ -21,6 +21,9 @@ const libro = (transacciones: TransaccionGuardada[]): LibroBancoGuardado => ({
   cuentaMensualId: 5,
   numeroCuentaCte: '100234/1',
   fechaCreacion: '2026-10-15T12:00:00.000Z',
+  subidoPorId: 1,
+  subidoPor: null,
+  hashContenido: 'a'.repeat(64),
   transacciones,
 });
 
