@@ -117,7 +117,11 @@ export function AuditarCuentaPage() {
         </div>
       </div>
 
-      <PanelAuditoria cuentaMensualId={cuenta.id} onVerEnLibro={verEnLibro} />
+      <PanelAuditoria
+        cuentaMensualId={cuenta.id}
+        estadoCuenta={cuenta.estado}
+        onVerEnLibro={verEnLibro}
+      />
 
       <section aria-labelledby="libros-titulo" className="space-y-3">
         <h2 id="libros-titulo" className="text-lg font-semibold tracking-tight">

@@ -9,8 +9,9 @@ import { listarCuentasMensuales } from '@/features/cuentas/api/cuentas.api';
 import type { CuentaMensualListada } from '@/features/cuentas/types';
 import { obtenerLibrosBanco } from '@/features/libro-banco/api/libro-banco.api';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
-import { ejecutarValidaciones } from '../api/auditoria.api';
-import { MOCK_RESULTADOS } from '../mocks/resultados.mock';
+import { obtenerIngresosEgresos } from '@/features/ingresos-egresos/api/ingresos-egresos.api';
+import { obtenerEjecucion } from '../api/auditoria.api';
+import { MOCK_EJECUCION } from '../mocks/resultados.mock';
 import { AuditarCuentaPage } from './AuditarCuentaPage';
 
 vi.mock('@/features/cuentas/api/cuentas.api', () => ({
@@ -22,7 +23,14 @@ vi.mock('@/features/libro-banco/api/libro-banco.api', () => ({
   obtenerLibrosBanco: vi.fn(),
   ingestarLibroBanco: vi.fn(),
 }));
-vi.mock('../api/auditoria.api', () => ({ ejecutarValidaciones: vi.fn() }));
+vi.mock('@/features/ingresos-egresos/api/ingresos-egresos.api', () => ({
+  obtenerIngresosEgresos: vi.fn(),
+  ingestarIngresosEgresos: vi.fn(),
+}));
+vi.mock('../api/auditoria.api', () => ({
+  auditarRendicion: vi.fn(),
+  obtenerEjecucion: vi.fn(),
+}));
 
 const CUENTA: CuentaMensualListada = {
   id: 5,
@@ -85,6 +93,8 @@ function renderPagina(id = '5') {
 }
 
 beforeEach(() => {
+  vi.mocked(obtenerIngresosEgresos).mockResolvedValue(null);
+  vi.mocked(obtenerEjecucion).mockResolvedValue(null);
   // jsdom no implementa estas dos: la tabla las usa para llevar al auditor hasta la fila
   Element.prototype.scrollIntoView = vi.fn();
   window.matchMedia = vi.fn().mockReturnValue({ matches: false });
@@ -117,12 +127,11 @@ describe('AuditarCuentaPage', () => {
 
   it('arriba las validaciones y abajo los libros, como resumen', async () => {
     vi.mocked(listarCuentasMensuales).mockResolvedValue([CUENTA]);
+    vi.mocked(obtenerEjecucion).mockResolvedValue(null);
     renderPagina();
 
     expect(
-      await screen.findByRole('button', {
-        name: 'Ejecutar Validaciones Determinísticas',
-      }),
+      await screen.findByRole('button', { name: 'Auditar rendición' }),
     ).toBeTruthy();
     const lista = screen.getByRole('list', { name: 'Libros de Marzo 2026' });
     expect(within(lista).getAllByRole('listitem')).toHaveLength(1);
@@ -132,13 +141,8 @@ describe('AuditarCuentaPage', () => {
   it('«Ver en el libro» abre la pestaña del libro y marca la fila de la observación', async () => {
     vi.mocked(listarCuentasMensuales).mockResolvedValue([CUENTA]);
     vi.mocked(obtenerLibrosBanco).mockResolvedValue(GUARDADOS);
-    vi.mocked(ejecutarValidaciones).mockResolvedValue(MOCK_RESULTADOS);
+    vi.mocked(obtenerEjecucion).mockResolvedValue(MOCK_EJECUCION);
     const user = renderPagina();
-    await user.click(
-      await screen.findByRole('button', {
-        name: 'Ejecutar Validaciones Determinísticas',
-      }),
-    );
     await user.click(
       await screen.findByRole('button', { name: /Saldo de cuenta/ }),
     );

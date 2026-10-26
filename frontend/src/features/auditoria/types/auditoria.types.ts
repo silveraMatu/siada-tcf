@@ -1,6 +1,13 @@
 /** Resultado de una regla del motor determinístico (lo que devuelve `POST .../libro-banco/ejecutar`). */
 export type EstadoValidacion = 'VERIFICADO' | 'FALLO' | 'FALTAN_LIBROS';
 
+/** Quién hizo algo, sin más datos personales que el nombre. */
+export interface PersonaResumen {
+  id: number;
+  nombre: string;
+  apellido: string;
+}
+
 /** Cómo va la revisión del auditor sobre un hallazgo. */
 export type EstadoObservacion = 'ABIERTA' | 'CONFIRMADA' | 'DESCARTADA';
 
@@ -26,6 +33,7 @@ export interface ObservacionApi {
   /** Obligatorio al descartar; null en cualquier otro estado. */
   motivoDescarte: string | null;
   revisadaPorId: number | null;
+  revisadaPor: PersonaResumen | null;
   /** ISO; null mientras está abierta. */
   revisadaEn: string | null;
 }
@@ -61,22 +69,17 @@ export interface Ejecucion {
   /** Versión del conjunto de reglas que corrió. */
   versionReglas: string;
   ejecutadaPorId: number;
+  ejecutadaPor: PersonaResumen | null;
   /** ISO */
   ejecutadaEn: string;
   /** ISO; null mientras la auditoría está en curso. */
   cerradaEn: string | null;
   cerradaPorId: number | null;
+  cerradaPor: PersonaResumen | null;
   conclusion: string | null;
   estadoFinal: EstadoFinalAuditoria | null;
   resultados: ResultadoValidacion[];
   observaciones: ConteoObservaciones;
-}
-
-/** Resultado de una ejecución, con la hora en que se pidió. */
-export interface EjecucionValidaciones {
-  resultados: ResultadoValidacion[];
-  /** Milisegundos desde epoch. */
-  ejecutadoEn: number;
 }
 
 /** Observación con el libro y la fila que la originaron, para mostrarla y llevar al auditor hasta ella. */

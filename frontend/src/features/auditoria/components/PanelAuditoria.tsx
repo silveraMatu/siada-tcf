@@ -1,15 +1,12 @@
-import { ListChecks, Loader2, Play, RotateCcw } from 'lucide-react';
+import { Lock, ListChecks } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorAlert } from '@/components/feedback/ErrorAlert';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIngresosEgresos } from '@/features/ingresos-egresos/hooks/useIngresosEgresos';
 import { useLibrosBanco } from '@/features/libro-banco/hooks/useLibrosBanco';
-import { cn } from '@/lib/utils';
-import { useEjecutarValidaciones } from '../hooks/useEjecutarValidaciones';
-import { useResultadosValidacion } from '../hooks/useResultadosValidacion';
+import { useEjecucion } from '../hooks/useEjecucion';
 import {
   filtrarPorEstado,
   ordenarPorCodigo,
@@ -20,12 +17,14 @@ import type {
   EstadoValidacion,
   ObservacionUbicada,
 } from '../types/auditoria.types';
+import { AuditarDialog } from './AuditarDialog';
 import { ReglaValidacionCard } from './ReglaValidacionCard';
 import { ScorecardValidaciones } from './ScorecardValidaciones';
+import { Button } from '@/components/ui/button';
 
-const formatoHora = new Intl.DateTimeFormat('es-AR', {
-  hour: '2-digit',
-  minute: '2-digit',
+const formatoMomento = new Intl.DateTimeFormat('es-AR', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
 });
 
 const NOMBRE_FILTRO: Record<EstadoValidacion, string> = {
@@ -42,19 +41,23 @@ const CLAVE_RESUMEN = {
 
 interface PanelAuditoriaProps {
   cuentaMensualId: number;
+  /** Estado de la rendición: decide si todavía se puede auditar. */
+  estadoCuenta: string;
   onVerEnLibro: (observacion: ObservacionUbicada) => void;
 }
 
 /**
- * Validaciones determinísticas de la rendición: el auditor las ejecuta a pedido y ve de un vistazo
- * cuántas reglas se verificaron, fallaron u omitieron; cada regla se despliega para ver su detalle.
+ * Validaciones determinísticas de la rendición. El resultado lo guarda el servidor: se carga al abrir la
+ * pantalla y, si todavía no se auditó, el auditor lo pide con «Auditar rendición». Cada regla se despliega
+ * para ver su detalle.
  */
 export function PanelAuditoria({
   cuentaMensualId,
+  estadoCuenta,
   onVerEnLibro,
 }: PanelAuditoriaProps) {
-  const { data: ejecucion } = useResultadosValidacion(cuentaMensualId);
-  const ejecutar = useEjecutarValidaciones(cuentaMensualId);
+  const ejecucionConsulta = useEjecucion(cuentaMensualId);
+  const ejecucion = ejecucionConsulta.data ?? null;
   const [filtro, setFiltro] = useState<EstadoValidacion | null>(null);
   const [anuncio, setAnuncio] = useState('');
 
@@ -74,7 +77,7 @@ export function PanelAuditoria({
     () => (resultados ? resumirResultados(resultados) : null),
     [resultados],
   );
-  // un filtro sin reglas (p. ej. tras volver a ejecutar) no deja la lista vacía
+  // un filtro sin reglas (p. ej. tras actualizar el resultado) no deja la lista vacía
   const filtroVigente =
     filtro && resumen && resumen[CLAVE_RESUMEN[filtro]] > 0 ? filtro : null;
   const visibles = useMemo(
@@ -85,19 +88,8 @@ export function PanelAuditoria({
     [resultados, filtroVigente],
   );
 
-  function iniciar() {
-    setAnuncio('');
-    ejecutar.mutate(undefined, {
-      onSuccess: (nuevos) => {
-        const r = resumirResultados(nuevos);
-        setAnuncio(
-          `Validaciones completadas: ${r.verificadas} verificadas, ${r.fallidas} fallidas, ${r.omitidas} omitidas.`,
-        );
-      },
-    });
-  }
-
-  const ejecutando = ejecutar.isPending;
+  const sinAuditar = !ejecucionConsulta.isPending && ejecucion === null;
+  const puedeAuditar = sinAuditar && estadoCuenta === 'LISTO_PARA_AUDITAR';
 
   return (
     <section aria-labelledby="validaciones-titulo" className="space-y-4">
@@ -115,23 +107,23 @@ export function PanelAuditoria({
           </p>
         </div>
         <div className="flex flex-col items-start gap-1 sm:items-end">
-          <Button onClick={iniciar} disabled={ejecutando}>
-            {ejecutando ? (
-              <Loader2 className="animate-spin motion-reduce:animate-none" />
-            ) : ejecucion ? (
-              <RotateCcw />
-            ) : (
-              <Play />
-            )}
-            {ejecutando
-              ? 'Ejecutando…'
-              : ejecucion
-                ? 'Volver a ejecutar validaciones'
-                : 'Ejecutar Validaciones Determinísticas'}
-          </Button>
+          {puedeAuditar && (
+            <AuditarDialog
+              cuentaMensualId={cuentaMensualId}
+              onAuditada={() =>
+                setAnuncio(
+                  'Rendición auditada: ya puede revisar los resultados.',
+                )
+              }
+            />
+          )}
           {ejecucion && (
-            <p className="text-xs text-muted-foreground">
-              Última ejecución: {formatoHora.format(ejecucion.ejecutadoEn)}
+            <p className="text-xs text-muted-foreground sm:text-right">
+              Auditada el{' '}
+              {formatoMomento.format(new Date(ejecucion.ejecutadaEn))}
+              {ejecucion.ejecutadaPor &&
+                ` por ${ejecucion.ejecutadaPor.nombre} ${ejecucion.ejecutadaPor.apellido}`}{' '}
+              · reglas v{ejecucion.versionReglas}
             </p>
           )}
         </div>
@@ -147,15 +139,7 @@ export function PanelAuditoria({
         onFiltrar={setFiltro}
       />
 
-      {ejecutar.isError && (
-        <ErrorAlert
-          error={ejecutar.error}
-          onRetry={iniciar}
-          retrying={ejecutando}
-        />
-      )}
-
-      {!resultados && ejecutando && (
+      {ejecucionConsulta.isPending && (
         <div aria-busy="true" className="space-y-3">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-14 w-full rounded-xl" />
@@ -163,11 +147,35 @@ export function PanelAuditoria({
         </div>
       )}
 
-      {!resultados && !ejecutando && !ejecutar.isError && (
+      {ejecucionConsulta.isError && (
+        <ErrorAlert
+          error={ejecucionConsulta.error}
+          onRetry={() => void ejecucionConsulta.refetch()}
+          retrying={ejecucionConsulta.isFetching}
+        />
+      )}
+
+      {sinAuditar && puedeAuditar && (
         <EmptyState
           icon={ListChecks}
-          title="Todavía no se ejecutaron las validaciones"
-          description="Ejecútelas para ver qué verificó el motor, qué encontró y qué no pudo evaluar. Nada se ejecuta solo."
+          title="Todavía no se auditó esta rendición"
+          description="Al auditarla, el motor verifica sus libros y deja guardado qué verificó, qué encontró y qué no pudo evaluar. Nada se ejecuta solo."
+        />
+      )}
+
+      {sinAuditar && !puedeAuditar && (
+        <EmptyState
+          icon={estadoCuenta === 'EN_BORRADOR' ? Lock : ListChecks}
+          title={
+            estadoCuenta === 'EN_BORRADOR'
+              ? 'Todavía no fue presentada'
+              : 'Esta rendición no tiene una auditoría guardada'
+          }
+          description={
+            estadoCuenta === 'EN_BORRADOR'
+              ? 'El responsable la está armando: no se puede auditar hasta que la presente.'
+              : 'No hay un resultado del motor para mostrar.'
+          }
         />
       )}
 
@@ -180,13 +188,7 @@ export function PanelAuditoria({
       )}
 
       {resultados && resultados.length > 0 && (
-        <div
-          aria-busy={ejecutando}
-          className={cn(
-            'space-y-3',
-            ejecutando && 'opacity-60 motion-safe:transition-opacity',
-          )}
-        >
+        <div className="space-y-3">
           {filtroVigente && (
             <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
               Mostrando solo las reglas {NOMBRE_FILTRO[filtroVigente]}.

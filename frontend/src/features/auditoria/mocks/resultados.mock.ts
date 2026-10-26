@@ -1,4 +1,4 @@
-import type { ResultadoValidacion } from '../types/auditoria.types';
+import type { Ejecucion, ResultadoValidacion } from '../types/auditoria.types';
 
 /**
  * Resultados de ejemplo, uno por estado, para los tests. No se importa desde código de la aplicación:
@@ -27,6 +27,7 @@ export const MOCK_RESULTADOS: ResultadoValidacion[] = [
         diferencia: 100,
         motivoDescarte: null,
         revisadaPorId: null,
+        revisadaPor: null,
         revisadaEn: null,
       },
     ],
@@ -51,3 +52,20 @@ export const MOCK_RESULTADOS: ResultadoValidacion[] = [
     librosFaltantes: ['INGRESOS_EGRESOS'],
   },
 ];
+
+/** Una ejecución en curso con esos resultados: la que devuelve `GET …/ejecucion` tras auditar. Solo para tests. */
+export const MOCK_EJECUCION: Ejecucion = {
+  id: 1,
+  cuentaMensualId: 5,
+  versionReglas: '1',
+  ejecutadaPorId: 44,
+  ejecutadaPor: { id: 44, nombre: 'Luis', apellido: 'Gómez' },
+  ejecutadaEn: '2026-10-26T15:42:00.000Z',
+  cerradaEn: null,
+  cerradaPorId: null,
+  cerradaPor: null,
+  conclusion: null,
+  estadoFinal: null,
+  resultados: MOCK_RESULTADOS,
+  observaciones: { abiertas: 1, confirmadas: 0, descartadas: 0 },
+};
