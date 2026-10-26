@@ -13,12 +13,23 @@ export const ObservacionResponseSchema = z.object({
   codigoRegla: z.enum(validationsCode),
   tipo: z.enum(validationsType),
   descripcion: z.string(),
+  //qué libro originó el hallazgo; en los cruces entre libros es INGRESOS_EGRESOS
   libroOrigen: z.enum(LibroOrigen),
   estado: z.enum(EstadoObservacion),
-  //fila del libro banco; null si el hallazgo es de otro libro o de toda la cuenta
-  transaccionId: z.number().int().nullable(),
-  //fila del libro de ingresos y egresos; null si el hallazgo es de otro libro o de toda la cuenta
-  transaccionIngresoEgresoId: z.number().int().nullable(),
+  transaccionId: z
+    .number()
+    .int()
+    .nullable()
+    .describe(
+      'Id de la transacción del libro banco (GET .../libro-banco, transacciones[].id); null si el hallazgo es de otro libro o de toda la cuenta',
+    ),
+  transaccionIngresoEgresoId: z
+    .number()
+    .int()
+    .nullable()
+    .describe(
+      'Id de la transacción del libro de ingresos y egresos (GET .../ingresos-egresos, transacciones[].id, que también trae su fila); null si el hallazgo es de otro libro o de toda la cuenta',
+    ),
 });
 
 export class ObservacionResponseDto extends createZodDto(

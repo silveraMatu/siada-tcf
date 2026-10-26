@@ -497,6 +497,44 @@ describe('Auditoría (e2e)', () => {
       ).toBe(true);
     });
 
+    it('GET observaciones: cada hallazgo de fila se ubica en su libro y los de cuenta no traen fila', async () => {
+      interface Obs {
+        codigoRegla: string;
+        descripcion: string;
+        transaccionId: number | null;
+        transaccionIngresoEgresoId: number | null;
+      }
+      const observaciones: Obs[] = (
+        await listar(cuentaCruceId)
+          .set('Authorization', bearerAdmin)
+          .expect(200)
+      ).body;
+      const libro = (
+        await request(app.getHttpServer())
+          .get(`/api/v1/cuentas-mensuales/${cuentaCruceId}/ingresos-egresos`)
+          .set('Authorization', bearerAdmin)
+          .expect(200)
+      ).body;
+
+      for (const o of observaciones.filter((x) =>
+        /^V[12]$/.test(x.codigoRegla),
+      )) {
+        //el id alcanza para ubicar la fila: la transacción trae su número de fila, que el texto también menciona
+        const transaccion = libro.transacciones.find(
+          (t: { id: number }) => t.id === o.transaccionIngresoEgresoId,
+        );
+        expect(transaccion).toBeDefined();
+        expect(o.descripcion).toContain(`en la fila ${transaccion.fila}:`);
+        expect(o.transaccionId).toBeNull();
+      }
+      for (const o of observaciones.filter((x) =>
+        /^C[56]$/.test(x.codigoRegla),
+      )) {
+        expect(o.transaccionId).toBeNull();
+        expect(o.transaccionIngresoEgresoId).toBeNull();
+      }
+    });
+
     it('las observaciones de una fila caen con el libro cuando se reemplaza, y las de cuenta no', async () => {
       const organismoId = await obtenerOrganismoBaseId(dataSource);
       const { bearer } = await crearResponsableConSesion(app, organismoId);
