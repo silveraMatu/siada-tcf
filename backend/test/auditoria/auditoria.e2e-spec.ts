@@ -5,101 +5,111 @@ import { createTestApp } from '../helpers/create-test-app.js';
 import {
   ID_INEXISTENTE,
   MES_AUDITORIA,
+  MES_AUDITORIA_BORRADOR,
   MES_AUDITORIA_CRUCE,
-  MES_SIN_LIBRO,
+  MES_AUDITORIA_VACIA,
   crearAuditorConSesion,
   crearResponsableConSesion,
+  crearSesionConRol,
   fijarEstadoCuenta,
-  habilitarUsuario,
   obtenerBearerAdmin,
   obtenerOrganismoBaseId,
-  registrarUsuarioConCredenciales,
+  reiniciarAuditoria,
   resolverCuentaMensualId,
 } from '../helpers/fixtures.js';
 
-//Corre contra la base de datos real y NO limpia lo que crea: los datos quedan persistidos.
+interface Resultado {
+  codigoRegla: string;
+  estado: string;
+  observaciones: unknown[];
+  filasEvaluadas: number | null;
+  librosFaltantes: string[];
+}
+
+//Corre contra la base de datos real y NO limpia lo que crea. Cada rendición reservada se deja lista para auditar
+//al empezar (sin ejecuciones y presentada), así el spec se puede repetir.
 describe('Auditoría (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
+  let organismoId: number;
 
   let bearerAdmin: string;
+  let auditor: { bearer: string; usuarioId: number };
+  //rendición con solo el libro banco (una fila con el saldo equivocado)
   let cuentaMensualId: number;
-  let cuentaMensualSinLibroId: number;
-  //id de la fila del libro con el saldo equivocado
   let transaccionIncorrectaId: number;
+  //rendiciones reservadas: sin ningún libro, y para los rechazos por estado
+  let cuentaVaciaId: number;
+  let cuentaBorradorId: number;
 
-  //el resultado de una regla dentro de la respuesta de ejecutar
-  interface Resultado {
-    codigoRegla: string;
-    estado: string;
-    observaciones: unknown[];
-    filasEvaluadas: number | null;
-    librosFaltantes: string[];
-  }
+  const api = () => request(app.getHttpServer());
+  const auditar = (id: number | string) =>
+    api().post(`/api/v1/auditoria/cuentas-mensuales/${id}/documentos/auditar`);
+  const ejecucion = (id: number | string) =>
+    api().get(`/api/v1/auditoria/cuentas-mensuales/${id}/ejecucion`);
+  const listar = (id: number | string) =>
+    api().get(`/api/v1/auditoria/cuentas-mensuales/${id}/observaciones`);
+  const libros = (id: number) =>
+    api()
+      .get(`/api/v1/cuentas-mensuales/${id}/libro-banco`)
+      .set('Authorization', bearerAdmin);
   const deRegla = (cuerpo: Resultado[], codigo: string) =>
     cuerpo.find((r) => r.codigoRegla === codigo);
   const estados = (cuerpo: Resultado[]) =>
     cuerpo.map((r) => [r.codigoRegla, r.estado]);
-
   const faltanLibros = (
     codigo: string,
     descripcion: string,
-    libros: string,
+    faltantes: string[],
   ) => ({
     codigoRegla: codigo,
     descripcion,
     estado: 'FALTAN_LIBROS',
-    mensaje: `Faltan libros requeridos: ${libros}`,
+    mensaje: `Faltan libros requeridos: ${faltantes.join(', ')}`,
     observaciones: [],
     filasEvaluadas: null,
-    librosFaltantes: libros.split(', '),
+    librosFaltantes: faltantes,
   });
-
-  const ejecutar = (id: number | string) =>
-    request(app.getHttpServer()).post(
-      `/api/v1/auditoria/cuentas-mensuales/${id}/libro-banco/ejecutar`,
+  const contar = async (sql: string, parametros: unknown[]) => {
+    const [{ total }] = await dataSource.query(sql, parametros);
+    return total as number;
+  };
+  const estadoEnBase = async (id: number): Promise<string> => {
+    const [fila] = await dataSource.query(
+      `SELECT estado FROM cuentas_mensuales WHERE id = $1`,
+      [id],
     );
-  const listar = (id: number | string) =>
-    request(app.getHttpServer()).get(
-      `/api/v1/auditoria/cuentas-mensuales/${id}/observaciones`,
-    );
-  const libros = (id: number) =>
-    request(app.getHttpServer())
-      .get(`/api/v1/cuentas-mensuales/${id}/libro-banco`)
-      .set('Authorization', bearerAdmin);
-
-  //inicia sesión con un usuario nuevo activo y con los roles indicados
-  const bearerConRoles = async (roles: string[]): Promise<string> => {
-    const usuario = await registrarUsuarioConCredenciales(app);
-    await habilitarUsuario(app, usuario.id, roles);
-    const res = await request(app.getHttpServer())
-      .post('/api/v1/auth/login')
-      .send({ email: usuario.email, password: usuario.password })
-      .expect(200);
-    return `Bearer ${res.body.accessToken}`;
+    return fila.estado;
   };
 
   beforeAll(async () => {
     ({ app, dataSource } = await createTestApp());
     bearerAdmin = await obtenerBearerAdmin(app);
+    organismoId = await obtenerOrganismoBaseId(dataSource);
+    //el auditor asignado al organismo base (asignar otro reemplaza a este)
+    auditor = await crearAuditorConSesion(app, organismoId);
 
-    const organismoId = await obtenerOrganismoBaseId(dataSource);
     cuentaMensualId = await resolverCuentaMensualId(
       app,
       organismoId,
       MES_AUDITORIA,
     );
-    cuentaMensualSinLibroId = await resolverCuentaMensualId(
+    cuentaVaciaId = await resolverCuentaMensualId(
       app,
       organismoId,
-      MES_SIN_LIBRO,
+      MES_AUDITORIA_VACIA,
+    );
+    cuentaBorradorId = await resolverCuentaMensualId(
+      app,
+      organismoId,
+      MES_AUDITORIA_BORRADOR,
     );
 
-    //find-or-create: solo se carga el libro si el mes está vacío (lo carga el responsable del organismo)
-    const existentes = await libros(cuentaMensualId).expect(200);
-    if (existentes.body.length === 0) {
+    //el libro solo se puede cargar en borrador: se carga si falta y después se deja la rendición lista para auditar
+    await fijarEstadoCuenta(dataSource, cuentaMensualId);
+    if ((await libros(cuentaMensualId).expect(200)).body.length === 0) {
       const responsable = await crearResponsableConSesion(app, organismoId);
-      await request(app.getHttpServer())
+      await api()
         .post(
           `/api/v1/cuentas-mensuales/${cuentaMensualId}/libro-banco/ingestar`,
         )
@@ -117,6 +127,10 @@ describe('Auditoría (e2e)', () => {
     }
     const [libro] = (await libros(cuentaMensualId).expect(200)).body;
     transaccionIncorrectaId = libro.transacciones[2].id;
+
+    await reiniciarAuditoria(dataSource, cuentaMensualId);
+    await reiniciarAuditoria(dataSource, cuentaVaciaId);
+    await reiniciarAuditoria(dataSource, cuentaBorradorId, 'EN_BORRADOR');
   });
 
   afterAll(async () => {
@@ -125,43 +139,44 @@ describe('Auditoría (e2e)', () => {
   });
 
   describe('seguridad', () => {
-    it('401: sin token en ambos endpoints', async () => {
-      await ejecutar(cuentaMensualId).expect(401);
+    it('401: sin token en los tres endpoints', async () => {
+      await auditar(cuentaMensualId).expect(401);
+      await ejecucion(cuentaMensualId).expect(401);
       await listar(cuentaMensualId).expect(401);
     });
 
-    it('403: un AUDITOR sin el organismo asignado no puede auditar ni listar', async () => {
+    it('403: un usuario con rol RESPONSABLE no puede auditar ni consultar', async () => {
+      const bearer = await crearSesionConRol(app, 'RESPONSABLE');
+
+      await auditar(cuentaMensualId).set('Authorization', bearer).expect(403);
+      await ejecucion(cuentaMensualId).set('Authorization', bearer).expect(403);
+      await listar(cuentaMensualId).set('Authorization', bearer).expect(403);
+    });
+
+    it('403: un AUDITOR sin el organismo asignado no puede auditar ni consultar', async () => {
       const { bearer } = await crearAuditorConSesion(app);
 
-      await ejecutar(cuentaMensualId).set('Authorization', bearer).expect(403);
+      await auditar(cuentaMensualId).set('Authorization', bearer).expect(403);
+      await ejecucion(cuentaMensualId).set('Authorization', bearer).expect(403);
       await listar(cuentaMensualId).set('Authorization', bearer).expect(403);
+      //y no pasó nada: la rendición sigue sin tomar
+      expect(await estadoEnBase(cuentaMensualId)).toBe('LISTO_PARA_AUDITAR');
     });
 
-    it('403: al reasignar el organismo a otro auditor, el anterior deja de poder auditar', async () => {
-      const organismoId = await obtenerOrganismoBaseId(dataSource);
-      const anterior = await crearAuditorConSesion(app, organismoId);
-      await ejecutar(cuentaMensualId)
-        .set('Authorization', anterior.bearer)
-        .expect(200);
+    it('el 403 va antes que el 409: a un auditor ajeno no se le revela el estado de la rendición', async () => {
+      const { bearer } = await crearAuditorConSesion(app);
 
-      await crearAuditorConSesion(app, organismoId);
-
-      await ejecutar(cuentaMensualId)
-        .set('Authorization', anterior.bearer)
-        .expect(403);
-    });
-
-    it('403: un usuario con rol RESPONSABLE no puede auditar ni listar', async () => {
-      const bearer = await bearerConRoles(['RESPONSABLE']);
-
-      await ejecutar(cuentaMensualId).set('Authorization', bearer).expect(403);
-      await listar(cuentaMensualId).set('Authorization', bearer).expect(403);
+      //la rendición en borrador daría 409 a quien sí puede auditarla
+      await auditar(cuentaBorradorId).set('Authorization', bearer).expect(403);
     });
   });
 
   describe('validación de parámetros', () => {
     it('404: la cuenta mensual no existe', async () => {
-      await ejecutar(ID_INEXISTENTE)
+      await auditar(ID_INEXISTENTE)
+        .set('Authorization', bearerAdmin)
+        .expect(404);
+      await ejecucion(ID_INEXISTENTE)
         .set('Authorization', bearerAdmin)
         .expect(404);
       await listar(ID_INEXISTENTE)
@@ -170,15 +185,65 @@ describe('Auditoría (e2e)', () => {
     });
 
     it('400: el ID de la cuenta mensual no es válido', async () => {
-      await ejecutar('abc').set('Authorization', bearerAdmin).expect(400);
+      await auditar('abc').set('Authorization', bearerAdmin).expect(400);
+      await ejecucion('0').set('Authorization', bearerAdmin).expect(400);
       await listar('0').set('Authorization', bearerAdmin).expect(400);
     });
   });
 
-  describe('POST .../libro-banco/ejecutar y GET .../observaciones', () => {
-    it('200: V3 queda en FALLO con la única fila de saldo incorrecto y las reglas de ingresos y egresos esperan su libro', async () => {
-      const res = await ejecutar(cuentaMensualId)
-        .set('Authorization', bearerAdmin)
+  describe('rechazos por estado', () => {
+    afterAll(async () => {
+      await fijarEstadoCuenta(dataSource, cuentaBorradorId);
+    });
+
+    it('409: una rendición en borrador todavía no se puede auditar', async () => {
+      const res = await auditar(cuentaBorradorId)
+        .set('Authorization', auditor.bearer)
+        .expect(409);
+
+      expect(res.body.message).toBe(
+        'La rendición todavía no fue presentada: no se puede auditar.',
+      );
+      expect(await estadoEnBase(cuentaBorradorId)).toBe('EN_BORRADOR');
+      expect(
+        await contar(
+          `SELECT count(*)::int AS total FROM ejecuciones_auditoria WHERE cuenta_mensual_id = $1`,
+          [cuentaBorradorId],
+        ),
+      ).toBe(0);
+    });
+
+    it('404 al pedir la ejecución y lista vacía al pedir las observaciones de una rendición nunca auditada', async () => {
+      await ejecucion(cuentaBorradorId)
+        .set('Authorization', auditor.bearer)
+        .expect(404);
+      const res = await listar(cuentaBorradorId)
+        .set('Authorization', auditor.bearer)
+        .expect(200);
+      expect(res.body).toEqual([]);
+    });
+
+    it.each(['AUDITADA', 'CON_OBSERVACIONES'])(
+      '409: una auditoría ya cerrada (%s) no se puede volver a ejecutar',
+      async (estado) => {
+        await fijarEstadoCuenta(dataSource, cuentaBorradorId, estado);
+
+        const res = await auditar(cuentaBorradorId)
+          .set('Authorization', auditor.bearer)
+          .expect(409);
+
+        expect(res.body.message).toBe(
+          'La auditoría de esta rendición ya fue cerrada.',
+        );
+        expect(await estadoEnBase(cuentaBorradorId)).toBe(estado);
+      },
+    );
+  });
+
+  describe('POST .../documentos/auditar y GET .../ejecucion y .../observaciones', () => {
+    it('200: el auditor toma la rendición: V3 queda en FALLO y las demás esperan el libro de ingresos y egresos', async () => {
+      const res = await auditar(cuentaMensualId)
+        .set('Authorization', auditor.bearer)
         .expect(200);
 
       expect(estados(res.body)).toEqual([
@@ -199,6 +264,7 @@ describe('Auditoría (e2e)', () => {
         observaciones: [
           {
             id: expect.any(Number),
+            ejecucionId: expect.any(Number),
             cuentaMensualId,
             codigoRegla: 'V3',
             tipo: 'INTERNA',
@@ -208,19 +274,18 @@ describe('Auditoría (e2e)', () => {
             estado: 'ABIERTA',
             transaccionId: transaccionIncorrectaId,
             transaccionIngresoEgresoId: null,
+            valorInformado: 1400,
+            valorCalculado: 1300,
+            diferencia: 100,
+            motivoDescarte: null,
+            revisadaPorId: null,
+            revisadaEn: null,
           },
         ],
       });
-      expect(deRegla(res.body, 'V1')).toEqual({
-        codigoRegla: 'V1',
-        descripcion: 'Saldo de caja',
-        estado: 'FALTAN_LIBROS',
-        mensaje: 'Faltan libros requeridos: INGRESOS_EGRESOS',
-        observaciones: [],
-        filasEvaluadas: null,
-        librosFaltantes: ['INGRESOS_EGRESOS'],
-      });
-      //el cruce tiene el banco pero no el libro de ingresos y egresos: solo informa el que falta
+      expect(deRegla(res.body, 'V1')).toEqual(
+        faltanLibros('V1', 'Saldo de caja', ['INGRESOS_EGRESOS']),
+      );
       expect(deRegla(res.body, 'C4')).toMatchObject({
         mensaje: 'Faltan libros requeridos: INGRESOS_EGRESOS',
         filasEvaluadas: null,
@@ -228,79 +293,203 @@ describe('Auditoría (e2e)', () => {
       });
     });
 
-    it('200: ejecutar de nuevo no duplica la observación', async () => {
-      const primera = await ejecutar(cuentaMensualId)
-        .set('Authorization', bearerAdmin)
+    it('la rendición pasó a EN_AUDITORIA y la ejecución quedó guardada con quién y con qué reglas', async () => {
+      expect(await estadoEnBase(cuentaMensualId)).toBe('EN_AUDITORIA');
+
+      const [fila] = await dataSource.query(
+        `SELECT * FROM ejecuciones_auditoria WHERE cuenta_mensual_id = $1`,
+        [cuentaMensualId],
+      );
+      expect(fila).toMatchObject({
+        ejecutada_por_id: auditor.usuarioId,
+        version_reglas: '1',
+        cerrada_en: null,
+      });
+      expect(fila.resultados).toHaveLength(6);
+    });
+
+    it('queda en la bitácora a nombre del auditor', async () => {
+      const [evento] = await dataSource.query(
+        `SELECT * FROM registro_actividad WHERE accion = 'AUDITORIA_EJECUTADA' AND usuario_id = $1 AND cuenta_mensual_id = $2 ORDER BY id LIMIT 1`,
+        [auditor.usuarioId, cuentaMensualId],
+      );
+      expect(evento).toMatchObject({
+        resultado: 'EXITO',
+        codigo_http: 200,
+        organismo_id: organismoId,
+        entidad_tipo: 'CUENTA_MENSUAL',
+        entidad_id: cuentaMensualId,
+        roles: ['AUDITOR'],
+        detalle: { ejecucionNueva: true, versionReglas: '1', observaciones: 1 },
+      });
+    });
+
+    it('200: ejecutar de nuevo devuelve lo mismo, sin duplicar ni volver a tomar la rendición', async () => {
+      const primera = await auditar(cuentaMensualId)
+        .set('Authorization', auditor.bearer)
         .expect(200);
-      const segunda = await ejecutar(cuentaMensualId)
-        .set('Authorization', bearerAdmin)
+      const segunda = await auditar(cuentaMensualId)
+        .set('Authorization', auditor.bearer)
         .expect(200);
 
       expect(segunda.body).toEqual(primera.body);
       expect(deRegla(segunda.body, 'V3')!.observaciones).toHaveLength(1);
-
-      const [{ total }] = await dataSource.query(
-        `SELECT count(*)::int AS total FROM observaciones WHERE cuenta_mensual_id = $1 AND codigo_regla = 'V3'`,
+      expect(
+        await contar(
+          `SELECT count(*)::int AS total FROM ejecuciones_auditoria WHERE cuenta_mensual_id = $1`,
+          [cuentaMensualId],
+        ),
+      ).toBe(1);
+      expect(
+        await contar(
+          `SELECT count(*)::int AS total FROM observaciones WHERE cuenta_mensual_id = $1 AND codigo_regla = 'V3'`,
+          [cuentaMensualId],
+        ),
+      ).toBe(1);
+      //el evento de la repetición dice que no fue una ejecución nueva
+      const eventos = await dataSource.query(
+        `SELECT detalle FROM registro_actividad WHERE accion = 'AUDITORIA_EJECUTADA' AND cuenta_mensual_id = $1 ORDER BY id DESC LIMIT 1`,
         [cuentaMensualId],
       );
-      expect(total).toBe(1);
+      expect(eventos[0].detalle.ejecucionNueva).toBe(false);
     });
 
-    it('200: el AUDITOR asignado al organismo lista las observaciones del mes y ejecuta', async () => {
-      const { bearer } = await crearAuditorConSesion(
-        app,
-        await obtenerOrganismoBaseId(dataSource),
+    it('200: dos ejecuciones simultáneas dan una sola ejecución', async () => {
+      await reiniciarAuditoria(dataSource, cuentaMensualId);
+
+      const respuestas = await Promise.all([
+        auditar(cuentaMensualId).set('Authorization', auditor.bearer),
+        auditar(cuentaMensualId).set('Authorization', auditor.bearer),
+      ]);
+
+      expect(respuestas.map((r) => r.status)).toEqual([200, 200]);
+      expect(respuestas[1].body).toEqual(respuestas[0].body);
+      expect(
+        await contar(
+          `SELECT count(*)::int AS total FROM ejecuciones_auditoria WHERE cuenta_mensual_id = $1`,
+          [cuentaMensualId],
+        ),
+      ).toBe(1);
+      expect(
+        await contar(
+          `SELECT count(*)::int AS total FROM observaciones WHERE cuenta_mensual_id = $1`,
+          [cuentaMensualId],
+        ),
+      ).toBe(1);
+    });
+
+    it('GET ejecucion: resultados, cobertura y contadores por estado', async () => {
+      const res = await ejecucion(cuentaMensualId)
+        .set('Authorization', auditor.bearer)
+        .expect(200);
+
+      expect(res.body).toMatchObject({
+        id: expect.any(Number),
+        cuentaMensualId,
+        versionReglas: '1',
+        ejecutadaPorId: auditor.usuarioId,
+        ejecutadaEn: expect.any(String),
+        cerradaEn: null,
+        cerradaPorId: null,
+        conclusion: null,
+        estadoFinal: null,
+        observaciones: { abiertas: 1, confirmadas: 0, descartadas: 0 },
+      });
+      expect(estados(res.body.resultados)).toEqual([
+        ['V1', 'FALTAN_LIBROS'],
+        ['V2', 'FALTAN_LIBROS'],
+        ['V3', 'FALLO'],
+        ['C4', 'FALTAN_LIBROS'],
+        ['C5', 'FALTAN_LIBROS'],
+        ['C6', 'FALTAN_LIBROS'],
+      ]);
+      expect(deRegla(res.body.resultados, 'V3')!.observaciones).toHaveLength(1);
+    });
+
+    it('GET observaciones: las de la última ejecución, a las que puede acceder el auditor y el admin', async () => {
+      for (const bearer of [auditor.bearer, bearerAdmin]) {
+        const res = await listar(cuentaMensualId)
+          .set('Authorization', bearer)
+          .expect(200);
+
+        expect(res.body).toHaveLength(1);
+        expect(res.body[0].transaccionId).toBe(transaccionIncorrectaId);
+      }
+    });
+
+    it('si cambia la versión de reglas se guarda una ejecución nueva y la anterior queda de historial', async () => {
+      //se simula que la ejecución existente corrió con unas reglas anteriores
+      await dataSource.query(
+        `UPDATE ejecuciones_auditoria SET version_reglas = '0' WHERE cuenta_mensual_id = $1`,
+        [cuentaMensualId],
       );
 
-      await ejecutar(cuentaMensualId).set('Authorization', bearer).expect(200);
-
-      const res = await listar(cuentaMensualId)
-        .set('Authorization', bearer)
+      const res = await auditar(cuentaMensualId)
+        .set('Authorization', auditor.bearer)
         .expect(200);
 
-      expect(res.body).toHaveLength(1);
-      expect(res.body[0].transaccionId).toBe(transaccionIncorrectaId);
+      const versiones = await dataSource.query(
+        `SELECT version_reglas FROM ejecuciones_auditoria WHERE cuenta_mensual_id = $1 ORDER BY id`,
+        [cuentaMensualId],
+      );
+      expect(
+        versiones.map((v: { version_reglas: string }) => v.version_reglas),
+      ).toEqual(['0', '1']);
+      //la rendición ya estaba tomada, sigue en EN_AUDITORIA
+      expect(await estadoEnBase(cuentaMensualId)).toBe('EN_AUDITORIA');
+      //las observaciones y el detalle son los de la ejecución más reciente
+      expect(deRegla(res.body, 'V3')!.observaciones).toHaveLength(1);
+      expect(
+        (await ejecucion(cuentaMensualId).set('Authorization', auditor.bearer))
+          .body.versionReglas,
+      ).toBe('1');
+      expect(
+        await contar(
+          `SELECT count(*)::int AS total FROM observaciones WHERE cuenta_mensual_id = $1`,
+          [cuentaMensualId],
+        ),
+      ).toBe(2);
+      const ultima = await listar(cuentaMensualId)
+        .set('Authorization', auditor.bearer)
+        .expect(200);
+      expect(ultima.body).toHaveLength(1);
     });
 
-    it('200: un mes sin libro devuelve FALTAN_LIBROS al ejecutar y lista vacía al listar', async () => {
-      const ejecucion = await ejecutar(cuentaMensualSinLibroId)
-        .set('Authorization', bearerAdmin)
-        .expect(200);
-      const listado = await listar(cuentaMensualSinLibroId)
-        .set('Authorization', bearerAdmin)
+    it('200: una rendición presentada sin ningún libro da FALTAN_LIBROS en todas las reglas', async () => {
+      const res = await auditar(cuentaVaciaId)
+        .set('Authorization', auditor.bearer)
         .expect(200);
 
-      expect(ejecucion.body).toEqual([
-        faltanLibros('V1', 'Saldo de caja', 'INGRESOS_EGRESOS'),
-        faltanLibros(
-          'V2',
-          'Saldo de banco (ingresos y egresos)',
+      expect(res.body).toEqual([
+        faltanLibros('V1', 'Saldo de caja', ['INGRESOS_EGRESOS']),
+        faltanLibros('V2', 'Saldo de banco (ingresos y egresos)', [
           'INGRESOS_EGRESOS',
-        ),
-        faltanLibros('V3', 'Saldo de cuenta', 'LIBRO_BANCO'),
-        faltanLibros(
-          'C4',
-          'Depósitos bancarios',
-          'LIBRO_BANCO, INGRESOS_EGRESOS',
-        ),
-        faltanLibros(
-          'C5',
-          'Retiros bancarios',
-          'LIBRO_BANCO, INGRESOS_EGRESOS',
-        ),
-        faltanLibros(
-          'C6',
-          'Saldo final bancario',
-          'LIBRO_BANCO, INGRESOS_EGRESOS',
-        ),
+        ]),
+        faltanLibros('V3', 'Saldo de cuenta', ['LIBRO_BANCO']),
+        faltanLibros('C4', 'Depósitos bancarios', [
+          'LIBRO_BANCO',
+          'INGRESOS_EGRESOS',
+        ]),
+        faltanLibros('C5', 'Retiros bancarios', [
+          'LIBRO_BANCO',
+          'INGRESOS_EGRESOS',
+        ]),
+        faltanLibros('C6', 'Saldo final bancario', [
+          'LIBRO_BANCO',
+          'INGRESOS_EGRESOS',
+        ]),
       ]);
-      expect(listado.body).toEqual([]);
+      const observaciones = await listar(cuentaVaciaId)
+        .set('Authorization', auditor.bearer)
+        .expect(200);
+      expect(observaciones.body).toEqual([]);
+      expect(await estadoEnBase(cuentaVaciaId)).toBe('EN_AUDITORIA');
     });
   });
 
-  //banco consistente (depósitos 1500, retiros 200, saldo final 1300) contra un libro de ingresos y egresos
-  //con fallos sembrados: V1 en las filas 3 y 4 (dos hallazgos del mismo código en la cuenta), V2 en la
-  //fila 2, retiros 250 (C5) y saldo final 1150 (C6)
+  //banco consistente (depósitos 1500, retiros 200, saldo final 1300) contra un libro de ingresos y egresos con
+  //fallos sembrados: V1 en las filas 3 y 4 (dos hallazgos del mismo código en la rendición), V2 en la fila 2,
+  //retiros 250 (C5) y saldo final 1150 (C6)
   describe('cruce con el libro de Ingresos y Egresos', () => {
     let cuentaCruceId: number;
     //id de las filas del libro de ingresos y egresos, en orden de fila
@@ -329,17 +518,16 @@ describe('Auditoría (e2e)', () => {
     });
 
     beforeAll(async () => {
-      const organismoId = await obtenerOrganismoBaseId(dataSource);
       cuentaCruceId = await resolverCuentaMensualId(
         app,
         organismoId,
         MES_AUDITORIA_CRUCE,
       );
-      await fijarEstadoCuenta(dataSource, cuentaCruceId);
+      await reiniciarAuditoria(dataSource, cuentaCruceId, 'EN_BORRADOR');
       const { bearer } = await crearResponsableConSesion(app, organismoId);
 
       //reemplazar=true: los dos libros se dejan siempre iguales, sin importar lo que hubiera
-      await request(app.getHttpServer())
+      await api()
         .post(`/api/v1/cuentas-mensuales/${cuentaCruceId}/libro-banco/ingestar`)
         .set('Authorization', bearer)
         .send({
@@ -352,7 +540,7 @@ describe('Auditoría (e2e)', () => {
           ],
         })
         .expect(201);
-      const ingestado = await request(app.getHttpServer())
+      const ingestado = await api()
         .post(
           `/api/v1/cuentas-mensuales/${cuentaCruceId}/ingresos-egresos/ingestar`,
         )
@@ -382,22 +570,24 @@ describe('Auditoría (e2e)', () => {
               bancoSaldo: 1150,
             }),
             //V1: la caja debería ser 150; el banco no se mueve
-            filaIE(4, {
-              cajaDebe: 10,
-              cajaSaldo: 999,
-              bancoSaldo: 1150,
-            }),
+            filaIE(4, { cajaDebe: 10, cajaSaldo: 999, bancoSaldo: 1150 }),
           ],
         })
         .expect(201);
       idsFilasIE = ingestado.body.transacciones.map(
         (t: { id: number }) => t.id,
       );
+
+      //la presenta el responsable por la API: con los dos documentos cargados queda lista para auditar
+      await api()
+        .patch(`/api/v1/cuentas-mensuales/${cuentaCruceId}/presentar`)
+        .set('Authorization', bearer)
+        .expect(200);
     });
 
     it('200: cada regla da su resultado, con las filas y los totales que no coinciden', async () => {
-      const res = await ejecutar(cuentaCruceId)
-        .set('Authorization', bearerAdmin)
+      const res = await auditar(cuentaCruceId)
+        .set('Authorization', auditor.bearer)
         .expect(200);
 
       expect(estados(res.body)).toEqual([
@@ -408,7 +598,6 @@ describe('Auditoría (e2e)', () => {
         ['C5', 'FALLO'],
         ['C6', 'FALLO'],
       ]);
-
       //cobertura: V1 y V2 validan 3 de las 4 filas, V3 2 de las 3 y los cruces hacen una comparación
       expect(
         res.body.map((r: Resultado) => [
@@ -430,8 +619,10 @@ describe('Auditoría (e2e)', () => {
         tipo: string,
         descripcion: string,
         transaccionIngresoEgresoId: number | null,
+        importes: [number, number, number],
       ) => ({
         id: expect.any(Number),
+        ejecucionId: expect.any(Number),
         cuentaMensualId: cuentaCruceId,
         codigoRegla: codigo,
         tipo,
@@ -440,6 +631,12 @@ describe('Auditoría (e2e)', () => {
         estado: 'ABIERTA',
         transaccionId: null,
         transaccionIngresoEgresoId,
+        valorInformado: importes[0],
+        valorCalculado: importes[1],
+        diferencia: importes[2],
+        motivoDescarte: null,
+        revisadaPorId: null,
+        revisadaEn: null,
       });
       expect(deRegla(res.body, 'V1')!).toMatchObject({
         descripcion: 'Saldo de caja',
@@ -449,12 +646,14 @@ describe('Auditoría (e2e)', () => {
             'INTERNA',
             'Error de fórmula en la fila 3: el saldo de caja calculado (130.00) no coincide con el saldo informado (140.00). Diferencia: 10.00.',
             idsFilasIE[2],
+            [140, 130, 10],
           ),
           observacion(
             'V1',
             'INTERNA',
             'Error de fórmula en la fila 4: el saldo de caja calculado (150.00) no coincide con el saldo informado (999.00). Diferencia: 849.00.',
             idsFilasIE[3],
+            [999, 150, 849],
           ),
         ],
       });
@@ -464,6 +663,7 @@ describe('Auditoría (e2e)', () => {
           'INTERNA',
           'Error de fórmula en la fila 2: el saldo de banco calculado (1500.00) no coincide con el saldo informado (1400.00). Diferencia: 100.00.',
           idsFilasIE[1],
+          [1400, 1500, 100],
         ),
       ]);
       expect(deRegla(res.body, 'V3')).toEqual({
@@ -481,6 +681,7 @@ describe('Auditoría (e2e)', () => {
           'CRUZAMIENTO',
           'Inconsistencia en retiros bancarios: el total de banco haber del libro de Ingresos y Egresos (250.00) no coincide con el total de retiros del Libro Banco (200.00). Diferencia: 50.00.',
           null,
+          [250, 200, 50],
         ),
       ]);
       expect(deRegla(res.body, 'C6')!.observaciones).toEqual([
@@ -489,29 +690,53 @@ describe('Auditoría (e2e)', () => {
           'CRUZAMIENTO',
           'Saldo bancario inconsistente: el saldo final de banco del libro de Ingresos y Egresos (1150.00) no coincide con el saldo final del Libro Banco (1300.00). Diferencia: 150.00.',
           null,
+          [1150, 1300, 150],
         ),
       ]);
     });
 
     it('200: ejecutar de nuevo no duplica ninguna observación y se conservan los dos hallazgos V1', async () => {
-      const primera = await ejecutar(cuentaCruceId)
-        .set('Authorization', bearerAdmin)
+      const primera = await auditar(cuentaCruceId)
+        .set('Authorization', auditor.bearer)
         .expect(200);
-      const segunda = await ejecutar(cuentaCruceId)
-        .set('Authorization', bearerAdmin)
+      const segunda = await auditar(cuentaCruceId)
+        .set('Authorization', auditor.bearer)
         .expect(200);
 
       expect(segunda.body).toEqual(primera.body);
-      const [{ total }] = await dataSource.query(
-        `SELECT count(*)::int AS total FROM observaciones WHERE cuenta_mensual_id = $1`,
-        [cuentaCruceId],
-      );
-      expect(total).toBe(5);
+      expect(
+        await contar(
+          `SELECT count(*)::int AS total FROM observaciones WHERE cuenta_mensual_id = $1`,
+          [cuentaCruceId],
+        ),
+      ).toBe(5);
     });
 
-    it('200: GET observaciones lista las cinco, todas del libro de ingresos y egresos', async () => {
+    it('GET ejecucion: la cobertura y los contadores de la rendición cruzada', async () => {
+      const res = await ejecucion(cuentaCruceId)
+        .set('Authorization', auditor.bearer)
+        .expect(200);
+
+      expect(res.body.observaciones).toEqual({
+        abiertas: 5,
+        confirmadas: 0,
+        descartadas: 0,
+      });
+      expect(
+        res.body.resultados.map((r: Resultado) => [r.codigoRegla, r.estado]),
+      ).toEqual([
+        ['V1', 'FALLO'],
+        ['V2', 'FALLO'],
+        ['V3', 'VERIFICADO'],
+        ['C4', 'VERIFICADO'],
+        ['C5', 'FALLO'],
+        ['C6', 'FALLO'],
+      ]);
+    });
+
+    it('GET observaciones lista las cinco, todas del libro de ingresos y egresos', async () => {
       const res = await listar(cuentaCruceId)
-        .set('Authorization', bearerAdmin)
+        .set('Authorization', auditor.bearer)
         .expect(200);
 
       expect(
@@ -533,13 +758,13 @@ describe('Auditoría (e2e)', () => {
       }
       const observaciones: Obs[] = (
         await listar(cuentaCruceId)
-          .set('Authorization', bearerAdmin)
+          .set('Authorization', auditor.bearer)
           .expect(200)
       ).body;
       const libro = (
-        await request(app.getHttpServer())
+        await api()
           .get(`/api/v1/cuentas-mensuales/${cuentaCruceId}/ingresos-egresos`)
-          .set('Authorization', bearerAdmin)
+          .set('Authorization', auditor.bearer)
           .expect(200)
       ).body;
 
@@ -560,30 +785,6 @@ describe('Auditoría (e2e)', () => {
         expect(o.transaccionId).toBeNull();
         expect(o.transaccionIngresoEgresoId).toBeNull();
       }
-    });
-
-    it('las observaciones de una fila caen con el libro cuando se reemplaza, y las de cuenta no', async () => {
-      const organismoId = await obtenerOrganismoBaseId(dataSource);
-      const { bearer } = await crearResponsableConSesion(app, organismoId);
-      await request(app.getHttpServer())
-        .post(
-          `/api/v1/cuentas-mensuales/${cuentaCruceId}/ingresos-egresos/ingestar`,
-        )
-        .set('Authorization', bearer)
-        .send({
-          reemplazar: true,
-          transacciones: [filaIE(1, {})],
-        })
-        .expect(201);
-
-      const res = await listar(cuentaCruceId)
-        .set('Authorization', bearerAdmin)
-        .expect(200);
-
-      //V1 y V2 estaban ligadas a filas del libro viejo; C5 y C6 son de toda la cuenta
-      expect(
-        res.body.map((o: { codigoRegla: string }) => o.codigoRegla).sort(),
-      ).toEqual(['C5', 'C6']);
     });
   });
 });

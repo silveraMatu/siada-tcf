@@ -23,6 +23,10 @@ import { ObtenerLibroBancoUseCase } from './application/use-cases/obtener-libro-
       useClass: TypeOrmLibroBancoRepositoryAdapter,
     },
   ],
-  exports: [IngestarLibroBancoUseCase, ObtenerLibroBancoUseCase],
+  exports: [
+    IngestarLibroBancoUseCase,
+    ObtenerLibroBancoUseCase,
+    LibroBancoRepositoryPort,
+  ],
 })
 export class LibroBancoModule {}

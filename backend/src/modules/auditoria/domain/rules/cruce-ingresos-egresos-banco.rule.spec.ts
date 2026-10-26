@@ -129,6 +129,10 @@ describe.each([
     expect(obs.transaccionId).toBeUndefined();
     expect(obs.transaccionIngresoEgresoId).toBeUndefined();
     expect(obs.descripcion).toBe(mensaje('150.00', '140.00', '10.00'));
+    //lo informado es el total del libro de ingresos y egresos; lo esperado, el del banco
+    expect(obs.valorInformado).toBe(150);
+    expect(obs.valorCalculado).toBe(140);
+    expect(obs.diferencia).toBe(10);
   });
 
   it('compara contra la suma de todos los libros banco de la rendición', () => {
@@ -206,6 +210,9 @@ describe('C6 (saldo final)', () => {
     expect(obs.descripcion).toBe(
       'Saldo bancario inconsistente: el saldo final de banco del libro de Ingresos y Egresos (1150.00) no coincide con el saldo final del Libro Banco (1300.00). Diferencia: 150.00.',
     );
+    expect(obs.valorInformado).toBe(1150);
+    expect(obs.valorCalculado).toBe(1300);
+    expect(obs.diferencia).toBe(150);
   });
 
   it('la última fila es la de mayor número de fila, no la última del arreglo', () => {

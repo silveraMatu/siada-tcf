@@ -47,16 +47,18 @@ export class LibroBancoV3Rule implements ReglaAuditoria {
 
         if (diferencia > TOLERANCIA_CENTAVOS) {
           observaciones.push(
-            new Observaciones(
-              context.cuentaMensualId,
-              validationsCode.V3,
-              validationsType.INTERNA,
-              `El saldo calculado (${aMonto(calculado)}) no coincide con el saldo informado (${aMonto(informado)}). Diferencia: ${aMonto(diferencia)}.`,
-              LibroOrigen.LIBRO_BANCO,
-              EstadoObservacion.ABIERTA,
-              undefined,
-              tx.id,
-            ),
+            new Observaciones({
+              cuentaMensualId: context.cuentaMensualId,
+              codigoRegla: validationsCode.V3,
+              tipo: validationsType.INTERNA,
+              descripcion: `El saldo calculado (${aMonto(calculado)}) no coincide con el saldo informado (${aMonto(informado)}). Diferencia: ${aMonto(diferencia)}.`,
+              libroOrigen: LibroOrigen.LIBRO_BANCO,
+              estado: EstadoObservacion.ABIERTA,
+              transaccionId: tx.id,
+              valorInformado: informado / 100,
+              valorCalculado: calculado / 100,
+              diferencia: diferencia / 100,
+            }),
           );
         }
 

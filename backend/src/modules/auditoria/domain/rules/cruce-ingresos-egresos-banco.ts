@@ -54,14 +54,18 @@ export function compararTotales(
   const observaciones =
     diferencia > TOLERANCIA_CENTAVOS
       ? [
-          new Observaciones(
-            context.cuentaMensualId,
-            codigo,
-            validationsType.CRUZAMIENTO,
-            `${titulo}: ${conceptos.ingresosEgresos} del libro de Ingresos y Egresos (${aMonto(totalIngresosEgresos)}) no coincide con ${conceptos.banco} del Libro Banco (${aMonto(totalBanco)}). Diferencia: ${aMonto(diferencia)}.`,
-            LibroOrigen.INGRESOS_EGRESOS,
-            EstadoObservacion.ABIERTA,
-          ),
+          new Observaciones({
+            cuentaMensualId: context.cuentaMensualId,
+            codigoRegla: codigo,
+            tipo: validationsType.CRUZAMIENTO,
+            descripcion: `${titulo}: ${conceptos.ingresosEgresos} del libro de Ingresos y Egresos (${aMonto(totalIngresosEgresos)}) no coincide con ${conceptos.banco} del Libro Banco (${aMonto(totalBanco)}). Diferencia: ${aMonto(diferencia)}.`,
+            libroOrigen: LibroOrigen.INGRESOS_EGRESOS,
+            estado: EstadoObservacion.ABIERTA,
+            //el libro auditado es el de ingresos y egresos; el esperado, lo que dice el banco
+            valorInformado: totalIngresosEgresos / 100,
+            valorCalculado: totalBanco / 100,
+            diferencia: diferencia / 100,
+          }),
         ]
       : [];
 

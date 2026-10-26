@@ -115,6 +115,10 @@ describe('LibroBancoV3Rule (V3)', () => {
     expect(obs.descripcion).toBe(
       'El saldo calculado (150.00) no coincide con el saldo informado (160.00). Diferencia: 10.00.',
     );
+    //los importes quedan también como números
+    expect(obs.valorInformado).toBe(160);
+    expect(obs.valorCalculado).toBe(150);
+    expect(obs.diferencia).toBe(10);
   });
 
   it('no genera errores en cascada tras una fila incorrecta', () => {

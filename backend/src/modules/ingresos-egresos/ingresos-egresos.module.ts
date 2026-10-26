@@ -4,7 +4,6 @@ import { IngresosEgresosEntity } from './infrastructure/entities/ingresos-egreso
 import { TransaccionIngresoEgresoEntity } from './infrastructure/entities/transaccion-ingreso-egreso.entity.js';
 import { IngresosEgresosController } from './infrastructure/http/ingresos-egresos.controller.js';
 import { IngestarIngresosEgresosUseCase } from './application/use-cases/ingestar-ingresos-egresos.use-case.js';
-import { BuscarIngresosEgresosUseCase } from './application/use-cases/buscar-ingresos-egresos.use-case.js';
 import { ObtenerIngresosEgresosUseCase } from './application/use-cases/obtener-ingresos-egresos.use-case.js';
 import { IngresosEgresosRepositoryPort } from './application/ports/out/ingresos-egresos-repository.port.js';
 import { TypeOrmIngresosEgresosRepositoryAdapter } from './infrastructure/adapters/driven/persistence/typeorm-ingresos-egresos-repository.js';
@@ -22,7 +21,6 @@ import { CuentasModule } from '../cuentas/cuentas.module.js';
   providers: [
     IngestarIngresosEgresosUseCase,
     ObtenerIngresosEgresosUseCase,
-    BuscarIngresosEgresosUseCase,
     {
       provide: IngresosEgresosRepositoryPort,
       useClass: TypeOrmIngresosEgresosRepositoryAdapter,
@@ -31,7 +29,7 @@ import { CuentasModule } from '../cuentas/cuentas.module.js';
   exports: [
     IngestarIngresosEgresosUseCase,
     ObtenerIngresosEgresosUseCase,
-    BuscarIngresosEgresosUseCase,
+    IngresosEgresosRepositoryPort,
   ],
 })
 export class IngresosEgresosModule {}

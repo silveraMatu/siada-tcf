@@ -16,6 +16,8 @@ export const MES_INGRESOS_EGRESOS = 9; //reservado para el e2e de ingresos-egres
 export const MES_PRESENTAR_INCOMPLETA = 7; //reservado: solo recibe el libro banco, así que presentar siempre falla por falta de Ingresos y Egresos
 export const MES_AUDITORIA_CRUCE = 8; //reservado para auditoria: banco e ingresos y egresos con fallos sembrados
 export const MES_BITACORA = 5; //reservado para el e2e de la bitacora: carga dos libros y presenta; se vuelve a EN_BORRADOR al empezar
+export const MES_AUDITORIA_VACIA = 4; //reservado para auditoria: presentada por SQL y sin ningun libro
+export const MES_AUDITORIA_BORRADOR = 6; //reservado para auditoria: los rechazos por estado (borrador y cerrada)
 
 //organismo inicial que usan los e2e de cuentas, libro-banco y responsables
 export async function obtenerOrganismoBaseId(
@@ -342,4 +344,17 @@ export async function asignarAuditor(
     .set('Authorization', await obtenerBearerAdmin(app))
     .send({ auditorId })
     .expect(200);
+}
+
+//deja la rendición lista para volver a auditarla: sin ejecuciones (las observaciones caen con ellas) y en el estado indicado
+export async function reiniciarAuditoria(
+  dataSource: DataSource,
+  cuentaMensualId: number,
+  estado = 'LISTO_PARA_AUDITAR',
+): Promise<void> {
+  await dataSource.query(
+    `DELETE FROM ejecuciones_auditoria WHERE cuenta_mensual_id = $1`,
+    [cuentaMensualId],
+  );
+  await fijarEstadoCuenta(dataSource, cuentaMensualId, estado);
 }

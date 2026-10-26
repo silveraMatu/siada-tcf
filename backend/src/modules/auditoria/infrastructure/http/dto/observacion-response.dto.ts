@@ -16,6 +16,22 @@ export const ObservacionResponseSchema = z.object({
   //qué libro originó el hallazgo; en los cruces entre libros es INGRESOS_EGRESOS
   libroOrigen: z.enum(LibroOrigen),
   estado: z.enum(EstadoObservacion),
+  ejecucionId: z
+    .number()
+    .int()
+    .describe('Ejecución de auditoría que la produjo'),
+  valorInformado: z
+    .number()
+    .nullable()
+    .describe('Lo que informa el libro auditado (saldo o total)'),
+  valorCalculado: z
+    .number()
+    .nullable()
+    .describe('Lo que debería ser (saldo calculado o total del otro libro)'),
+  diferencia: z.number().nullable().describe('Valor absoluto de la diferencia'),
+  motivoDescarte: z.string().nullable(),
+  revisadaPorId: z.number().int().nullable(),
+  revisadaEn: z.iso.datetime().nullable(),
   transaccionId: z
     .number()
     .int()

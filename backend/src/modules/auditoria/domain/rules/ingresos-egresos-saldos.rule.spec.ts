@@ -134,6 +134,9 @@ describe.each<[string, ReglaAuditoria, validationsCode, Columnas, Columnas]>([
     expect(obs.descripcion).toBe(
       `Error de fórmula en la fila 2: el saldo de ${columna} calculado (150.00) no coincide con el saldo informado (160.00). Diferencia: 10.00.`,
     );
+    expect(obs.valorInformado).toBe(160);
+    expect(obs.valorCalculado).toBe(150);
+    expect(obs.diferencia).toBe(10);
   });
 
   it('la primera fila es la base: su saldo no se valida', () => {

@@ -1,12 +1,12 @@
 import { Observaciones } from '../../../domain/entities/observaciones.domain.js';
+import type { EstadoObservacion } from '../../../domain/rules/validations.js';
+
+export type ConteoObservaciones = Record<EstadoObservacion, number>;
 
 export abstract class ObservacionRepositoryPort {
-  //persiste los hallazgos nuevos sin duplicar los que ya existen y devuelve los persistidos (con id)
-  abstract guardarVarias(
-    observaciones: Observaciones[],
-  ): Promise<Observaciones[]>;
+  //las de una ejecución, por id
+  abstract obtenerPorEjecucion(ejecucionId: number): Promise<Observaciones[]>;
 
-  abstract obtenerPorCuentaMensual(
-    cuentaMensualId: number,
-  ): Promise<Observaciones[]>;
+  //cuántas hay en cada estado (con 0 en los que no tienen ninguna)
+  abstract contarPorEstado(ejecucionId: number): Promise<ConteoObservaciones>;
 }

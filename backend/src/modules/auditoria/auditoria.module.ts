@@ -2,9 +2,15 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ObservacionEntity } from './infrastructure/entities/observaciones.entity.js';
 import { AuditoriaController } from './infrastructure/http/auditoria.controller.js';
-import { AuditarLibroBancoUseCase } from './application/use-cases/auditar-libro-banco.use-case.js';
+import { EjecutarAuditoriaUseCase } from './application/use-cases/ejecutar-auditoria.use-case.js';
+import { ObtenerEjecucionUseCase } from './application/use-cases/obtener-ejecucion.use-case.js';
 import { ListarObservacionesUseCase } from './application/use-cases/listar-observaciones.use-case.js';
 import { ObservacionRepositoryPort } from './application/ports/out/observacion-repository.port.js';
+import { DocumentosAuditablesPort } from './application/ports/out/documentos-auditables.port.js';
+import { EjecucionAuditoriaRepositoryPort } from './application/ports/out/ejecucion-auditoria-repository.port.js';
+import { EjecucionAuditoriaEntity } from './infrastructure/entities/ejecucion-auditoria.entity.js';
+import { RepositoriosDocumentosAuditablesAdapter } from './infrastructure/adapters/driven/documentos/repositorios-documentos-auditables.adapter.js';
+import { TypeOrmEjecucionAuditoriaRepositoryAdapter } from './infrastructure/adapters/driven/persistence/typeorm-ejecucion-auditoria-repository.adapter.js';
 import { TypeOrmObservacionRepositoryAdapter } from './infrastructure/adapters/driven/persistence/typeorm-observacion-repository.adapter.js';
 import { MotorAuditoriaService } from './domain/engine/motor-auditoria.service.js';
 import { CruceDepositosC4Rule } from './domain/rules/cruce-ingresos-egresos-banco-depositos.rule.js';
@@ -19,7 +25,7 @@ import { CuentasModule } from '../cuentas/cuentas.module.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ObservacionEntity]),
+    TypeOrmModule.forFeature([ObservacionEntity, EjecucionAuditoriaEntity]),
     LibroBancoModule,
     IngresosEgresosModule,
     CuentasModule,
@@ -40,13 +46,21 @@ import { CuentasModule } from '../cuentas/cuentas.module.js';
           new CruceSaldoFinalC6Rule(),
         ]),
     },
-    AuditarLibroBancoUseCase,
+    EjecutarAuditoriaUseCase,
+    ObtenerEjecucionUseCase,
     ListarObservacionesUseCase,
+    {
+      provide: EjecucionAuditoriaRepositoryPort,
+      useClass: TypeOrmEjecucionAuditoriaRepositoryAdapter,
+    },
+    {
+      provide: DocumentosAuditablesPort,
+      useClass: RepositoriosDocumentosAuditablesAdapter,
+    },
     {
       provide: ObservacionRepositoryPort,
       useClass: TypeOrmObservacionRepositoryAdapter,
     },
   ],
-  exports: [AuditarLibroBancoUseCase],
 })
 export class AuditoriaModule {}

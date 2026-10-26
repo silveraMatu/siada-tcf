@@ -25,9 +25,10 @@ export enum validationsType {
   FECHAS = 'FECHAS',
 }
 
+//ciclo de una observación: el motor la deja ABIERTA y el auditor la confirma o la descarta (con motivo)
 export enum EstadoObservacion {
   ABIERTA = 'ABIERTA',
-  RESUELTA = 'RESUELTA',
+  CONFIRMADA = 'CONFIRMADA',
   DESCARTADA = 'DESCARTADA',
 }
 
