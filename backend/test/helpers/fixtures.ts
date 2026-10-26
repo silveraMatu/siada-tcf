@@ -312,3 +312,34 @@ export async function fijarEstadoCuenta(
     [estado, cuentaMensualId],
   );
 }
+
+//usuario AUDITOR activo con sesión iniciada; con `organismoId` queda asignado como el auditor de ese organismo
+//(un organismo tiene un solo auditor a la vez: asignar otro reemplaza al anterior)
+export async function crearAuditorConSesion(
+  app: INestApplication,
+  organismoId?: number,
+): Promise<{ bearer: string; usuarioId: number }> {
+  const { id, email, password } = await registrarUsuarioConCredenciales(app);
+  await habilitarUsuario(app, id, ['AUDITOR']);
+  if (organismoId !== undefined) {
+    await asignarAuditor(app, organismoId, id);
+  }
+  const login = await request(app.getHttpServer())
+    .post('/api/v1/auth/login')
+    .send({ email, password })
+    .expect(200);
+  return { bearer: `Bearer ${login.body.accessToken}`, usuarioId: id };
+}
+
+//lo hace un ADMIN, que también puede asignar auditores
+export async function asignarAuditor(
+  app: INestApplication,
+  organismoId: number,
+  auditorId: number,
+): Promise<void> {
+  await request(app.getHttpServer())
+    .put(`/api/v1/organismos/${organismoId}/auditor`)
+    .set('Authorization', await obtenerBearerAdmin(app))
+    .send({ auditorId })
+    .expect(200);
+}

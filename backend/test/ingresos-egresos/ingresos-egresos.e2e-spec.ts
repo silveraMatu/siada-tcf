@@ -7,6 +7,7 @@ import {
   MES_INGRESOS_EGRESOS,
   MES_SIN_LIBRO,
   crearResponsableConSesion,
+  crearAuditorConSesion,
   crearSesionConRol,
   fijarEstadoCuenta,
   obtenerBearerAdmin,
@@ -28,6 +29,7 @@ describe('Ingresos y egresos (e2e)', () => {
   let bearerResponsableAjeno: string;
   let bearerAdmin: string;
   let bearerAuditor: string;
+  let bearerAuditorSinAsignar: string;
   let bearerJuez: string;
 
   //una fila completa; `extra` pisa campos puntuales
@@ -128,7 +130,9 @@ describe('Ingresos y egresos (e2e)', () => {
     bearerResponsableAjeno = (
       await crearResponsableConSesion(app, organismoAjenoId)
     ).bearer;
-    bearerAuditor = await crearSesionConRol(app, 'AUDITOR');
+    //el auditor asignado al organismo y otro sin ninguna asignación
+    bearerAuditor = (await crearAuditorConSesion(app, organismoId)).bearer;
+    bearerAuditorSinAsignar = (await crearAuditorConSesion(app)).bearer;
     bearerJuez = await crearSesionConRol(app, 'JUEZ_TRAMITE');
 
     //punto de partida repetible: en borrador y sin libro
@@ -153,6 +157,10 @@ describe('Ingresos y egresos (e2e)', () => {
     it('403: ingestar exige el rol RESPONSABLE', async () => {
       await ingestar(cuentaMensualId, cuerpo(), bearerAdmin).expect(403);
       await ingestar(cuentaMensualId, cuerpo(), bearerAuditor).expect(403);
+    });
+
+    it('403: un auditor sin el organismo asignado no puede leer el libro', async () => {
+      await obtener(cuentaMensualId, bearerAuditorSinAsignar).expect(403);
     });
 
     it('403: un juez de trámite no puede leer el libro', async () => {

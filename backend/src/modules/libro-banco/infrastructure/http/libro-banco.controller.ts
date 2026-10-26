@@ -136,13 +136,13 @@ export class LibroBancoController {
     @Param() { cuentaMensualId }: LibroBancoParamsDto,
     @UsuarioActual() usuario: UsuarioAutenticado,
   ): Promise<LibroBancoResponseDto[]> {
-    //ADMIN y AUDITOR leen cualquier rendición; un RESPONSABLE, solo la de su organismo
-    const veTodo = usuario.roles.some(
-      (rol) => rol === Rol.ADMIN || rol === Rol.AUDITOR,
-    );
+    //ADMIN ve todo; un AUDITOR, los organismos que tiene asignados; un RESPONSABLE, el suyo
     const libros = await this.obtenerLibroBancoUseCase.execute(
       cuentaMensualId,
-      veTodo ? undefined : { usuarioId: usuario.id },
+      {
+        usuarioId: usuario.id,
+        roles: usuario.roles,
+      },
     );
     return libros.map((libro) => this.toResponse(libro));
   }

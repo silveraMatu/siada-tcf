@@ -7,6 +7,7 @@ import {
   MES_AUDITORIA,
   MES_AUDITORIA_CRUCE,
   MES_SIN_LIBRO,
+  crearAuditorConSesion,
   crearResponsableConSesion,
   fijarEstadoCuenta,
   habilitarUsuario,
@@ -129,6 +130,27 @@ describe('Auditoría (e2e)', () => {
       await listar(cuentaMensualId).expect(401);
     });
 
+    it('403: un AUDITOR sin el organismo asignado no puede auditar ni listar', async () => {
+      const { bearer } = await crearAuditorConSesion(app);
+
+      await ejecutar(cuentaMensualId).set('Authorization', bearer).expect(403);
+      await listar(cuentaMensualId).set('Authorization', bearer).expect(403);
+    });
+
+    it('403: al reasignar el organismo a otro auditor, el anterior deja de poder auditar', async () => {
+      const organismoId = await obtenerOrganismoBaseId(dataSource);
+      const anterior = await crearAuditorConSesion(app, organismoId);
+      await ejecutar(cuentaMensualId)
+        .set('Authorization', anterior.bearer)
+        .expect(200);
+
+      await crearAuditorConSesion(app, organismoId);
+
+      await ejecutar(cuentaMensualId)
+        .set('Authorization', anterior.bearer)
+        .expect(403);
+    });
+
     it('403: un usuario con rol RESPONSABLE no puede auditar ni listar', async () => {
       const bearer = await bearerConRoles(['RESPONSABLE']);
 
@@ -224,8 +246,13 @@ describe('Auditoría (e2e)', () => {
       expect(total).toBe(1);
     });
 
-    it('200: un AUDITOR lista las observaciones del mes', async () => {
-      const bearer = await bearerConRoles(['AUDITOR']);
+    it('200: el AUDITOR asignado al organismo lista las observaciones del mes y ejecuta', async () => {
+      const { bearer } = await crearAuditorConSesion(
+        app,
+        await obtenerOrganismoBaseId(dataSource),
+      );
+
+      await ejecutar(cuentaMensualId).set('Authorization', bearer).expect(200);
 
       const res = await listar(cuentaMensualId)
         .set('Authorization', bearer)

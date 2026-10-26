@@ -79,6 +79,7 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
 
   async listar(filtros?: {
     estado?: EstadoCuentaMensual;
+    organismoIds?: number[];
   }): Promise<CuentaMensualListada[]> {
     //columnas en lista blanca: solo lo que necesita el listado, sin traer la entidad del organismo completa
     const consulta = this.repository
@@ -97,7 +98,11 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
       .addSelect('cm.presentadaEn', 'presentadaEn')
       .orderBy('cm.id', 'ASC');
     if (filtros?.estado)
-      consulta.where('cm.estado = :estado', { estado: filtros.estado });
+      consulta.andWhere('cm.estado = :estado', { estado: filtros.estado });
+    if (filtros?.organismoIds)
+      consulta.andWhere('ca.organismoId IN (:...organismoIds)', {
+        organismoIds: filtros.organismoIds,
+      });
 
     const filas = await consulta.getRawMany<{
       id: number;

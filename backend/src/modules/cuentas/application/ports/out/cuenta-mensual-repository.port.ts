@@ -32,5 +32,7 @@ export abstract class CuentaMensualRepositoryPort {
   //y un resumen de sus libros (sin transacciones)
   abstract listar(filtros?: {
     estado?: EstadoCuentaMensual;
+    //solo las cuentas de esos organismos
+    organismoIds?: number[];
   }): Promise<CuentaMensualListada[]>;
 }

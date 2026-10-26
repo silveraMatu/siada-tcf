@@ -153,13 +153,10 @@ export class IngresosEgresosController {
     @Param() { cuentaMensualId }: IngresosEgresosParamsDto,
     @UsuarioActual() usuario: UsuarioAutenticado,
   ): Promise<IngresosEgresosResponseDto> {
-    //ADMIN y AUDITOR leen cualquier rendición; un RESPONSABLE, solo la de su organismo
-    const veTodo = usuario.roles.some(
-      (rol) => rol === Rol.ADMIN || rol === Rol.AUDITOR,
-    );
+    //ADMIN ve todo; un AUDITOR, los organismos que tiene asignados; un RESPONSABLE, el suyo
     const libro = await this.obtenerIngresosEgresosUseCase.execute(
       cuentaMensualId,
-      veTodo ? undefined : { usuarioId: usuario.id },
+      { usuarioId: usuario.id, roles: usuario.roles },
     );
     return this.toResponse(libro);
   }

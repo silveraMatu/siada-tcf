@@ -8,6 +8,7 @@ import {
   MES_PRESENTAR,
   MES_SIN_LIBRO,
   crearResponsableConSesion,
+  crearAuditorConSesion,
   crearSesionConRol,
   fijarEstadoCuenta,
   obtenerBearerAdmin,
@@ -30,6 +31,7 @@ describe('Libro banco (e2e)', () => {
   let bearerResponsableAjeno: string;
   let bearerAdmin: string;
   let bearerAuditor: string;
+  let bearerAuditorSinAsignar: string;
   let bearerJuez: string;
 
   const corrida = Date.now();
@@ -111,7 +113,9 @@ describe('Libro banco (e2e)', () => {
       )
     ).bearer;
     bearerAdmin = await obtenerBearerAdmin(app);
-    bearerAuditor = await crearSesionConRol(app, 'AUDITOR');
+    //el auditor asignado al organismo y otro sin ninguna asignación
+    bearerAuditor = (await crearAuditorConSesion(app, organismoId)).bearer;
+    bearerAuditorSinAsignar = (await crearAuditorConSesion(app)).bearer;
     bearerJuez = await crearSesionConRol(app, 'JUEZ_TRAMITE');
   });
 
@@ -489,6 +493,10 @@ describe('Libro banco (e2e)', () => {
         await obtener(cuentaMensualId, bearerResponsableAjeno).expect(403);
       });
 
+      it('403: un AUDITOR sin el organismo asignado no puede leer libros', async () => {
+        await obtener(cuentaMensualId, bearerAuditorSinAsignar).expect(403);
+      });
+
       it('403: el rol JUEZ_TRAMITE no puede leer libros', async () => {
         await obtener(cuentaMensualId, bearerJuez).expect(403);
       });
@@ -497,7 +505,7 @@ describe('Libro banco (e2e)', () => {
         ['ADMIN', () => bearerAdmin],
         ['AUDITOR', () => bearerAuditor],
       ])(
-        '200: el rol %s lee la rendición de cualquier organismo',
+        '200: el rol %s lee la rendición (el AUDITOR, porque tiene asignado el organismo)',
         async (_rol, bearer) => {
           const res = await obtener(cuentaMensualId, bearer()).expect(200);
           expect(

@@ -44,6 +44,9 @@ describe('Organismos (e2e)', () => {
         rubro: 'Educacion',
         active: true,
         fechaCreacion: expect.any(String),
+        //un organismo nuevo todavía no tiene auditor
+        auditorId: null,
+        auditor: null,
       });
       expect(Number.isNaN(Date.parse(res.body.fechaCreacion))).toBe(false);
 
@@ -127,6 +130,8 @@ describe('Organismos (e2e)', () => {
           rubro: expect.any(String),
           active: expect.any(Boolean),
           fechaCreacion: expect.any(String),
+          auditorId: expect.toBeOneOf([null, expect.any(Number)]),
+          auditor: expect.toBeOneOf([null, expect.any(Object)]),
         });
       }
 

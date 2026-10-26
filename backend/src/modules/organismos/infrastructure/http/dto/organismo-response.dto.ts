@@ -13,3 +13,25 @@ export const OrganismoResponseSchema = z.object({
 export class OrganismoResponseDto extends createZodDto(
   OrganismoResponseSchema,
 ) {}
+
+//listado del juez y del administrador: suma el auditor asignado (el responsable no ve esos datos)
+export const OrganismoConAuditorResponseSchema = OrganismoResponseSchema.extend(
+  {
+    auditorId: z
+      .number()
+      .int()
+      .nullable()
+      .describe('Auditor asignado al organismo; null si no tiene'),
+    auditor: z
+      .object({
+        id: z.number().int(),
+        nombre: z.string(),
+        apellido: z.string(),
+      })
+      .nullable(),
+  },
+);
+
+export class OrganismoConAuditorResponseDto extends createZodDto(
+  OrganismoConAuditorResponseSchema,
+) {}

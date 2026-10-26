@@ -13,6 +13,7 @@ import { ResolverCuentaMensualUseCase } from './application/use-cases/resolver-c
 import { PresentarCuentaMensualUseCase } from './application/use-cases/presentar-cuenta-mensual.use-case.js';
 import { ListarCuentasMensualesUseCase } from './application/use-cases/listar-cuentas-mensuales.use-case.js';
 import { ResponsableDelOrganismoService } from './application/services/responsable-del-organismo.service.js';
+import { AccesoCuentaService } from './application/services/acceso-cuenta.service.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ResponsableDelOrganismoService } from './application/services/responsab
     PresentarCuentaMensualUseCase,
     ListarCuentasMensualesUseCase,
     ResponsableDelOrganismoService,
+    AccesoCuentaService,
     {
       provide: CuentaMensualResolverPort,
       useClass: TypeOrmCuentaMensualResolverAdapter,
@@ -39,6 +41,7 @@ import { ResponsableDelOrganismoService } from './application/services/responsab
     CuentaMensualRepositoryPort,
     ResolverCuentaMensualUseCase,
     ResponsableDelOrganismoService,
+    AccesoCuentaService,
   ],
 })
 export class CuentasModule {}

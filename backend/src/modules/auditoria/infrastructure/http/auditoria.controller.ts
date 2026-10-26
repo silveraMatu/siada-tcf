@@ -18,6 +18,8 @@ import {
 import { JwtAuthGuard } from '../../../auth/infrastructure/security/jwt-auth.guard.js';
 import { Roles } from '../../../auth/infrastructure/security/roles.decorator.js';
 import { RolesGuard } from '../../../auth/infrastructure/security/roles.guard.js';
+import { UsuarioActual } from '../../../auth/infrastructure/security/usuario-actual.decorator.js';
+import type { UsuarioAutenticado } from '../../../auth/infrastructure/security/usuario-autenticado.js';
 import { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
 import { BuscarIngresosEgresosUseCase } from '../../../ingresos-egresos/application/use-cases/buscar-ingresos-egresos.use-case.js';
 import { ObtenerLibroBancoUseCase } from '../../../libro-banco/application/use-cases/obtener-libro-banco.use-case.js';
@@ -92,9 +94,17 @@ export class AuditoriaController {
   @ApiResponse({ status: 404, description: 'La Cuenta Mensual no existe' })
   async ejecutarLibroBanco(
     @Param() { cuentaMensualId }: AuditoriaParamsDto,
+    @UsuarioActual() usuario: UsuarioAutenticado,
   ): Promise<ResultadoValidacionResponseDto[]> {
     //TODO: endpoint temporal, la auditoría se disparará desde el flujo de la cuenta mensual
-    const libros = await this.obtenerLibroBancoUseCase.execute(cuentaMensualId);
+    //también verifica que el AUDITOR tenga asignado el organismo de la cuenta
+    const libros = await this.obtenerLibroBancoUseCase.execute(
+      cuentaMensualId,
+      {
+        usuarioId: usuario.id,
+        roles: usuario.roles,
+      },
+    );
     const ingresosEgresos =
       await this.buscarIngresosEgresosUseCase.execute(cuentaMensualId);
     const resultados = await this.auditarLibroBancoUseCase.execute(
@@ -120,9 +130,12 @@ export class AuditoriaController {
   @ApiResponse({ status: 404, description: 'La Cuenta Mensual no existe' })
   async listarObservaciones(
     @Param() { cuentaMensualId }: AuditoriaParamsDto,
+    @UsuarioActual() usuario: UsuarioAutenticado,
   ): Promise<ObservacionResponseDto[]> {
-    const observaciones =
-      await this.listarObservacionesUseCase.execute(cuentaMensualId);
+    const observaciones = await this.listarObservacionesUseCase.execute(
+      cuentaMensualId,
+      { usuarioId: usuario.id, roles: usuario.roles },
+    );
     return observaciones.map((o) => this.toResponse(o));
   }
 }

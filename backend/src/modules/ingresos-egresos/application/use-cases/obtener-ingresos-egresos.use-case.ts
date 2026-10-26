@@ -4,7 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CuentaMensualRepositoryPort } from '../../../cuentas/application/ports/out/cuenta-mensual-repository.port.js';
-import { ResponsableDelOrganismoService } from '../../../cuentas/application/services/responsable-del-organismo.service.js';
+import {
+  AccesoCuentaService,
+  type ActorAcceso,
+} from '../../../cuentas/application/services/acceso-cuenta.service.js';
 import { IngresosEgresos } from '../../domain/entities/ingresos-egresos.domain.js';
 import { IngresosEgresosRepositoryPort } from '../ports/out/ingresos-egresos-repository.port.js';
 
@@ -13,13 +16,13 @@ export class ObtenerIngresosEgresosUseCase {
   constructor(
     private readonly ingresosEgresosRepository: IngresosEgresosRepositoryPort,
     private readonly cuentaMensualRepository: CuentaMensualRepositoryPort,
-    private readonly responsableDelOrganismo: ResponsableDelOrganismoService,
+    private readonly accesoCuenta: AccesoCuentaService,
   ) {}
 
-  //con 'soloResponsableDe' solo el responsable del organismo dueño de la cuenta puede leerla
+  //solo lee quien tiene acceso al organismo de la cuenta (ver AccesoCuentaService)
   async execute(
     cuentaMensualId: number,
-    soloResponsableDe?: { usuarioId: number },
+    actor: ActorAcceso,
   ): Promise<IngresosEgresos> {
     if (!(await this.cuentaMensualRepository.existe(cuentaMensualId))) {
       throw new NotFoundException(
@@ -27,19 +30,12 @@ export class ObtenerIngresosEgresosUseCase {
       );
     }
 
-    if (soloResponsableDe) {
-      const organismoId =
-        await this.cuentaMensualRepository.obtenerOrganismoId(cuentaMensualId);
-      if (
-        !(await this.responsableDelOrganismo.esResponsableDelOrganismo(
-          soloResponsableDe.usuarioId,
-          organismoId,
-        ))
-      ) {
-        throw new ForbiddenException(
-          'La Cuenta Mensual no pertenece al organismo del responsable.',
-        );
-      }
+    const organismoId =
+      await this.cuentaMensualRepository.obtenerOrganismoId(cuentaMensualId);
+    if (!(await this.accesoCuenta.puedeLeer(actor, organismoId))) {
+      throw new ForbiddenException(
+        'La Cuenta Mensual no pertenece a un organismo al que tenga acceso.',
+      );
     }
 
     const libro =

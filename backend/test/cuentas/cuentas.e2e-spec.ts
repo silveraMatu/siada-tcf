@@ -12,6 +12,7 @@ import {
   cargarIngresosEgresos,
   cargarLibro,
   crearResponsableConSesion,
+  crearAuditorConSesion,
   crearSesionConRol,
   fijarEstadoCuenta,
   habilitarUsuario,
@@ -496,22 +497,42 @@ describe('Cuentas (e2e)', () => {
         expect(sinLibros.libros).toEqual([]);
       });
 
-      it('200: ?estado=LISTO_PARA_AUDITAR trae solo las presentadas (un AUDITOR puede)', async () => {
-        const auditor = await registrarUsuarioConCredenciales(app);
-        await habilitarUsuario(app, auditor.id, ['AUDITOR']);
-        const login = await request(app.getHttpServer())
-          .post('/api/v1/auth/login')
-          .send({ email: auditor.email, password: auditor.password })
-          .expect(200);
+      it('200: ?estado=LISTO_PARA_AUDITAR trae solo las presentadas (un AUDITOR con el organismo asignado)', async () => {
+        const auditor = await crearAuditorConSesion(app, organismoId);
 
         const res = await listar(
           '?estado=LISTO_PARA_AUDITAR',
-          `Bearer ${login.body.accessToken}`,
+          auditor.bearer,
         ).expect(200);
 
         expect(ids(res.body)).toContain(cuentaPresentarId);
-        for (const cuenta of res.body)
+        for (const cuenta of res.body) {
           expect(cuenta.estado).toBe('LISTO_PARA_AUDITAR');
+          expect(cuenta.organismoId).toBe(organismoId);
+        }
+      });
+
+      it('200: un AUDITOR sin organismos asignados recibe una lista vacía', async () => {
+        const auditor = await crearAuditorConSesion(app);
+
+        const res = await listar('', auditor.bearer).expect(200);
+
+        expect(res.body).toEqual([]);
+      });
+
+      it('200: un AUDITOR solo ve las cuentas de los organismos que tiene asignados', async () => {
+        const ajeno = await obtenerOrganismoAjenoId(dataSource);
+        const delAjeno = await crearAuditorConSesion(app, ajeno);
+
+        const res = await listar('', delAjeno.bearer).expect(200);
+
+        //en el organismo ajeno no hay cuentas de las que usa este spec
+        expect(ids(res.body)).not.toContain(cuentaPresentarId);
+        for (const cuenta of res.body) expect(cuenta.organismoId).toBe(ajeno);
+        //al reasignar el organismo base a otro auditor, el anterior deja de verlo
+        const nuevo = await crearAuditorConSesion(app, organismoId);
+        const delBase = await listar('', nuevo.bearer).expect(200);
+        expect(ids(delBase.body)).toContain(cuentaPresentarId);
       });
 
       it('200: ?estado=EN_BORRADOR no incluye la cuenta presentada', async () => {

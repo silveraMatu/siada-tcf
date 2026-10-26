@@ -120,7 +120,7 @@ export class CuentasController {
   @ApiOperation({
     summary: 'Listar cuentas mensuales, opcionalmente filtradas por estado',
     description:
-      'Pensado para el Auditor: ?estado=LISTO_PARA_AUDITAR trae solo las cuentas ya presentadas. Ordenadas por id. Cada cuenta incluye un resumen de sus libros (tipo LIBRO_BANCO o INGRESOS_EGRESOS, N° de cuenta corriente, cantidad de transacciones y fechas extremas), sin las transacciones: primero los libros banco y después el de ingresos y egresos.',
+      'Pensado para el Auditor: ?estado=LISTO_PARA_AUDITAR trae solo las cuentas ya presentadas, y un AUDITOR solo ve las de los organismos que tiene asignados (un ADMIN ve todas). Ordenadas por id. Cada cuenta incluye un resumen de sus libros (tipo LIBRO_BANCO o INGRESOS_EGRESOS, N° de cuenta corriente, cantidad de transacciones y fechas extremas), sin las transacciones: primero los libros banco y después el de ingresos y egresos.',
   })
   @ApiResponse({
     status: 200,
@@ -130,10 +130,13 @@ export class CuentasController {
   @ApiResponse({ status: 400, description: 'El estado no es válido' })
   async listar(
     @Query() { estado }: ListarCuentasMensualesQueryDto,
+    @UsuarioActual() usuario: UsuarioAutenticado,
   ): Promise<CuentaMensualListadaResponseDto[]> {
-    const cuentas = await this.listarCuentasMensualesUseCase.execute({
-      estado,
-    });
+    //un AUDITOR solo ve las cuentas de los organismos que tiene asignados
+    const cuentas = await this.listarCuentasMensualesUseCase.execute(
+      { estado },
+      { usuarioId: usuario.id, roles: usuario.roles },
+    );
     return cuentas.map((cuenta) => ({
       id: cuenta.id,
       mes: cuenta.mes,
