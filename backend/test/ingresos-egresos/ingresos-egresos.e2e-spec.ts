@@ -24,6 +24,7 @@ describe('Ingresos y egresos (e2e)', () => {
   let cuentaMensualId: number;
   let cuentaMensualSinLibroId: number;
   let bearerResponsable: string;
+  let usuarioResponsableId: number;
   let bearerResponsableAjeno: string;
   let bearerAdmin: string;
   let bearerAuditor: string;
@@ -121,8 +122,9 @@ describe('Ingresos y egresos (e2e)', () => {
       MES_SIN_LIBRO,
     );
 
-    bearerResponsable = (await crearResponsableConSesion(app, organismoId))
-      .bearer;
+    const responsable = await crearResponsableConSesion(app, organismoId);
+    bearerResponsable = responsable.bearer;
+    usuarioResponsableId = responsable.usuarioId;
     bearerResponsableAjeno = (
       await crearResponsableConSesion(app, organismoAjenoId)
     ).bearer;
@@ -223,6 +225,8 @@ describe('Ingresos y egresos (e2e)', () => {
         cuentaMensualId,
         numeroCuentaCte: '12345/6',
         fechaCreacion: expect.any(String),
+        subidoPorId: usuarioResponsableId,
+        hashContenido: expect.stringMatching(/^[0-9a-f]{64}$/),
         transacciones: [
           {
             id: expect.any(Number),

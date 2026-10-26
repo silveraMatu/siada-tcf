@@ -9,6 +9,15 @@ export const CuentaMensualResponseSchema = z.object({
   cuentaAnualId: z.number().int(),
   estado: z.enum(EstadoCuentaMensual),
   fechaCreacion: z.iso.datetime(),
+  presentadaPorId: z
+    .number()
+    .int()
+    .nullable()
+    .describe('Quién presentó la rendición; null mientras está en borrador'),
+  presentadaEn: z.iso
+    .datetime()
+    .nullable()
+    .describe('Cuándo se presentó; null mientras está en borrador'),
 });
 
 export class CuentaMensualResponseDto extends createZodDto(

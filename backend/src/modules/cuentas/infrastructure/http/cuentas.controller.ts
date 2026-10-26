@@ -57,6 +57,8 @@ export class CuentasController {
       cuentaAnualId: cuentaMensual.cuentaAnualId,
       estado: cuentaMensual.estado,
       fechaCreacion: cuentaMensual.fechaCreacion!.toISOString(),
+      presentadaPorId: cuentaMensual.presentadaPorId ?? null,
+      presentadaEn: cuentaMensual.presentadaEn?.toISOString() ?? null,
     };
   }
 
@@ -138,6 +140,8 @@ export class CuentasController {
       cuentaAnualId: cuenta.cuentaAnualId,
       estado: cuenta.estado,
       fechaCreacion: cuenta.fechaCreacion.toISOString(),
+      presentadaPorId: cuenta.presentadaPorId,
+      presentadaEn: cuenta.presentadaEn?.toISOString() ?? null,
       organismoId: cuenta.organismoId,
       organismoNombre: cuenta.organismoNombre,
       ejercicioFiscal: cuenta.ejercicioFiscal,

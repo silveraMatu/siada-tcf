@@ -31,6 +31,8 @@ export const IngresosEgresosResponseSchema = z.object({
   cuentaMensualId: z.number().int(),
   numeroCuentaCte: z.string().nullable(),
   fechaCreacion: z.iso.datetime(),
+  subidoPorId: z.number().int(),
+  hashContenido: z.string().describe('sha256 del contenido cargado'),
   transacciones: z.array(TransaccionIngresoEgresoResponseSchema),
 });
 

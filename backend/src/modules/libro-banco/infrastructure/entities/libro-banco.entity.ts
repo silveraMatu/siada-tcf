@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { TransaccionLibroBancoEntity } from './transaccion-libro-banco.entity.js';
 import { CuentaMensualEntity } from '../../../cuentas/infrastructure/entities/cuenta-mensual.entity.js';
+import { UsuarioEntity } from '../../../usuarios/infrastructure/entities/usuario.entity.js';
 
 //un solo libro por cuenta corriente dentro de la rendición mensual
 //la columna sigue admitiendo NULL (libros anteriores a esta regla); el N° se exige al ingestar
@@ -28,6 +29,17 @@ export class LibroBancoEntity {
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
+
+  //quién lo subió y sha256 de su contenido; la fecha de subida es fecha_creacion
+  @Column({ type: 'int', name: 'subido_por_id' })
+  subidoPorId: number;
+
+  @Column({ type: 'char', length: 64, name: 'hash_contenido' })
+  hashContenido: string;
+
+  @ManyToOne(() => UsuarioEntity)
+  @JoinColumn({ name: 'subido_por_id' })
+  subidoPor: Relation<UsuarioEntity>;
 
   @ManyToOne(
     () => CuentaMensualEntity,

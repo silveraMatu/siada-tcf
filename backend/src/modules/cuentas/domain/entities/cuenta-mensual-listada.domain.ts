@@ -14,5 +14,7 @@ export class CuentaMensualListada {
     public readonly organismoNombre: string,
     public readonly ejercicioFiscal: number,
     public readonly libros: ResumenLibro[],
+    public readonly presentadaPorId: number | null,
+    public readonly presentadaEn: Date | null,
   ) {}
 }

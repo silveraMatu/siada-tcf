@@ -65,6 +65,18 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
     return resultado.affected === 1;
   }
 
+  async presentar(id: number, usuarioId: number): Promise<boolean> {
+    const resultado = await this.repository.update(
+      { id, estado: EstadoCuentaMensual.EN_BORRADOR },
+      {
+        estado: EstadoCuentaMensual.LISTO_PARA_AUDITAR,
+        presentadaPorId: usuarioId,
+        presentadaEn: new Date(),
+      },
+    );
+    return resultado.affected === 1;
+  }
+
   async listar(filtros?: {
     estado?: EstadoCuentaMensual;
   }): Promise<CuentaMensualListada[]> {
@@ -81,6 +93,8 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
       .addSelect('ca.organismoId', 'organismoId')
       .addSelect('o.nombre', 'organismoNombre')
       .addSelect('ca.ejercicioFiscal', 'ejercicioFiscal')
+      .addSelect('cm.presentadaPorId', 'presentadaPorId')
+      .addSelect('cm.presentadaEn', 'presentadaEn')
       .orderBy('cm.id', 'ASC');
     if (filtros?.estado)
       consulta.where('cm.estado = :estado', { estado: filtros.estado });
@@ -94,6 +108,8 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
       organismoId: number;
       organismoNombre: string;
       ejercicioFiscal: number;
+      presentadaPorId: number | null;
+      presentadaEn: Date | null;
     }>();
     const librosPorCuenta = await this.resumirLibros(filas.map((f) => f.id));
     return filas.map(
@@ -108,6 +124,8 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
           fila.organismoNombre,
           fila.ejercicioFiscal,
           librosPorCuenta.get(fila.id) ?? [],
+          fila.presentadaPorId,
+          fila.presentadaEn,
         ),
     );
   }

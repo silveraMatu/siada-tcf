@@ -26,6 +26,8 @@ export class LibroBancoMapper {
       transacciones,
       entity.id,
       entity.fechaCreacion,
+      entity.subidoPorId,
+      entity.hashContenido,
     );
   }
 
@@ -34,6 +36,8 @@ export class LibroBancoMapper {
     if (domain.id) entity.id = domain.id;
     entity.cuentaMensualId = domain.cuentaMensualId;
     entity.numeroCuentaCte = domain.numeroCuentaCte;
+    entity.subidoPorId = domain.subidoPorId!;
+    entity.hashContenido = domain.hashContenido!;
 
     entity.transacciones = domain.transacciones.map((t) => {
       const transaccionEntity = new TransaccionLibroBancoEntity();

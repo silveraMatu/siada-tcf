@@ -10,6 +10,7 @@ import { ResponsableDelOrganismoService } from '../../../cuentas/application/ser
 import { LibroBanco } from '../../domain/entities/libro-banco.domain.js';
 import { TransaccionLibroBanco } from '../../domain/entities/transaccion-libro-banco.domain.js';
 import { LibroBancoDuplicadoError } from '../../domain/errors/libro-banco-duplicado.error.js';
+import { calcularHashContenido } from '../../../../common/hash-contenido.js';
 import { ContextoActividadPort } from '../../../registro-actividad/application/ports/out/contexto-actividad.port.js';
 
 //entrada del caso de uso, independiente del DTO HTTP
@@ -94,10 +95,27 @@ export class IngestarLibroBancoUseCase {
         ),
     );
 
+    const hashContenido = calcularHashContenido([
+      comando.numeroCuentaCte,
+      transaccionesDomain.map((t) => [
+        t.fecha,
+        t.cheque,
+        t.aLaOrdenDe,
+        t.depositos,
+        t.retiro,
+        t.saldo,
+      ]),
+    ]);
+    this.actividad.detalle({ hashContenido });
+
     const libroBancoDomain = new LibroBanco(
       cuentaMensualId,
       comando.numeroCuentaCte,
       transaccionesDomain,
+      undefined,
+      undefined,
+      usuarioId,
+      hashContenido,
     );
 
     //un solo libro por cuenta corriente en la rendición: otro N° convive, el mismo se reemplaza o se rechaza

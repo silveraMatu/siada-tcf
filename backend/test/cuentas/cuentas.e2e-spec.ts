@@ -340,8 +340,27 @@ describe('Cuentas (e2e)', () => {
         id: cuentaPresentarId,
         mes: MES_PRESENTAR,
         estado: 'LISTO_PARA_AUDITAR',
+        presentadaPorId: propio.usuarioId,
       });
+      //queda registrado cuándo: hace instantes
+      expect(Date.now() - Date.parse(res.body.presentadaEn)).toBeLessThan(
+        60_000,
+      );
       expect(await estadoEnBase(cuentaPresentarId)).toBe('LISTO_PARA_AUDITAR');
+      const [fila] = await dataSource.query(
+        `SELECT presentada_por_id, presentada_en FROM cuentas_mensuales WHERE id = $1`,
+        [cuentaPresentarId],
+      );
+      expect(fila.presentada_por_id).toBe(propio.usuarioId);
+      expect(fila.presentada_en).toBeInstanceOf(Date);
+    });
+
+    it('una cuenta en borrador no tiene quién ni cuándo presentó', async () => {
+      const [fila] = await dataSource.query(
+        `SELECT presentada_por_id, presentada_en FROM cuentas_mensuales WHERE id = $1`,
+        [cuentaIncompletaId],
+      );
+      expect(fila).toEqual({ presentada_por_id: null, presentada_en: null });
     });
 
     it('409: presentarla de nuevo falla y no cambia el estado', async () => {
@@ -449,6 +468,23 @@ describe('Cuentas (e2e)', () => {
         expect(
           tipos.filter((t: string) => t === 'INGRESOS_EGRESOS'),
         ).toHaveLength(1);
+      });
+
+      it('200: el listado indica quién y cuándo presentó cada cuenta (null en borrador)', async () => {
+        const res = await listar('', bearerAdmin).expect(200);
+
+        const presentada = res.body.find(
+          (c: { id: number }) => c.id === cuentaPresentarId,
+        );
+        const borrador = res.body.find(
+          (c: { id: number }) => c.id === cuentaIncompletaId,
+        );
+        expect(presentada.presentadaPorId).toEqual(expect.any(Number));
+        expect(presentada.presentadaEn).toEqual(expect.any(String));
+        expect(borrador).toMatchObject({
+          presentadaPorId: null,
+          presentadaEn: null,
+        });
       });
 
       it('200: una cuenta sin libros trae la lista de libros vacía', async () => {

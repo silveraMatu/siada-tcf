@@ -9,6 +9,8 @@ export class CuentaMensualMapper {
       entity.estado,
       entity.id,
       entity.fechaCreacion,
+      entity.presentadaPorId,
+      entity.presentadaEn,
     );
   }
 

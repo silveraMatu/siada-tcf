@@ -48,6 +48,8 @@ export class IngresosEgresosController {
       cuentaMensualId: libro.cuentaMensualId,
       numeroCuentaCte: libro.numeroCuentaCte,
       fechaCreacion: libro.fechaCreacion!.toISOString(),
+      subidoPorId: libro.subidoPorId!,
+      hashContenido: libro.hashContenido!,
       transacciones: libro.transacciones.map((t) => ({
         id: t.id!,
         fila: t.fila,

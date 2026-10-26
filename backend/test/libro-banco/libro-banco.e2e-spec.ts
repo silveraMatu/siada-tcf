@@ -26,6 +26,7 @@ describe('Libro banco (e2e)', () => {
   let cuentaMensualSinLibroId: number;
   let libroIngestadoId: number;
   let bearerResponsable: string;
+  let usuarioResponsableId: number;
   let bearerResponsableAjeno: string;
   let bearerAdmin: string;
   let bearerAuditor: string;
@@ -100,8 +101,9 @@ describe('Libro banco (e2e)', () => {
       MES_SIN_LIBRO,
     );
 
-    bearerResponsable = (await crearResponsableConSesion(app, organismoId))
-      .bearer;
+    const responsable = await crearResponsableConSesion(app, organismoId);
+    usuarioResponsableId = responsable.usuarioId;
+    bearerResponsable = responsable.bearer;
     bearerResponsableAjeno = (
       await crearResponsableConSesion(
         app,
@@ -129,6 +131,9 @@ describe('Libro banco (e2e)', () => {
       expect(res.body.cuentaMensualId).toBe(cuentaMensualId);
       expect(res.body.numeroCuentaCte).toBe(NUMERO_PRINCIPAL);
       expect(res.body.transacciones).toHaveLength(2);
+      //quién lo subió y el hash de lo cargado
+      expect(res.body.subidoPorId).toBe(usuarioResponsableId);
+      expect(res.body.hashContenido).toMatch(/^[0-9a-f]{64}$/);
       for (const t of res.body.transacciones)
         expect(t.id).toEqual(expect.any(Number));
       libroIngestadoId = res.body.id;

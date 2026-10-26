@@ -7,7 +7,6 @@ import {
 import { CuentaMensualRepositoryPort } from '../ports/out/cuenta-mensual-repository.port.js';
 import { ResponsableDelOrganismoService } from '../services/responsable-del-organismo.service.js';
 import { CuentaMensual } from '../../domain/entities/cuenta-mensual.domain.js';
-import { EstadoCuentaMensual } from '../../domain/enums/estado-cuenta-mensual.enum.js';
 import { ContextoActividadPort } from '../../../registro-actividad/application/ports/out/contexto-actividad.port.js';
 
 //el responsable envía su cuenta a auditoría: desde ahí la evidencia (libros) queda inmutable
@@ -61,10 +60,9 @@ export class PresentarCuentaMensualUseCase {
     }
 
     //atómico: si otra presentación se coló entre la lectura y este update, no pisa nada
-    const cambio = await this.cuentaMensualRepository.cambiarEstado(
+    const cambio = await this.cuentaMensualRepository.presentar(
       cuentaMensualId,
-      EstadoCuentaMensual.EN_BORRADOR,
-      EstadoCuentaMensual.LISTO_PARA_AUDITAR,
+      usuarioId,
     );
     if (!cambio) {
       throw new ConflictException('La cuenta ya fue presentada');

@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { CuentaAnualEntity } from './cuenta-anual.entity.js';
 import { LibroBancoEntity } from '../../../libro-banco/infrastructure/entities/libro-banco.entity.js';
+import { UsuarioEntity } from '../../../usuarios/infrastructure/entities/usuario.entity.js';
 import { EstadoCuentaMensual } from '../../domain/enums/estado-cuenta-mensual.enum.js';
 
 @Entity('cuentas_mensuales')
@@ -35,6 +36,17 @@ export class CuentaMensualEntity {
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
+
+  //quién presentó la rendición y cuándo; la bitácora guarda además el evento completo
+  @Column({ type: 'int', name: 'presentada_por_id', nullable: true })
+  presentadaPorId: number | null;
+
+  @Column({ type: 'timestamptz', name: 'presentada_en', nullable: true })
+  presentadaEn: Date | null;
+
+  @ManyToOne(() => UsuarioEntity, { nullable: true })
+  @JoinColumn({ name: 'presentada_por_id' })
+  presentadaPor: Relation<UsuarioEntity> | null;
 
   @ManyToOne(
     () => CuentaAnualEntity,

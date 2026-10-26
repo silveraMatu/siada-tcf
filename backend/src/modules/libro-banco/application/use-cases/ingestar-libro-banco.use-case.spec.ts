@@ -41,6 +41,9 @@ class CuentaMensualRepositorioFalso extends CuentaMensualRepositoryPort {
   documentosFaltantes(): Promise<string[]> {
     return Promise.resolve([]);
   }
+  presentar(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
   cambiarEstado(): Promise<boolean> {
     return Promise.resolve(false);
   }
@@ -176,6 +179,25 @@ describe('IngestarLibroBancoUseCase', () => {
     expect(libros.guardados[0].cuentaMensualId).toBe(ID_CUENTA);
     expect(libros.guardados[0].numeroCuentaCte).toBe('100234/1');
     expect(libros.reemplazos).toEqual([]);
+  });
+
+  it('guarda quién lo subió y el hash de su contenido', async () => {
+    const { libros, casoDeUso } = armar(enBorrador);
+    const otroSaldo = {
+      ...comando,
+      transacciones: [{ ...comando.transacciones[0], saldo: 91 }],
+    };
+
+    await casoDeUso.execute(ID_CUENTA, comando, ID_USUARIO);
+    await casoDeUso.execute(ID_CUENTA, comando, ID_USUARIO);
+    await casoDeUso.execute(ID_CUENTA, otroSaldo, ID_USUARIO);
+
+    const [primero, repetido, distinto] = libros.guardados;
+    expect(primero.subidoPorId).toBe(ID_USUARIO);
+    expect(primero.hashContenido).toMatch(/^[0-9a-f]{64}$/);
+    //mismo contenido, mismo hash; otro dato, otro hash
+    expect(repetido.hashContenido).toBe(primero.hashContenido);
+    expect(distinto.hashContenido).not.toBe(primero.hashContenido);
   });
 
   it('un libro con otro N° de cuenta se suma a los ya cargados', async () => {

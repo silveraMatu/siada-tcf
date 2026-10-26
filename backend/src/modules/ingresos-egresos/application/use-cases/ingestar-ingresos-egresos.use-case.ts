@@ -10,6 +10,7 @@ import { IngresosEgresos } from '../../domain/entities/ingresos-egresos.domain.j
 import { TransaccionIngresoEgreso } from '../../domain/entities/transaccion-ingreso-egreso.domain.js';
 import { IngresosEgresosDuplicadoError } from '../../domain/errors/ingresos-egresos-duplicado.error.js';
 import { IngresosEgresosRepositoryPort } from '../ports/out/ingresos-egresos-repository.port.js';
+import { calcularHashContenido } from '../../../../common/hash-contenido.js';
 import { ContextoActividadPort } from '../../../registro-actividad/application/ports/out/contexto-actividad.port.js';
 
 //fila del comando, independiente del DTO HTTP; los textos opcionales pueden venir vacíos
@@ -101,18 +102,53 @@ export class IngestarIngresosEgresosUseCase {
       );
     }
 
+    const numeroCuentaCte = textoOpcional(comando.numeroCuentaCte);
+    const transacciones = comando.transacciones.map(
+      (t) =>
+        new TransaccionIngresoEgreso({
+          ...t,
+          cheque: textoOpcional(t.cheque),
+          comprobante: textoOpcional(t.comprobante),
+          cuentasVariasConcepto: textoOpcional(t.cuentasVariasConcepto),
+        }),
+    );
+    //todos los campos de cada fila, en orden fijo
+    const hashContenido = calcularHashContenido([
+      numeroCuentaCte,
+      transacciones.map((t) => [
+        t.fila,
+        t.fecha,
+        t.concepto,
+        t.cheque,
+        t.comprobante,
+        t.cajaDebe,
+        t.cajaHaber,
+        t.cajaSaldo,
+        t.bancoDebe,
+        t.bancoHaber,
+        t.bancoSaldo,
+        t.egresoInc1,
+        t.egresoInc2,
+        t.egresoInc3,
+        t.egresoInc4,
+        t.egresoInc5,
+        t.ingresoMunicipal,
+        t.ingresoOtras,
+        t.cuentasVariasConcepto,
+        t.cuentasVariasDebe,
+        t.cuentasVariasHaber,
+      ]),
+    ]);
+    this.actividad.detalle({ hashContenido });
+
     const libro = new IngresosEgresos(
       cuentaMensualId,
-      textoOpcional(comando.numeroCuentaCte),
-      comando.transacciones.map(
-        (t) =>
-          new TransaccionIngresoEgreso({
-            ...t,
-            cheque: textoOpcional(t.cheque),
-            comprobante: textoOpcional(t.comprobante),
-            cuentasVariasConcepto: textoOpcional(t.cuentasVariasConcepto),
-          }),
-      ),
+      numeroCuentaCte,
+      transacciones,
+      undefined,
+      undefined,
+      usuarioId,
+      hashContenido,
     );
 
     //un solo libro por rendición: si ya hay uno se rechaza o se reemplaza

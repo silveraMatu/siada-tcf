@@ -39,6 +39,8 @@ export class IngresosEgresosMapper {
       transacciones,
       entity.id,
       entity.fechaCreacion,
+      entity.subidoPorId,
+      entity.hashContenido,
     );
   }
 
@@ -48,6 +50,8 @@ export class IngresosEgresosMapper {
     if (domain.id) entity.id = domain.id;
     entity.cuentaMensualId = domain.cuentaMensualId;
     entity.numeroCuentaCte = domain.numeroCuentaCte;
+    entity.subidoPorId = domain.subidoPorId!;
+    entity.hashContenido = domain.hashContenido!;
     return entity;
   }
 

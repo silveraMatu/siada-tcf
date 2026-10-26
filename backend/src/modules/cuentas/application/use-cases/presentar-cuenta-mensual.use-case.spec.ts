@@ -20,6 +20,8 @@ const ID_USUARIO = 77;
 //repositorio en memoria con una sola cuenta; registra los cambios de estado pedidos
 class CuentaMensualRepositorioFalso extends CuentaMensualRepositoryPort {
   cambios: [EstadoCuentaMensual, EstadoCuentaMensual][] = [];
+  //quién presentó, tal como lo recibió el repositorio
+  presentadoPor: number[] = [];
   //simula que otra presentación se coló entre la lectura y el update
   perderCarrera = false;
   //documentos obligatorios que le faltan a la cuenta
@@ -46,6 +48,22 @@ class CuentaMensualRepositorioFalso extends CuentaMensualRepositoryPort {
 
   documentosFaltantes(): Promise<string[]> {
     return Promise.resolve(this.faltantes);
+  }
+
+  presentar(_id: number, usuarioId: number): Promise<boolean> {
+    this.cambios.push([
+      EstadoCuentaMensual.EN_BORRADOR,
+      EstadoCuentaMensual.LISTO_PARA_AUDITAR,
+    ]);
+    this.presentadoPor.push(usuarioId);
+    if (this.perderCarrera) return Promise.resolve(false);
+    this.cuenta = new CuentaMensual(
+      this.cuenta!.mes,
+      this.cuenta!.cuentaAnualId,
+      EstadoCuentaMensual.LISTO_PARA_AUDITAR,
+      this.cuenta!.id,
+    );
+    return Promise.resolve(true);
   }
 
   cambiarEstado(
@@ -132,6 +150,8 @@ describe('PresentarCuentaMensualUseCase', () => {
     expect(cuentas.cambios).toEqual([
       [EstadoCuentaMensual.EN_BORRADOR, EstadoCuentaMensual.LISTO_PARA_AUDITAR],
     ]);
+    //quien presenta es quien queda registrado
+    expect(cuentas.presentadoPor).toEqual([ID_USUARIO]);
   });
 
   it('404 si la cuenta no existe, sin cambiar nada', async () => {

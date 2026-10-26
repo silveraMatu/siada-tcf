@@ -21,6 +21,13 @@ export abstract class CuentaMensualRepositoryPort {
     hacia: EstadoCuentaMensual,
   ): Promise<boolean>;
 
+  //presenta la rendición en un único UPDATE atómico: EN_BORRADOR → LISTO_PARA_AUDITAR, guardando quién y
+  //cuándo; false si no existe o ya no estaba en borrador
+  abstract presentar(
+    cuentaMensualId: number,
+    usuarioId: number,
+  ): Promise<boolean>;
+
   //ordenadas por id; sin filtros devuelve todas. Incluye organismo y ejercicio de cada una
   //y un resumen de sus libros (sin transacciones)
   abstract listar(filtros?: {
