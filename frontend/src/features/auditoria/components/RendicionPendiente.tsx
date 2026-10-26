@@ -8,10 +8,18 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { EstadoBadge } from '@/features/cuentas/components/EstadoBadge';
 import { MESES } from '@/features/cuentas/constants';
 import type { CuentaMensualListada } from '@/features/cuentas/types';
 import { LibrosDeRendicion } from '@/features/libro-banco/components/LibrosDeRendicion';
 import { describirLibrosCargados } from '@/features/libro-banco/lib/formato-libro';
+
+/** Qué ofrece el botón según hasta dónde llegó el auditor con esa rendición. */
+function accionDe(estado: string): string {
+  if (estado === 'LISTO_PARA_AUDITAR') return 'Auditar Rendición';
+  if (estado === 'EN_AUDITORIA') return 'Continuar auditoría';
+  return 'Ver auditoría';
+}
 
 /**
  * Una rendición pendiente (organismo + mes), desplegable: cerrada muestra el período y cuántos
@@ -25,6 +33,9 @@ export function RendicionPendiente({
 }) {
   const [abierta, setAbierta] = useState(false);
   const periodo = `${MESES[cuenta.mes - 1]} ${cuenta.ejercicioFiscal}`;
+  const accion = accionDe(cuenta.estado);
+  // las pendientes son todas «Listo para auditar»: solo las demás necesitan decir en qué estado están
+  const mostrarEstado = cuenta.estado !== 'LISTO_PARA_AUDITAR';
 
   return (
     <li>
@@ -35,17 +46,18 @@ export function RendicionPendiente({
               <CollapsibleTrigger cubreEncabezado>{periodo}</CollapsibleTrigger>
             </h3>
             {/* alineado con el título, que lleva el chevron a la izquierda */}
-            <p className="pl-6 text-sm text-muted-foreground">
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-6 text-sm text-muted-foreground">
               {describirLibrosCargados(cuenta.libros.length)}
+              {mostrarEstado && <EstadoBadge estado={cuenta.estado} />}
             </p>
           </div>
           {/* por encima del área clicable del encabezado, para que siga siendo un botón aparte */}
           <Button asChild className="relative z-10 w-full sm:w-auto">
             <Link
               to={`/auditoria/cuenta/${cuenta.id}`}
-              aria-label={`Auditar Rendición de ${cuenta.organismoNombre}, ${periodo}`}
+              aria-label={`${accion} de ${cuenta.organismoNombre}, ${periodo}`}
             >
-              Auditar Rendición
+              {accion}
               <ArrowRight />
             </Link>
           </Button>

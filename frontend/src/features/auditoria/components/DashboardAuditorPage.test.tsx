@@ -3,8 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { useAuthStore } from '@/features/auth/hooks/useAuth';
 import { listarCuentasMensuales } from '@/features/cuentas/api/cuentas.api';
 import type {
   CuentaMensualListada,
@@ -76,20 +77,97 @@ async function alternar(user: Usuario, nombre: string | RegExp) {
   await user.click(await screen.findByRole('button', { name: nombre }));
 }
 
+beforeEach(() => {
+  useAuthStore.setState({ token: null, user: null, isAuthenticated: false });
+});
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
 });
 
 describe('DashboardAuditorPage', () => {
-  it('pide solo las cuentas listas para auditar', async () => {
-    vi.mocked(listarCuentasMensuales).mockResolvedValue([]);
+  it('pide todas las cuentas que ve el auditor, sin filtrar por estado: las pestañas las reparten', async () => {
+    vi.mocked(listarCuentasMensuales).mockResolvedValue([
+      cuenta(7, 1, 'Municipalidad de Pirané', 3, 2026),
+    ]);
     renderPagina();
 
-    await screen.findByText('No hay rendiciones esperando auditoría');
-    expect(vi.mocked(listarCuentasMensuales).mock.calls[0][0]).toBe(
-      'LISTO_PARA_AUDITAR',
-    );
+    await screen.findByText('Municipalidad de Pirané');
+    expect(vi.mocked(listarCuentasMensuales).mock.calls[0][0]).toBeUndefined();
+  });
+
+  describe('pestañas por estado', () => {
+    const enEstado = (
+      id: number,
+      estado: string,
+      organismo = 'Hospital Central',
+    ) => ({
+      ...cuenta(id, 1, organismo, 3, 2026),
+      estado,
+    });
+
+    it('reparte las rendiciones en «Para auditar», «En curso» y «Cerradas» con su cantidad', async () => {
+      vi.mocked(listarCuentasMensuales).mockResolvedValue([
+        enEstado(1, 'LISTO_PARA_AUDITAR'),
+        enEstado(2, 'EN_AUDITORIA'),
+        enEstado(3, 'AUDITADA'),
+        enEstado(4, 'CON_OBSERVACIONES'),
+        enEstado(5, 'EN_BORRADOR'),
+      ]);
+      renderPagina();
+
+      expect(
+        await screen.findByRole('tab', { name: /Para auditar\s*1/ }),
+      ).toBeTruthy();
+      expect(screen.getByRole('tab', { name: /En curso\s*1/ })).toBeTruthy();
+      expect(screen.getByRole('tab', { name: /Cerradas\s*2/ })).toBeTruthy();
+    });
+
+    it('abre en la primera pestaña que tiene rendiciones y cada una ofrece su acción', async () => {
+      vi.mocked(listarCuentasMensuales).mockResolvedValue([
+        enEstado(2, 'EN_AUDITORIA'),
+        enEstado(3, 'AUDITADA', 'Escuela 12'),
+      ]);
+      const user = renderPagina();
+
+      // «Para auditar» está vacía: se arranca en «En curso»
+      expect(
+        (await screen.findByRole('tab', { name: /En curso/ })).getAttribute(
+          'aria-selected',
+        ),
+      ).toBe('true');
+      // con un solo organismo el bloque ya está abierto
+      expect(
+        screen.getByRole('link', {
+          name: /Continuar auditoría de Hospital Central/,
+        }),
+      ).toBeTruthy();
+      expect(
+        screen.getByText('1 auditoría en curso en 1 organismo'),
+      ).toBeTruthy();
+
+      await user.click(screen.getByRole('tab', { name: /Cerradas/ }));
+      expect(
+        await screen.findByRole('link', {
+          name: /Ver auditoría de Escuela 12/,
+        }),
+      ).toBeTruthy();
+      expect(screen.getByText('Auditada')).toBeTruthy();
+    });
+
+    it('una pestaña sin rendiciones lo dice con su propio mensaje', async () => {
+      vi.mocked(listarCuentasMensuales).mockResolvedValue([
+        enEstado(1, 'LISTO_PARA_AUDITAR'),
+      ]);
+      const user = renderPagina();
+
+      await user.click(await screen.findByRole('tab', { name: /En curso/ }));
+
+      expect(
+        await screen.findByText('No hay auditorías en curso'),
+      ).toBeTruthy();
+    });
   });
 
   describe('agrupado por organismo', () => {
@@ -376,12 +454,34 @@ describe('DashboardAuditorPage', () => {
     });
   });
 
-  it('muestra un estado vacío cuando no hay rendiciones pendientes', async () => {
+  it('un auditor sin rendiciones ve que depende de los organismos que le asignan', async () => {
+    useAuthStore.setState({
+      token: 't',
+      user: { sub: 1, email: 'a@b.gob.ar', roles: ['AUDITOR'] },
+      isAuthenticated: true,
+    });
     vi.mocked(listarCuentasMensuales).mockResolvedValue([]);
     renderPagina();
 
     expect(
-      await screen.findByText('No hay rendiciones esperando auditoría'),
+      await screen.findByText('No hay rendiciones para auditar'),
+    ).toBeTruthy();
+    expect(screen.getByText(/le asignó el juez de trámite/)).toBeTruthy();
+  });
+
+  it('el administrador sin rendiciones ve el mensaje general', async () => {
+    useAuthStore.setState({
+      token: 't',
+      user: { sub: 1, email: 'a@b.gob.ar', roles: ['ADMIN'] },
+      isAuthenticated: true,
+    });
+    vi.mocked(listarCuentasMensuales).mockResolvedValue([]);
+    renderPagina();
+
+    expect(
+      await screen.findByText(
+        'Cuando un responsable presente una rendición, aparecerá acá.',
+      ),
     ).toBeTruthy();
   });
 

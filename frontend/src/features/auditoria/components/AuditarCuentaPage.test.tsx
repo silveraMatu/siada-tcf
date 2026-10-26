@@ -166,6 +166,7 @@ describe('AuditarCuentaPage', () => {
     renderPagina('999');
 
     expect(await screen.findByText('No se encontró la rendición')).toBeTruthy();
+    expect(screen.getByText(/no esté asignado a usted/)).toBeTruthy();
     expect(
       screen
         .getByRole('link', { name: /Volver a las rendiciones pendientes/ })

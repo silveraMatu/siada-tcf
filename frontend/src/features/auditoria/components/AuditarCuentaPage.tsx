@@ -88,7 +88,7 @@ export function AuditarCuentaPage() {
         <EmptyState
           icon={SearchX}
           title="No se encontró la rendición"
-          description="Puede que el enlace sea incorrecto o que la rendición ya no exista. Vuelva al listado para elegir otra."
+          description="Puede que el enlace sea incorrecto, que la rendición ya no exista o que su organismo no esté asignado a usted. Vuelva al listado para elegir otra."
         />
       </div>
     );

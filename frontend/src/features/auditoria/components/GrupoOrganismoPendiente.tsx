@@ -13,12 +13,20 @@ interface GrupoOrganismoPendienteProps {
   grupo: GrupoOrganismo;
   /** Cerrado por defecto: el encabezado ya dice cuántas rendiciones y libros esconde. */
   abiertoInicialmente?: boolean;
+  /** «2 rendiciones pendientes»: cómo se nombra la cantidad de rendiciones de la pestaña. */
+  describirRendiciones?: (cantidad: number) => string;
 }
+
+const describirPendientes = (cantidad: number) =>
+  cantidad === 1
+    ? '1 rendición pendiente'
+    : `${cantidad} rendiciones pendientes`;
 
 /** Un organismo con todas sus rendiciones pendientes, desplegable para no repetir ni amontonar el contenido. */
 export function GrupoOrganismoPendiente({
   grupo,
   abiertoInicialmente = false,
+  describirRendiciones = describirPendientes,
 }: GrupoOrganismoPendienteProps) {
   const [abierto, setAbierto] = useState(abiertoInicialmente);
   const idTitulo = `organismo-${grupo.organismoId}`;
@@ -43,10 +51,8 @@ export function GrupoOrganismoPendiente({
                 </CollapsibleTrigger>
               </h2>
               <p className="text-sm text-muted-foreground">
-                {rendiciones === 1
-                  ? '1 rendición pendiente'
-                  : `${rendiciones} rendiciones pendientes`}{' '}
-                · {libros === 1 ? '1 libro' : `${libros} libros`}
+                {describirRendiciones(rendiciones)} ·{' '}
+                {libros === 1 ? '1 libro' : `${libros} libros`}
               </p>
             </header>
             <CollapsibleContent>
