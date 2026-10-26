@@ -114,7 +114,7 @@ export function ScorecardValidaciones({
               {cantidad ?? '—'}
             </span>
             <span className="hidden text-xs text-muted-foreground sm:inline">
-              {resumen ? tarjeta.detalle(resumen) : 'sin ejecutar'}
+              {resumen ? tarjeta.detalle(resumen) : 'sin auditar'}
             </span>
           </button>
         );
