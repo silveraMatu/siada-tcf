@@ -1,8 +1,12 @@
+import type { ResumenPersona } from '../../../../common/resumen-persona.js';
 import { CuentaMensual } from '../../domain/entities/cuenta-mensual.domain.js';
 import { CuentaMensualEntity } from '../entities/cuenta-mensual.entity.js';
 
 export class CuentaMensualMapper {
-  static toDomain(entity: CuentaMensualEntity): CuentaMensual {
+  static toDomain(
+    entity: CuentaMensualEntity,
+    presentadaPor: ResumenPersona | null = null,
+  ): CuentaMensual {
     return new CuentaMensual(
       entity.mes,
       entity.cuentaAnualId,
@@ -11,6 +15,7 @@ export class CuentaMensualMapper {
       entity.fechaCreacion,
       entity.presentadaPorId,
       entity.presentadaEn,
+      presentadaPor,
     );
   }
 

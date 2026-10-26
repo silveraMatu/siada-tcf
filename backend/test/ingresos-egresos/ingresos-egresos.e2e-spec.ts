@@ -234,6 +234,12 @@ describe('Ingresos y egresos (e2e)', () => {
         numeroCuentaCte: '12345/6',
         fechaCreacion: expect.any(String),
         subidoPorId: usuarioResponsableId,
+        //nombre y apellido, nada más (sin DNI, email ni contraseña)
+        subidoPor: {
+          id: usuarioResponsableId,
+          nombre: 'Fixture',
+          apellido: 'E2E',
+        },
         hashContenido: expect.stringMatching(/^[0-9a-f]{64}$/),
         transacciones: [
           {

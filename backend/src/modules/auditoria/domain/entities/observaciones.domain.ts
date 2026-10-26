@@ -1,3 +1,4 @@
+import type { ResumenPersona } from '../../../../common/resumen-persona.js';
 import {
   EstadoObservacion,
   LibroOrigen,
@@ -26,6 +27,8 @@ export interface DatosObservacion {
   motivoDescarte?: string;
   revisadaPorId?: number;
   revisadaEn?: Date;
+  //nombre de quien la revisó, para mostrarlo
+  revisadaPor?: ResumenPersona | null;
 }
 
 //un hallazgo de una regla; se arma con un objeto porque tiene demasiados campos para parámetros posicionales
@@ -46,6 +49,7 @@ export class Observaciones implements DatosObservacion {
   readonly motivoDescarte?: string;
   readonly revisadaPorId?: number;
   readonly revisadaEn?: Date;
+  readonly revisadaPor?: ResumenPersona | null;
 
   constructor(datos: DatosObservacion) {
     this.cuentaMensualId = datos.cuentaMensualId;
@@ -64,5 +68,6 @@ export class Observaciones implements DatosObservacion {
     this.motivoDescarte = datos.motivoDescarte;
     this.revisadaPorId = datos.revisadaPorId;
     this.revisadaEn = datos.revisadaEn;
+    this.revisadaPor = datos.revisadaPor;
   }
 }

@@ -6,6 +6,7 @@ import {
   QueryFailedError,
   Repository,
 } from 'typeorm';
+import { cargarResumenesPersona } from '../../../../../../common/resumen-persona.js';
 import { IngresosEgresosRepositoryPort } from '../../../../application/ports/out/ingresos-egresos-repository.port.js';
 import { IngresosEgresos } from '../../../../domain/entities/ingresos-egresos.domain.js';
 import { IngresosEgresosDuplicadoError } from '../../../../domain/errors/ingresos-egresos-duplicado.error.js';
@@ -68,7 +69,21 @@ export class TypeOrmIngresosEgresosRepositoryAdapter implements IngresosEgresosR
       relations: { transacciones: true },
       order: { transacciones: { id: 'ASC' } },
     });
-    return IngresosEgresosMapper.toDomain(guardado);
+    return await this.aDominio(manager, guardado);
+  }
+
+  //pasa a dominio sumando el nombre de quien subió el libro
+  private async aDominio(
+    manager: EntityManager,
+    entity: IngresosEgresosEntity,
+  ): Promise<IngresosEgresos> {
+    const personas = await cargarResumenesPersona(manager, [
+      entity.subidoPorId,
+    ]);
+    return IngresosEgresosMapper.toDomain(
+      entity,
+      personas.get(entity.subidoPorId) ?? null,
+    );
   }
 
   async guardar(libro: IngresosEgresos): Promise<IngresosEgresos> {
@@ -90,7 +105,7 @@ export class TypeOrmIngresosEgresosRepositoryAdapter implements IngresosEgresosR
       //en el orden del archivo (id de inserción): sin ORDER BY Postgres no garantiza ningún orden
       order: { transacciones: { id: 'ASC' } },
     });
-    return entity ? IngresosEgresosMapper.toDomain(entity) : null;
+    return entity ? await this.aDominio(this.repository.manager, entity) : null;
   }
 
   async reemplazar(

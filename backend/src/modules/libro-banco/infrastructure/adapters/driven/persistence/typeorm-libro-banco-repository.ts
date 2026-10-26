@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import {
+  DataSource,
+  type EntityManager,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
+import { cargarResumenesPersona } from '../../../../../../common/resumen-persona.js';
 import { LibroBancoRepositoryPort } from '../../../../application/ports/out/libro-banco-repository.port.js';
 import { LibroBanco } from '../../../../domain/entities/libro-banco.domain.js';
 import { LibroBancoDuplicadoError } from '../../../../domain/errors/libro-banco-duplicado.error.js';
@@ -40,7 +46,9 @@ export class TypeOrmLibroBancoRepositoryAdapter implements LibroBancoRepositoryP
     const entity = LibroBancoMapper.toEntity(libroBanco);
     try {
       const guardado = await this.repository.save(entity);
-      return LibroBancoMapper.toDomain(guardado);
+      return await this.aDominio(this.repository.manager, [guardado]).then(
+        ([libro]) => libro,
+      );
     } catch (error) {
       throw this.traducirError(error, libroBanco);
     }
@@ -55,7 +63,9 @@ export class TypeOrmLibroBancoRepositoryAdapter implements LibroBancoRepositoryP
       relations: { transacciones: true },
       order: { transacciones: { id: 'ASC' } },
     });
-    return entity ? LibroBancoMapper.toDomain(entity) : null;
+    if (!entity) return null;
+    const [libro] = await this.aDominio(this.repository.manager, [entity]);
+    return libro;
   }
 
   async reemplazar(
@@ -67,7 +77,8 @@ export class TypeOrmLibroBancoRepositoryAdapter implements LibroBancoRepositoryP
         //el ON DELETE CASCADE elimina las transacciones del libro viejo y las observaciones ligadas a ellas
         await manager.delete(LibroBancoEntity, { id: idExistente });
         const guardado = await manager.save(LibroBancoMapper.toEntity(nuevo));
-        return LibroBancoMapper.toDomain(guardado);
+        const [libro] = await this.aDominio(manager, [guardado]);
+        return libro;
       });
     } catch (error) {
       throw this.traducirError(error, nuevo);
@@ -87,6 +98,23 @@ export class TypeOrmLibroBancoRepositoryAdapter implements LibroBancoRepositoryP
       order: { id: 'ASC', transacciones: { id: 'ASC' } },
     });
 
-    return entities.map((entity) => LibroBancoMapper.toDomain(entity));
+    return await this.aDominio(this.repository.manager, entities);
+  }
+
+  //pasa a dominio sumando el nombre de quien subió cada libro (una sola consulta para todos)
+  private async aDominio(
+    manager: EntityManager,
+    entities: LibroBancoEntity[],
+  ): Promise<LibroBanco[]> {
+    const personas = await cargarResumenesPersona(
+      manager,
+      entities.map((e) => e.subidoPorId),
+    );
+    return entities.map((entity) =>
+      LibroBancoMapper.toDomain(
+        entity,
+        personas.get(entity.subidoPorId) ?? null,
+      ),
+    );
   }
 }

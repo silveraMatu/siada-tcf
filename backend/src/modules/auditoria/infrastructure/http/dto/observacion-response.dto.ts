@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { ResumenPersonaSchema } from '../../../../../common/resumen-persona.js';
 import {
   EstadoObservacion,
   LibroOrigen,
@@ -31,6 +32,9 @@ export const ObservacionResponseSchema = z.object({
   diferencia: z.number().nullable().describe('Valor absoluto de la diferencia'),
   motivoDescarte: z.string().nullable(),
   revisadaPorId: z.number().int().nullable(),
+  revisadaPor: ResumenPersonaSchema.nullable().describe(
+    'Nombre de quien la revisó (confirmó o descartó)',
+  ),
   revisadaEn: z.iso.datetime().nullable(),
   transaccionId: z
     .number()

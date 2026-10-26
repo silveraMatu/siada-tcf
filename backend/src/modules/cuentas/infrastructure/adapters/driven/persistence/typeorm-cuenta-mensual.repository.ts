@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { cargarResumenesPersona } from '../../../../../../common/resumen-persona.js';
 import { CuentaMensualRepositoryPort } from '../../../../application/ports/out/cuenta-mensual-repository.port.js';
 import { CuentaMensual } from '../../../../domain/entities/cuenta-mensual.domain.js';
 import { CuentaMensualListada } from '../../../../domain/entities/cuenta-mensual-listada.domain.js';
@@ -25,7 +26,14 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
 
   async buscarPorId(id: number): Promise<CuentaMensual | null> {
     const entity = await this.repository.findOneBy({ id });
-    return entity ? CuentaMensualMapper.toDomain(entity) : null;
+    if (!entity) return null;
+    const personas = await cargarResumenesPersona(this.repository.manager, [
+      entity.presentadaPorId,
+    ]);
+    return CuentaMensualMapper.toDomain(
+      entity,
+      personas.get(entity.presentadaPorId ?? -1) ?? null,
+    );
   }
 
   async obtenerOrganismoId(id: number): Promise<number | null> {
@@ -116,6 +124,10 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
       presentadaPorId: number | null;
       presentadaEn: Date | null;
     }>();
+    const personas = await cargarResumenesPersona(
+      this.repository.manager,
+      filas.map((f) => f.presentadaPorId),
+    );
     const librosPorCuenta = await this.resumirLibros(filas.map((f) => f.id));
     return filas.map(
       (fila) =>
@@ -131,6 +143,7 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
           librosPorCuenta.get(fila.id) ?? [],
           fila.presentadaPorId,
           fila.presentadaEn,
+          personas.get(fila.presentadaPorId ?? -1) ?? null,
         ),
     );
   }

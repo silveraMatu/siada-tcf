@@ -1,10 +1,14 @@
+import type { ResumenPersona } from '../../../../common/resumen-persona.js';
 import { IngresosEgresos } from '../../domain/entities/ingresos-egresos.domain.js';
 import { TransaccionIngresoEgreso } from '../../domain/entities/transaccion-ingreso-egreso.domain.js';
 import { IngresosEgresosEntity } from '../entities/ingresos-egresos.entity.js';
 import { TransaccionIngresoEgresoEntity } from '../entities/transaccion-ingreso-egreso.entity.js';
 
 export class IngresosEgresosMapper {
-  static toDomain(entity: IngresosEgresosEntity): IngresosEgresos {
+  static toDomain(
+    entity: IngresosEgresosEntity,
+    subidoPor: ResumenPersona | null = null,
+  ): IngresosEgresos {
     const transacciones = (entity.transacciones ?? []).map(
       (t) =>
         new TransaccionIngresoEgreso({
@@ -41,6 +45,7 @@ export class IngresosEgresosMapper {
       entity.fechaCreacion,
       entity.subidoPorId,
       entity.hashContenido,
+      subidoPor,
     );
   }
 

@@ -279,6 +279,7 @@ describe('Auditoría (e2e)', () => {
             diferencia: 100,
             motivoDescarte: null,
             revisadaPorId: null,
+            revisadaPor: null,
             revisadaEn: null,
           },
         ],
@@ -388,9 +389,15 @@ describe('Auditoría (e2e)', () => {
         cuentaMensualId,
         versionReglas: '1',
         ejecutadaPorId: auditor.usuarioId,
+        ejecutadaPor: {
+          id: auditor.usuarioId,
+          nombre: 'Fixture',
+          apellido: 'E2E',
+        },
         ejecutadaEn: expect.any(String),
         cerradaEn: null,
         cerradaPorId: null,
+        cerradaPor: null,
         conclusion: null,
         estadoFinal: null,
         observaciones: { abiertas: 1, confirmadas: 0, descartadas: 0 },
@@ -636,6 +643,7 @@ describe('Auditoría (e2e)', () => {
         diferencia: importes[2],
         motivoDescarte: null,
         revisadaPorId: null,
+        revisadaPor: null,
         revisadaEn: null,
       });
       expect(deRegla(res.body, 'V1')!).toMatchObject({

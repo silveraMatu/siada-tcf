@@ -137,6 +137,12 @@ describe('Libro banco (e2e)', () => {
       expect(res.body.transacciones).toHaveLength(2);
       //quién lo subió y el hash de lo cargado
       expect(res.body.subidoPorId).toBe(usuarioResponsableId);
+      //y su nombre, sin ningún otro dato de la persona
+      expect(res.body.subidoPor).toEqual({
+        id: usuarioResponsableId,
+        nombre: 'Fixture',
+        apellido: 'E2E',
+      });
       expect(res.body.hashContenido).toMatch(/^[0-9a-f]{64}$/);
       for (const t of res.body.transacciones)
         expect(t.id).toEqual(expect.any(Number));

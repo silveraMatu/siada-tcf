@@ -1,3 +1,4 @@
+import type { ResumenPersona } from '../../../../common/resumen-persona.js';
 import type { EstadoValidacion } from '../types/auditoria.types.js';
 import type { validationsCode } from '../rules/validations.js';
 import type { NombreLibro } from '../types/auditoria.types.js';
@@ -24,6 +25,9 @@ export interface DatosEjecucionAuditoria {
   cerradaPorId?: number | null;
   conclusion?: string | null;
   estadoFinal?: string | null;
+  //nombres de quien la ejecutó y de quien la cerró, para mostrarlos
+  ejecutadaPor?: ResumenPersona | null;
+  cerradaPor?: ResumenPersona | null;
 }
 
 export class EjecucionAuditoria implements DatosEjecucionAuditoria {
@@ -37,6 +41,8 @@ export class EjecucionAuditoria implements DatosEjecucionAuditoria {
   readonly cerradaPorId: number | null;
   readonly conclusion: string | null;
   readonly estadoFinal: string | null;
+  readonly ejecutadaPor: ResumenPersona | null;
+  readonly cerradaPor: ResumenPersona | null;
 
   constructor(datos: DatosEjecucionAuditoria) {
     this.cuentaMensualId = datos.cuentaMensualId;
@@ -49,6 +55,8 @@ export class EjecucionAuditoria implements DatosEjecucionAuditoria {
     this.cerradaPorId = datos.cerradaPorId ?? null;
     this.conclusion = datos.conclusion ?? null;
     this.estadoFinal = datos.estadoFinal ?? null;
+    this.ejecutadaPor = datos.ejecutadaPor ?? null;
+    this.cerradaPor = datos.cerradaPor ?? null;
   }
 
   estaCerrada(): boolean {

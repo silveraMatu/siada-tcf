@@ -1,3 +1,4 @@
+import type { ResumenPersona } from '../../../../common/resumen-persona.js';
 import { EstadoCuentaMensual } from '../enums/estado-cuenta-mensual.enum.js';
 
 export class CuentaMensual {
@@ -10,6 +11,8 @@ export class CuentaMensual {
     //quién la presentó y cuándo; null mientras está en borrador
     public readonly presentadaPorId?: number | null,
     public readonly presentadaEn?: Date | null,
+    //nombre de quien la presentó, para mostrarlo
+    public readonly presentadaPor?: ResumenPersona | null,
   ) {}
 
   //solo en borrador se pueden cargar o modificar documentos: después la evidencia es inmutable

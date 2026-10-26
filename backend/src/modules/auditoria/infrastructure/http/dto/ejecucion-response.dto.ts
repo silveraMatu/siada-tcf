@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { ResumenPersonaSchema } from '../../../../../common/resumen-persona.js';
 import { ResultadoValidacionResponseSchema } from './resultado-validacion-response.dto.js';
 
 export const EjecucionResponseSchema = z.object({
@@ -9,9 +10,15 @@ export const EjecucionResponseSchema = z.object({
     .string()
     .describe('Versión del conjunto de reglas que corrió'),
   ejecutadaPorId: z.number().int(),
+  ejecutadaPor: ResumenPersonaSchema.nullable().describe(
+    'Nombre de quien ejecutó la auditoría',
+  ),
   ejecutadaEn: z.iso.datetime(),
   cerradaEn: z.iso.datetime().nullable(),
   cerradaPorId: z.number().int().nullable(),
+  cerradaPor: ResumenPersonaSchema.nullable().describe(
+    'Nombre de quien cerró la auditoría; null mientras está en curso',
+  ),
   conclusion: z.string().nullable(),
   estadoFinal: z
     .enum(['AUDITADA', 'CON_OBSERVACIONES'])

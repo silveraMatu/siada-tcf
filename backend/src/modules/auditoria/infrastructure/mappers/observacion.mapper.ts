@@ -1,8 +1,12 @@
+import type { ResumenPersona } from '../../../../common/resumen-persona.js';
 import { Observaciones } from '../../domain/entities/observaciones.domain.js';
 import { ObservacionEntity } from '../entities/observaciones.entity.js';
 
 export class ObservacionMapper {
-  static toDomain(entity: ObservacionEntity): Observaciones {
+  static toDomain(
+    entity: ObservacionEntity,
+    revisadaPor: ResumenPersona | null = null,
+  ): Observaciones {
     return new Observaciones({
       id: entity.id,
       ejecucionId: entity.ejecucionId,
@@ -21,6 +25,7 @@ export class ObservacionMapper {
       motivoDescarte: entity.motivoDescarte ?? undefined,
       revisadaPorId: entity.revisadaPorId ?? undefined,
       revisadaEn: entity.revisadaEn ?? undefined,
+      revisadaPor,
     });
   }
 

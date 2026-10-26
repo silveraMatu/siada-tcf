@@ -123,9 +123,11 @@ export class AuditoriaController {
       cuentaMensualId: ejecucion.cuentaMensualId,
       versionReglas: ejecucion.versionReglas,
       ejecutadaPorId: ejecucion.ejecutadaPorId,
+      ejecutadaPor: ejecucion.ejecutadaPor,
       ejecutadaEn: ejecucion.ejecutadaEn!.toISOString(),
       cerradaEn: ejecucion.cerradaEn?.toISOString() ?? null,
       cerradaPorId: ejecucion.cerradaPorId,
+      cerradaPor: ejecucion.cerradaPor,
       conclusion: ejecucion.conclusion,
       estadoFinal: ejecucion.estadoFinal as
         'AUDITADA' | 'CON_OBSERVACIONES' | null,

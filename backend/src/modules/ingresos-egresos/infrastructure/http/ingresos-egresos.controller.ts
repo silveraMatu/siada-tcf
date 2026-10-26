@@ -49,6 +49,7 @@ export class IngresosEgresosController {
       numeroCuentaCte: libro.numeroCuentaCte,
       fechaCreacion: libro.fechaCreacion!.toISOString(),
       subidoPorId: libro.subidoPorId!,
+      subidoPor: libro.subidoPor ?? null,
       hashContenido: libro.hashContenido!,
       transacciones: libro.transacciones.map((t) => ({
         id: t.id!,

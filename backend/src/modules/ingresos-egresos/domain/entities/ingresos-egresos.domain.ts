@@ -1,3 +1,4 @@
+import type { ResumenPersona } from '../../../../common/resumen-persona.js';
 import { TransaccionIngresoEgreso } from './transaccion-ingreso-egreso.domain.js';
 
 //libro de Ingresos y Egresos de una rendición mensual; el organismo, el ejercicio, el mes y el estado
@@ -13,5 +14,7 @@ export class IngresosEgresos {
     //quién lo subió y sha256 de su contenido (ver calcularHashContenido); la fecha de subida es fechaCreacion
     public readonly subidoPorId?: number,
     public readonly hashContenido?: string,
+    //nombre de quien lo subió, para mostrarlo
+    public readonly subidoPor?: ResumenPersona | null,
   ) {}
 }

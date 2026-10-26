@@ -230,6 +230,11 @@ describe('Revisión de observaciones y cierre de la auditoría (e2e)', () => {
         estado: 'CONFIRMADA',
         motivoDescarte: null,
         revisadaPorId: auditor.usuarioId,
+        revisadaPor: {
+          id: auditor.usuarioId,
+          nombre: 'Fixture',
+          apellido: 'E2E',
+        },
         revisadaEn: expect.any(String),
         valorInformado: 1400,
         valorCalculado: 1500,
@@ -263,6 +268,7 @@ describe('Revisión de observaciones y cierre de la auditoría (e2e)', () => {
         estado: 'ABIERTA',
         motivoDescarte: null,
         revisadaPorId: null,
+        revisadaPor: null,
         revisadaEn: null,
       });
     });
@@ -359,6 +365,16 @@ describe('Revisión de observaciones y cierre de la auditoría (e2e)', () => {
         cuentaMensualId: cuentaId,
         cerradaEn: expect.any(String),
         cerradaPorId: auditor.usuarioId,
+        cerradaPor: {
+          id: auditor.usuarioId,
+          nombre: 'Fixture',
+          apellido: 'E2E',
+        },
+        ejecutadaPor: {
+          id: auditor.usuarioId,
+          nombre: 'Fixture',
+          apellido: 'E2E',
+        },
         conclusion: 'Se observa un error de fórmula',
         estadoFinal: 'CON_OBSERVACIONES',
         observaciones: { abiertas: 0, confirmadas: 1, descartadas: 1 },

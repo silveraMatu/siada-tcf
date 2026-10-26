@@ -58,6 +58,7 @@ export class CuentasController {
       estado: cuentaMensual.estado,
       fechaCreacion: cuentaMensual.fechaCreacion!.toISOString(),
       presentadaPorId: cuentaMensual.presentadaPorId ?? null,
+      presentadaPor: cuentaMensual.presentadaPor ?? null,
       presentadaEn: cuentaMensual.presentadaEn?.toISOString() ?? null,
     };
   }
@@ -144,6 +145,7 @@ export class CuentasController {
       estado: cuenta.estado,
       fechaCreacion: cuenta.fechaCreacion.toISOString(),
       presentadaPorId: cuenta.presentadaPorId,
+      presentadaPor: cuenta.presentadaPor,
       presentadaEn: cuenta.presentadaEn?.toISOString() ?? null,
       organismoId: cuenta.organismoId,
       organismoNombre: cuenta.organismoNombre,

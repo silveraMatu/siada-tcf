@@ -20,6 +20,7 @@ export function aObservacionResponse(
     diferencia: observacion.diferencia ?? null,
     motivoDescarte: observacion.motivoDescarte ?? null,
     revisadaPorId: observacion.revisadaPorId ?? null,
+    revisadaPor: observacion.revisadaPor ?? null,
     revisadaEn: observacion.revisadaEn?.toISOString() ?? null,
   };
 }

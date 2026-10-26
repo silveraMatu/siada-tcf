@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { ResumenPersonaSchema } from '../../../../../common/resumen-persona.js';
 import { EstadoCuentaMensual } from '../../../domain/enums/estado-cuenta-mensual.enum.js';
 import { TipoLibro } from '../../../domain/enums/tipo-libro.enum.js';
 
@@ -14,6 +15,9 @@ export const CuentaMensualResponseSchema = z.object({
     .int()
     .nullable()
     .describe('Quién presentó la rendición; null mientras está en borrador'),
+  presentadaPor: ResumenPersonaSchema.nullable().describe(
+    'Nombre de quien presentó la rendición; null mientras está en borrador',
+  ),
   presentadaEn: z.iso
     .datetime()
     .nullable()

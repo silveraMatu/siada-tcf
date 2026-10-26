@@ -1,3 +1,4 @@
+import type { ResumenPersona } from '../../../../common/resumen-persona.js';
 import { EstadoCuentaMensual } from '../enums/estado-cuenta-mensual.enum.js';
 import { ResumenLibro } from './resumen-libro.domain.js';
 
@@ -16,5 +17,6 @@ export class CuentaMensualListada {
     public readonly libros: ResumenLibro[],
     public readonly presentadaPorId: number | null,
     public readonly presentadaEn: Date | null,
+    public readonly presentadaPor: ResumenPersona | null,
   ) {}
 }

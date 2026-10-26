@@ -1,3 +1,4 @@
+import type { ResumenPersona } from '../../../../common/resumen-persona.js';
 import { TransaccionLibroBanco } from './transaccion-libro-banco.domain.js';
 
 export class LibroBanco {
@@ -10,5 +11,7 @@ export class LibroBanco {
     //quién lo subió y sha256 de su contenido (ver calcularHashContenido); la fecha de subida es fechaCreacion
     public readonly subidoPorId?: number,
     public readonly hashContenido?: string,
+    //nombre de quien lo subió, para mostrarlo
+    public readonly subidoPor?: ResumenPersona | null,
   ) {}
 }

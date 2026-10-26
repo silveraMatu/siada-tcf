@@ -9,7 +9,7 @@ import {
 import type { Observaciones } from '../../../../domain/entities/observaciones.domain.js';
 import { EstadoObservacion } from '../../../../domain/rules/validations.js';
 import { ObservacionEntity } from '../../../entities/observaciones.entity.js';
-import { ObservacionMapper } from '../../../mappers/observacion.mapper.js';
+import { observacionesADominio } from '../../../mappers/cargar-dominio.js';
 
 @Injectable()
 export class TypeOrmObservacionRepositoryAdapter implements ObservacionRepositoryPort {
@@ -20,14 +20,19 @@ export class TypeOrmObservacionRepositoryAdapter implements ObservacionRepositor
 
   async buscarPorId(id: number): Promise<Observaciones | null> {
     const entity = await this.repository.findOneBy({ id });
-    return entity ? ObservacionMapper.toDomain(entity) : null;
+    if (!entity) return null;
+    const [observacion] = await observacionesADominio(this.repository.manager, [
+      entity,
+    ]);
+    return observacion;
   }
 
   async revisar(id: number, cambios: CambiosRevision): Promise<Observaciones> {
     await this.repository.update(id, cambios);
-    return ObservacionMapper.toDomain(
+    const [observacion] = await observacionesADominio(this.repository.manager, [
       await this.repository.findOneByOrFail({ id }),
-    );
+    ]);
+    return observacion;
   }
 
   async obtenerPorEjecucion(ejecucionId: number): Promise<Observaciones[]> {
@@ -35,7 +40,7 @@ export class TypeOrmObservacionRepositoryAdapter implements ObservacionRepositor
       where: { ejecucionId },
       order: { id: 'ASC' },
     });
-    return entities.map((e) => ObservacionMapper.toDomain(e));
+    return await observacionesADominio(this.repository.manager, entities);
   }
 
   async contarPorEstado(ejecucionId: number): Promise<ConteoObservaciones> {

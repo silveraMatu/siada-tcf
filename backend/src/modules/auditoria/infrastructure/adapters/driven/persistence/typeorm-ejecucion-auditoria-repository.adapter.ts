@@ -9,7 +9,10 @@ import type { EjecucionAuditoria } from '../../../../domain/entities/ejecucion-a
 import type { Observaciones } from '../../../../domain/entities/observaciones.domain.js';
 import { EjecucionAuditoriaEntity } from '../../../entities/ejecucion-auditoria.entity.js';
 import { ObservacionEntity } from '../../../entities/observaciones.entity.js';
-import { EjecucionAuditoriaMapper } from '../../../mappers/ejecucion-auditoria.mapper.js';
+import {
+  ejecucionesADominio,
+  observacionesADominio,
+} from '../../../mappers/cargar-dominio.js';
 import { ObservacionMapper } from '../../../mappers/observacion.mapper.js';
 
 //cada observación usa 17 parámetros y Postgres admite 65535 por consulta
@@ -57,8 +60,8 @@ export class TypeOrmEjecucionAuditoriaRepositoryAdapter implements EjecucionAudi
           order: { id: 'ASC' },
         });
         return {
-          ejecucion: EjecucionAuditoriaMapper.toDomain(existente),
-          observaciones: previas.map((e) => ObservacionMapper.toDomain(e)),
+          ejecucion: (await ejecucionesADominio(manager, [existente]))[0],
+          observaciones: await observacionesADominio(manager, previas),
           creada: false,
         };
       }
@@ -83,8 +86,8 @@ export class TypeOrmEjecucionAuditoriaRepositoryAdapter implements EjecucionAudi
         order: { id: 'ASC' },
       });
       return {
-        ejecucion: EjecucionAuditoriaMapper.toDomain(guardada),
-        observaciones: persistidas.map((e) => ObservacionMapper.toDomain(e)),
+        ejecucion: (await ejecucionesADominio(manager, [guardada]))[0],
+        observaciones: await observacionesADominio(manager, persistidas),
         creada: true,
       };
     });
@@ -97,12 +100,14 @@ export class TypeOrmEjecucionAuditoriaRepositoryAdapter implements EjecucionAudi
       where: { cuentaMensualId },
       order: { id: 'DESC' },
     });
-    return entity ? EjecucionAuditoriaMapper.toDomain(entity) : null;
+    if (!entity) return null;
+    return (await ejecucionesADominio(this.repository.manager, [entity]))[0];
   }
 
   async buscarPorId(id: number): Promise<EjecucionAuditoria | null> {
     const entity = await this.repository.findOneBy({ id });
-    return entity ? EjecucionAuditoriaMapper.toDomain(entity) : null;
+    if (!entity) return null;
+    return (await ejecucionesADominio(this.repository.manager, [entity]))[0];
   }
 
   async cerrar(

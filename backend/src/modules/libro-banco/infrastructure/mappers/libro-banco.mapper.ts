@@ -1,10 +1,14 @@
+import type { ResumenPersona } from '../../../../common/resumen-persona.js';
 import { LibroBanco } from '../../domain/entities/libro-banco.domain.js';
 import { TransaccionLibroBanco } from '../../domain/entities/transaccion-libro-banco.domain.js';
 import { LibroBancoEntity } from '../entities/libro-banco.entity.js';
 import { TransaccionLibroBancoEntity } from '../entities/transaccion-libro-banco.entity.js';
 
 export class LibroBancoMapper {
-  static toDomain(entity: LibroBancoEntity): LibroBanco {
+  static toDomain(
+    entity: LibroBancoEntity,
+    subidoPor: ResumenPersona | null = null,
+  ): LibroBanco {
     const transacciones = entity.transacciones
       ? entity.transacciones.map(
           (t) =>
@@ -28,6 +32,7 @@ export class LibroBancoMapper {
       entity.fechaCreacion,
       entity.subidoPorId,
       entity.hashContenido,
+      subidoPor,
     );
   }
 

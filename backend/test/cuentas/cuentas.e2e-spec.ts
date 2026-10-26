@@ -342,6 +342,11 @@ describe('Cuentas (e2e)', () => {
         mes: MES_PRESENTAR,
         estado: 'LISTO_PARA_AUDITAR',
         presentadaPorId: propio.usuarioId,
+        presentadaPor: {
+          id: propio.usuarioId,
+          nombre: 'Fixture',
+          apellido: 'E2E',
+        },
       });
       //queda registrado cuándo: hace instantes
       expect(Date.now() - Date.parse(res.body.presentadaEn)).toBeLessThan(
@@ -482,8 +487,15 @@ describe('Cuentas (e2e)', () => {
         );
         expect(presentada.presentadaPorId).toEqual(expect.any(Number));
         expect(presentada.presentadaEn).toEqual(expect.any(String));
+        expect(Object.keys(presentada.presentadaPor).sort()).toEqual([
+          'apellido',
+          'id',
+          'nombre',
+        ]);
+        expect(presentada.presentadaPor.id).toBe(presentada.presentadaPorId);
         expect(borrador).toMatchObject({
           presentadaPorId: null,
+          presentadaPor: null,
           presentadaEn: null,
         });
       });
