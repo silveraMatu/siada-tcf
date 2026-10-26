@@ -50,10 +50,10 @@ describe('Sidebar según el rol', () => {
     ]);
   });
 
-  it('RESPONSABLE solo ve la ingesta de libro banco', () => {
+  it('RESPONSABLE solo ve la rendición mensual', () => {
     sesion(['RESPONSABLE']);
     renderSidebar();
-    expect(enlaces()).toEqual(['Ingesta Libro Banco']);
+    expect(enlaces()).toEqual(['Rendición mensual']);
   });
 
   it('un usuario sin roles no ve ninguna ruta protegida', () => {

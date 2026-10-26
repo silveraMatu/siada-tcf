@@ -40,7 +40,7 @@ export const navigationGroups: readonly NavGroup[] = [
       },
       {
         to: '/libro-banco',
-        label: 'Ingesta Libro Banco',
+        label: 'Rendición mensual',
         icon: FileSpreadsheet,
         allowedRoles: ['RESPONSABLE'],
       },
