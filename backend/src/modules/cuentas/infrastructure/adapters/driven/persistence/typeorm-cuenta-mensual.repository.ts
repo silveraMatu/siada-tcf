@@ -112,16 +112,48 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
     );
   }
 
-  //un solo GROUP BY para todas las cuentas del listado: cuenta las transacciones y toma sus fechas
-  //extremas en la base, sin traer las filas (un libro puede tener miles)
+  //un solo GROUP BY por tipo de libro para todas las cuentas del listado: cuenta las transacciones y toma
+  //sus fechas extremas en la base, sin traer las filas (un libro puede tener miles)
   private async resumirLibros(
     cuentaMensualIds: number[],
   ): Promise<Map<number, ResumenLibro[]>> {
     const porCuenta = new Map<number, ResumenLibro[]>();
     if (cuentaMensualIds.length === 0) return porCuenta;
 
+    const [librosBanco, ingresosEgresos] = await Promise.all([
+      this.resumirLibrosDe(
+        LibroBancoEntity,
+        TipoLibro.LIBRO_BANCO,
+        cuentaMensualIds,
+      ),
+      this.resumirLibrosDe(
+        IngresosEgresosEntity,
+        TipoLibro.INGRESOS_EGRESOS,
+        cuentaMensualIds,
+      ),
+    ]);
+
+    //por cuenta: primero los libros banco y después el de ingresos y egresos, cada grupo por id
+    for (const { cuentaMensualId, resumen } of [
+      ...librosBanco,
+      ...ingresosEgresos,
+    ]) {
+      porCuenta.set(cuentaMensualId, [
+        ...(porCuenta.get(cuentaMensualId) ?? []),
+        resumen,
+      ]);
+    }
+    return porCuenta;
+  }
+
+  //ambos libros comparten forma (id, cuenta mensual, N° de cuenta y transacciones con fecha)
+  private async resumirLibrosDe(
+    entidad: typeof LibroBancoEntity | typeof IngresosEgresosEntity,
+    tipo: TipoLibro,
+    cuentaMensualIds: number[],
+  ): Promise<{ cuentaMensualId: number; resumen: ResumenLibro }[]> {
     const filas = await this.repository.manager
-      .createQueryBuilder(LibroBancoEntity, 'l')
+      .createQueryBuilder(entidad, 'l')
       .leftJoin('l.transacciones', 't')
       .select('l.id', 'id')
       .addSelect('l.cuentaMensualId', 'cuentaMensualId')
@@ -143,20 +175,16 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
         fechaHasta: string | null;
       }>();
 
-    for (const fila of filas) {
-      const resumen = new ResumenLibro(
+    return filas.map((fila) => ({
+      cuentaMensualId: fila.cuentaMensualId,
+      resumen: new ResumenLibro(
         fila.id,
-        TipoLibro.LIBRO_BANCO,
+        tipo,
         fila.numeroCuentaCte,
         Number(fila.cantidadTransacciones), //COUNT llega como bigint (texto)
         fila.fechaDesde,
         fila.fechaHasta,
-      );
-      porCuenta.set(fila.cuentaMensualId, [
-        ...(porCuenta.get(fila.cuentaMensualId) ?? []),
-        resumen,
-      ]);
-    }
-    return porCuenta;
+      ),
+    }));
   }
 }

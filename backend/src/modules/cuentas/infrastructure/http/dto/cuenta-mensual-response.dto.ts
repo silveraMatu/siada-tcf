@@ -16,12 +16,19 @@ export class CuentaMensualResponseDto extends createZodDto(
 ) {}
 
 export const ResumenLibroResponseSchema = z.object({
+  //el id es único solo dentro de su tipo: un libro banco y el de ingresos y egresos pueden compartir número
   id: z.number().int(),
   tipo: z.enum(TipoLibro),
   numeroCuentaCte: z.string().nullable(),
   cantidadTransacciones: z.number().int(),
-  fechaDesde: z.string().nullable(),
-  fechaHasta: z.string().nullable(),
+  fechaDesde: z
+    .string()
+    .nullable()
+    .describe('Fecha mínima de sus transacciones (YYYY-MM-DD)'),
+  fechaHasta: z
+    .string()
+    .nullable()
+    .describe('Fecha máxima de sus transacciones (YYYY-MM-DD)'),
 });
 
 //listado: la cuenta con el organismo y el ejercicio a los que pertenece y el resumen de sus libros

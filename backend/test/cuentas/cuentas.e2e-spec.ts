@@ -423,6 +423,34 @@ describe('Cuentas (e2e)', () => {
         expect(libro).not.toHaveProperty('transacciones');
       });
 
+      it('200: el libro de Ingresos y Egresos también se resume, con su N° de cuenta nulo, y va después de los libros banco', async () => {
+        const res = await listar(
+          '?estado=LISTO_PARA_AUDITAR',
+          bearerAdmin,
+        ).expect(200);
+
+        const presentada = res.body.find(
+          (c: { id: number }) => c.id === cuentaPresentarId,
+        );
+        const tipos = presentada.libros.map((l: { tipo: string }) => l.tipo);
+        const libro = presentada.libros.find(
+          (l: { tipo: string }) => l.tipo === 'INGRESOS_EGRESOS',
+        );
+        expect(libro).toEqual({
+          id: expect.any(Number),
+          tipo: 'INGRESOS_EGRESOS',
+          numeroCuentaCte: null,
+          cantidadTransacciones: 1,
+          fechaDesde: '2026-03-02',
+          fechaHasta: '2026-03-02',
+        });
+        expect(libro).not.toHaveProperty('transacciones');
+        expect(tipos.at(-1)).toBe('INGRESOS_EGRESOS');
+        expect(
+          tipos.filter((t: string) => t === 'INGRESOS_EGRESOS'),
+        ).toHaveLength(1);
+      });
+
       it('200: una cuenta sin libros trae la lista de libros vacía', async () => {
         const res = await listar('', bearerAdmin).expect(200);
 
