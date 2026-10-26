@@ -1,3 +1,4 @@
+import { IngresosEgresos } from '../../../ingresos-egresos/domain/entities/ingresos-egresos.domain.js';
 import { LibroBanco } from '../../../libro-banco/domain/entities/libro-banco.domain.js';
 import type { AuditoriaContext } from '../rules/auditoria-context.js';
 import type { ReglaAuditoria } from '../rules/regla-auditoria.interface.js';
@@ -114,6 +115,40 @@ describe('MotorAuditoriaService', () => {
     ]);
     expect(imposible.ejecuciones).toBe(0);
     expect(posible.ejecuciones).toBe(1);
+  });
+
+  it('el libro de ingresos y egresos cuenta como presente cuando el contexto lo trae', () => {
+    const regla = new ReglaFalsa(validationsCode.V1, ['INGRESOS_EGRESOS']);
+    const motor = new MotorAuditoriaService([regla]);
+
+    const sinLibro = motor.ejecutarAuditoriaCompleta(sinLibros);
+    const conLibro = motor.ejecutarAuditoriaCompleta({
+      cuentaMensualId: 7,
+      ingresosEgresos: new IngresosEgresos(7, null, [], 1),
+    });
+
+    expect(sinLibro[0].estado).toBe(EstadoValidacion.FALTAN_LIBROS);
+    expect(sinLibro[0].mensaje).toBe(
+      'Faltan libros requeridos: INGRESOS_EGRESOS',
+    );
+    expect(conLibro[0].estado).toBe(EstadoValidacion.VERIFICADO);
+    expect(regla.ejecuciones).toBe(1);
+  });
+
+  it('una regla de cruce con solo uno de sus dos libros no corre', () => {
+    const regla = new ReglaFalsa(validationsCode.C4, [
+      'LIBRO_BANCO',
+      'INGRESOS_EGRESOS',
+    ]);
+
+    const [resultado] = new MotorAuditoriaService([
+      regla,
+    ]).ejecutarAuditoriaCompleta(conLibroBanco);
+
+    expect(regla.ejecuciones).toBe(0);
+    expect(resultado.mensaje).toBe(
+      'Faltan libros requeridos: INGRESOS_EGRESOS',
+    );
   });
 
   it('una regla sin libros requeridos corre siempre', () => {

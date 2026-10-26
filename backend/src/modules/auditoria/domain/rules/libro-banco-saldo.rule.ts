@@ -5,6 +5,7 @@ import {
   type ResultadoValidacion,
 } from '../types/auditoria.types.js';
 import type { AuditoriaContext } from './auditoria-context.js';
+import { aCentavos, aMonto, TOLERANCIA_CENTAVOS } from './montos.js';
 import type { ReglaAuditoria } from './regla-auditoria.interface.js';
 import {
   descripcionRegla,
@@ -13,13 +14,6 @@ import {
   validationsCode,
   validationsType,
 } from './validations.js';
-
-//en centavos enteros no hay error de coma flotante
-const aCentavos = (monto: number): number => Math.round(monto * 100);
-const aMonto = (centavos: number): string => (centavos / 100).toFixed(2);
-
-//diferencia tolerada entre saldo calculado e informado
-const TOLERANCIA_CENTAVOS = 1;
 
 //V3: cada fila debe cumplir saldo anterior + depósitos - retiro = saldo informado
 export class LibroBancoV3Rule implements ReglaAuditoria {

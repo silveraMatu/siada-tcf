@@ -12,6 +12,7 @@ export class ObservacionMapper {
       entity.estado,
       entity.id,
       entity.transaccionId ?? undefined,
+      entity.transaccionIngresoEgresoId ?? undefined,
     );
   }
 
@@ -25,6 +26,8 @@ export class ObservacionMapper {
     entity.libroOrigen = domain.libroOrigen;
     entity.estado = domain.estado;
     entity.transaccionId = domain.transaccionId ?? null;
+    entity.transaccionIngresoEgresoId =
+      domain.transaccionIngresoEgresoId ?? null;
     return entity;
   }
 }

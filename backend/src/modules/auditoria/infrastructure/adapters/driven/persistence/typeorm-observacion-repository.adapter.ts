@@ -6,7 +6,7 @@ import { Observaciones } from '../../../../domain/entities/observaciones.domain.
 import { ObservacionEntity } from '../../../entities/observaciones.entity.js';
 import { ObservacionMapper } from '../../../mappers/observacion.mapper.js';
 
-//cada fila usa 7 parámetros y Postgres admite 65535 por consulta
+//cada fila usa 8 parámetros y Postgres admite 65535 por consulta
 const TAMANO_LOTE = 1000;
 
 //misma identidad que los índices únicos de la tabla
@@ -14,7 +14,9 @@ const claveHallazgo = (o: {
   cuentaMensualId: number;
   codigoRegla: string;
   transaccionId?: number | null;
-}): string => `${o.cuentaMensualId}|${o.codigoRegla}|${o.transaccionId ?? ''}`;
+  transaccionIngresoEgresoId?: number | null;
+}): string =>
+  `${o.cuentaMensualId}|${o.codigoRegla}|${o.transaccionId ?? ''}|${o.transaccionIngresoEgresoId ?? ''}`;
 
 @Injectable()
 export class TypeOrmObservacionRepositoryAdapter implements ObservacionRepositoryPort {

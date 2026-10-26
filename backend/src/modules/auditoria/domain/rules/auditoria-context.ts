@@ -1,3 +1,4 @@
+import type { IngresosEgresos } from '../../../ingresos-egresos/domain/entities/ingresos-egresos.domain.js';
 import type { LibroBanco } from '../../../libro-banco/domain/entities/libro-banco.domain.js';
 
 //datos ya cargados sobre los que corren las reglas; los libros son opcionales porque
@@ -5,4 +6,5 @@ import type { LibroBanco } from '../../../libro-banco/domain/entities/libro-banc
 export interface AuditoriaContext {
   cuentaMensualId: number;
   librosBanco?: LibroBanco[]; //vacío cuenta como libro faltante
+  ingresosEgresos?: IngresosEgresos;
 }

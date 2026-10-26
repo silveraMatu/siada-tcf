@@ -9,8 +9,8 @@ import {
 //un libro está presente si el contexto lo trae y tiene contenido; el Record obliga a mapear cada libro nuevo
 const libroPresente: Record<NombreLibro, (c: AuditoriaContext) => boolean> = {
   LIBRO_BANCO: (c) => (c.librosBanco?.length ?? 0) > 0,
+  INGRESOS_EGRESOS: (c) => c.ingresosEgresos !== undefined,
   //todavía no existen en el contexto
-  INGRESOS_EGRESOS: () => false,
   RACI: () => false,
   RAI: () => false,
 };

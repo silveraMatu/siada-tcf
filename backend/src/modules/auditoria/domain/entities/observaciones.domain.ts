@@ -15,5 +15,6 @@ export class Observaciones {
     public readonly estado: EstadoObservacion,
     public readonly id?: number,
     public readonly transaccionId?: number, //apuntar la fila exacta en la que la transacción falló
+    public readonly transaccionIngresoEgresoId?: number, //ídem para una fila del libro de ingresos y egresos
   ) {}
 }
