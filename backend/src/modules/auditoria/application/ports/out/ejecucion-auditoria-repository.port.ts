@@ -21,6 +21,8 @@ export abstract class EjecucionAuditoriaRepositoryPort {
     cuentaMensualId: number,
   ): Promise<EjecucionAuditoria | null>;
 
+  abstract buscarPorId(id: number): Promise<EjecucionAuditoria | null>;
+
   //solo si todavía no estaba cerrada (atómico); false si no existe o ya se cerró
   abstract cerrar(
     ejecucionId: number,

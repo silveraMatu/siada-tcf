@@ -100,6 +100,11 @@ export class TypeOrmEjecucionAuditoriaRepositoryAdapter implements EjecucionAudi
     return entity ? EjecucionAuditoriaMapper.toDomain(entity) : null;
   }
 
+  async buscarPorId(id: number): Promise<EjecucionAuditoria | null> {
+    const entity = await this.repository.findOneBy({ id });
+    return entity ? EjecucionAuditoriaMapper.toDomain(entity) : null;
+  }
+
   async cerrar(
     ejecucionId: number,
     cierre: { cerradaPorId: number; conclusion: string; estadoFinal: string },

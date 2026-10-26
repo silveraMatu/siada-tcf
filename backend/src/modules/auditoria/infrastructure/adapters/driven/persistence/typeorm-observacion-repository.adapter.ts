@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   ObservacionRepositoryPort,
+  type CambiosRevision,
   type ConteoObservaciones,
 } from '../../../../application/ports/out/observacion-repository.port.js';
 import type { Observaciones } from '../../../../domain/entities/observaciones.domain.js';
@@ -16,6 +17,18 @@ export class TypeOrmObservacionRepositoryAdapter implements ObservacionRepositor
     @InjectRepository(ObservacionEntity)
     private readonly repository: Repository<ObservacionEntity>,
   ) {}
+
+  async buscarPorId(id: number): Promise<Observaciones | null> {
+    const entity = await this.repository.findOneBy({ id });
+    return entity ? ObservacionMapper.toDomain(entity) : null;
+  }
+
+  async revisar(id: number, cambios: CambiosRevision): Promise<Observaciones> {
+    await this.repository.update(id, cambios);
+    return ObservacionMapper.toDomain(
+      await this.repository.findOneByOrFail({ id }),
+    );
+  }
 
   async obtenerPorEjecucion(ejecucionId: number): Promise<Observaciones[]> {
     const entities = await this.repository.find({

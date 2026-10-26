@@ -18,6 +18,7 @@ export const MES_AUDITORIA_CRUCE = 8; //reservado para auditoria: banco e ingres
 export const MES_BITACORA = 5; //reservado para el e2e de la bitacora: carga dos libros y presenta; se vuelve a EN_BORRADOR al empezar
 export const MES_AUDITORIA_VACIA = 4; //reservado para auditoria: presentada por SQL y sin ningun libro
 export const MES_AUDITORIA_BORRADOR = 6; //reservado para auditoria: los rechazos por estado (borrador y cerrada)
+export const MES_AUDITORIA_CICLO = 2; //reservado para el e2e de revision y cierre de la auditoria: banco e ingresos y egresos con dos hallazgos
 
 //organismo inicial que usan los e2e de cuentas, libro-banco y responsables
 export async function obtenerOrganismoBaseId(

@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -21,18 +22,21 @@ import { RolesGuard } from '../../../auth/infrastructure/security/roles.guard.js
 import { UsuarioActual } from '../../../auth/infrastructure/security/usuario-actual.decorator.js';
 import type { UsuarioAutenticado } from '../../../auth/infrastructure/security/usuario-autenticado.js';
 import { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
+import { CerrarAuditoriaUseCase } from '../../application/use-cases/cerrar-auditoria.use-case.js';
 import { EjecutarAuditoriaUseCase } from '../../application/use-cases/ejecutar-auditoria.use-case.js';
 import { ObtenerEjecucionUseCase } from '../../application/use-cases/obtener-ejecucion.use-case.js';
 import { ListarObservacionesUseCase } from '../../application/use-cases/listar-observaciones.use-case.js';
-import type { Observaciones } from '../../domain/entities/observaciones.domain.js';
 import {
   descripcionRegla,
   EstadoObservacion,
 } from '../../domain/rules/validations.js';
 import type { ResultadoValidacion } from '../../domain/types/auditoria.types.js';
+import type { EjecucionDetallada } from '../../application/use-cases/obtener-ejecucion.use-case.js';
 import { AuditoriaParamsDto } from './dto/auditoria-params.dto.js';
+import { CerrarAuditoriaDto } from './dto/cerrar-auditoria.dto.js';
 import { EjecucionResponseDto } from './dto/ejecucion-response.dto.js';
 import { ObservacionResponseDto } from './dto/observacion-response.dto.js';
+import { aObservacionResponse } from './observacion-response.mapper.js';
 import { Registrar } from '../../../registro-actividad/infrastructure/http/registrar.decorator.js';
 import {
   AccionActividad,
@@ -54,30 +58,9 @@ export class AuditoriaController {
   constructor(
     private readonly ejecutarAuditoriaUseCase: EjecutarAuditoriaUseCase,
     private readonly obtenerEjecucionUseCase: ObtenerEjecucionUseCase,
+    private readonly cerrarAuditoriaUseCase: CerrarAuditoriaUseCase,
     private readonly listarObservacionesUseCase: ListarObservacionesUseCase,
   ) {}
-
-  private toResponse(observacion: Observaciones): ObservacionResponseDto {
-    return {
-      id: observacion.id!,
-      cuentaMensualId: observacion.cuentaMensualId,
-      ejecucionId: observacion.ejecucionId!,
-      codigoRegla: observacion.codigoRegla,
-      tipo: observacion.tipo,
-      descripcion: observacion.descripcion,
-      libroOrigen: observacion.libroOrigen,
-      estado: observacion.estado,
-      transaccionId: observacion.transaccionId ?? null,
-      transaccionIngresoEgresoId:
-        observacion.transaccionIngresoEgresoId ?? null,
-      valorInformado: observacion.valorInformado ?? null,
-      valorCalculado: observacion.valorCalculado ?? null,
-      diferencia: observacion.diferencia ?? null,
-      motivoDescarte: observacion.motivoDescarte ?? null,
-      revisadaPorId: observacion.revisadaPorId ?? null,
-      revisadaEn: observacion.revisadaEn?.toISOString() ?? null,
-    };
-  }
 
   private toResultadoResponse(
     resultado: ResultadoValidacion,
@@ -87,7 +70,9 @@ export class AuditoriaController {
       descripcion: descripcionRegla[resultado.codigoRegla],
       estado: resultado.estado,
       mensaje: resultado.mensaje,
-      observaciones: resultado.observaciones.map((o) => this.toResponse(o)),
+      observaciones: resultado.observaciones.map((o) =>
+        aObservacionResponse(o),
+      ),
       filasEvaluadas: resultado.filasEvaluadas,
       librosFaltantes: resultado.librosFaltantes,
     };
@@ -128,27 +113,11 @@ export class AuditoriaController {
     return resultados.map((r) => this.toResultadoResponse(r));
   }
 
-  @Get('ejecucion')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Obtener la última ejecución de la auditoría de una rendición',
-    description:
-      'Con los resultados de cada regla, cuántas observaciones hay abiertas, confirmadas y descartadas, y los datos del cierre si ya se cerró.',
-  })
-  @ApiResponse({ status: 200, type: EjecucionResponseDto })
-  @ApiResponse({
-    status: 404,
-    description: 'La cuenta no existe o todavía no se auditó',
-  })
-  async obtenerEjecucion(
-    @Param() { cuentaMensualId }: AuditoriaParamsDto,
-    @UsuarioActual() usuario: UsuarioAutenticado,
-  ): Promise<EjecucionResponseDto> {
-    const { ejecucion, resultados, conteo } =
-      await this.obtenerEjecucionUseCase.execute(cuentaMensualId, {
-        usuarioId: usuario.id,
-        roles: usuario.roles,
-      });
+  private toEjecucionResponse({
+    ejecucion,
+    resultados,
+    conteo,
+  }: EjecucionDetallada): EjecucionResponseDto {
     return {
       id: ejecucion.id!,
       cuentaMensualId: ejecucion.cuentaMensualId,
@@ -167,6 +136,30 @@ export class AuditoriaController {
         descartadas: conteo[EstadoObservacion.DESCARTADA],
       },
     };
+  }
+
+  @Get('ejecucion')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obtener la última ejecución de la auditoría de una rendición',
+    description:
+      'Con los resultados de cada regla, cuántas observaciones hay abiertas, confirmadas y descartadas, y los datos del cierre si ya se cerró.',
+  })
+  @ApiResponse({ status: 200, type: EjecucionResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'La cuenta no existe o todavía no se auditó',
+  })
+  async obtenerEjecucion(
+    @Param() { cuentaMensualId }: AuditoriaParamsDto,
+    @UsuarioActual() usuario: UsuarioAutenticado,
+  ): Promise<EjecucionResponseDto> {
+    return this.toEjecucionResponse(
+      await this.obtenerEjecucionUseCase.execute(cuentaMensualId, {
+        usuarioId: usuario.id,
+        roles: usuario.roles,
+      }),
+    );
   }
 
   @Get('observaciones')
@@ -190,6 +183,42 @@ export class AuditoriaController {
       cuentaMensualId,
       { usuarioId: usuario.id, roles: usuario.roles },
     );
-    return observaciones.map((o) => this.toResponse(o));
+    return observaciones.map((o) => aObservacionResponse(o));
+  }
+
+  @Post('cerrar')
+  @Registrar(AccionActividad.AUDITORIA_CERRADA, {
+    entidad: TipoEntidadActividad.CUENTA_MENSUAL,
+    idParam: 'cuentaMensualId',
+    cuentaParam: 'cuentaMensualId',
+  })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cerrar la auditoría de una rendición',
+    description:
+      'Cuando el auditor revisó todas las observaciones (ninguna ABIERTA). La rendición queda AUDITADA si no se confirmó ninguna, o CON_OBSERVACIONES si hay al menos una confirmada, y la conclusión queda guardada en la ejecución. Devuelve la ejecución con los datos del cierre.',
+  })
+  @ApiResponse({ status: 200, type: EjecucionResponseDto })
+  @ApiResponse({ status: 400, description: 'Falta la conclusión' })
+  @ApiResponse({ status: 404, description: 'La Cuenta Mensual no existe' })
+  @ApiResponse({
+    status: 409,
+    description:
+      'La auditoría no está en curso, ya fue cerrada, o quedan observaciones sin revisar',
+  })
+  async cerrar(
+    @Param() { cuentaMensualId }: AuditoriaParamsDto,
+    @Body() { conclusion }: CerrarAuditoriaDto,
+    @UsuarioActual() usuario: UsuarioAutenticado,
+  ): Promise<EjecucionResponseDto> {
+    const actor = { usuarioId: usuario.id, roles: usuario.roles };
+    await this.cerrarAuditoriaUseCase.execute(
+      cuentaMensualId,
+      conclusion,
+      actor,
+    );
+    return this.toEjecucionResponse(
+      await this.obtenerEjecucionUseCase.execute(cuentaMensualId, actor),
+    );
   }
 }

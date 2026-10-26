@@ -3,6 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ObservacionEntity } from './infrastructure/entities/observaciones.entity.js';
 import { AuditoriaController } from './infrastructure/http/auditoria.controller.js';
 import { EjecutarAuditoriaUseCase } from './application/use-cases/ejecutar-auditoria.use-case.js';
+import { CerrarAuditoriaUseCase } from './application/use-cases/cerrar-auditoria.use-case.js';
+import { RevisarObservacionUseCase } from './application/use-cases/revisar-observacion.use-case.js';
+import { ObservacionesController } from './infrastructure/http/observaciones.controller.js';
 import { ObtenerEjecucionUseCase } from './application/use-cases/obtener-ejecucion.use-case.js';
 import { ListarObservacionesUseCase } from './application/use-cases/listar-observaciones.use-case.js';
 import { ObservacionRepositoryPort } from './application/ports/out/observacion-repository.port.js';
@@ -30,7 +33,7 @@ import { CuentasModule } from '../cuentas/cuentas.module.js';
     IngresosEgresosModule,
     CuentasModule,
   ],
-  controllers: [AuditoriaController],
+  controllers: [AuditoriaController, ObservacionesController],
   providers: [
     //el motor es dominio puro (sin decoradores): se arma acá con las reglas disponibles
     {
@@ -48,6 +51,8 @@ import { CuentasModule } from '../cuentas/cuentas.module.js';
     },
     EjecutarAuditoriaUseCase,
     ObtenerEjecucionUseCase,
+    RevisarObservacionUseCase,
+    CerrarAuditoriaUseCase,
     ListarObservacionesUseCase,
     {
       provide: EjecucionAuditoriaRepositoryPort,

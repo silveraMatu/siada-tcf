@@ -138,6 +138,9 @@ class EjecucionesFalso extends EjecucionAuditoriaRepositoryPort {
   buscarUltima(): Promise<EjecucionAuditoria | null> {
     return Promise.resolve(this.guardadas.at(-1)?.ejecucion ?? null);
   }
+  buscarPorId(): Promise<EjecucionAuditoria | null> {
+    throw new Error('no usado');
+  }
   cerrar(): Promise<boolean> {
     throw new Error('no usado');
   }
@@ -154,6 +157,12 @@ class ObservacionesFalso extends ObservacionRepositoryPort {
     );
   }
   contarPorEstado(): Promise<ConteoObservaciones> {
+    throw new Error('no usado');
+  }
+  buscarPorId(): Promise<Observaciones | null> {
+    throw new Error('no usado');
+  }
+  revisar(): Promise<Observaciones> {
     throw new Error('no usado');
   }
 }
