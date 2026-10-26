@@ -1,7 +1,14 @@
-import type { Observaciones } from '../entities/observaciones.domain.js';
+import type {
+  NombreLibro,
+  ResultadoValidacion,
+} from '../types/auditoria.types.js';
 import type { AuditoriaContext } from './auditoria-context.js';
+import type { validationsCode } from './validations.js';
 
-//una regla determinística de auditoría, devuelve los hallazgos (vacío si no hay)
+//una regla determinística de auditoría; el motor solo la ejecuta si están todos sus libros requeridos
 export interface ReglaAuditoria {
-  execute(context: AuditoriaContext): Observaciones[];
+  codigo: validationsCode;
+  descripcion: string;
+  librosRequeridos: NombreLibro[];
+  execute(contexto: AuditoriaContext): ResultadoValidacion;
 }

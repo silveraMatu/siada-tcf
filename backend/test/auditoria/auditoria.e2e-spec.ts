@@ -125,23 +125,31 @@ describe('Auditoría (e2e)', () => {
   });
 
   describe('POST .../libro-banco/ejecutar y GET .../observaciones', () => {
-    it('200: detecta la única fila con saldo incorrecto', async () => {
+    it('200: V3 queda en FALLO con la única fila de saldo incorrecto', async () => {
       const res = await ejecutar(cuentaMensualId)
         .set('Authorization', bearerAdmin)
         .expect(200);
 
-      expect(res.body).toHaveLength(1);
-      expect(res.body[0]).toEqual({
-        id: expect.any(Number),
-        cuentaMensualId,
-        codigoRegla: 'V3',
-        tipo: 'INTERNA',
-        descripcion:
-          'El saldo calculado (1300.00) no coincide con el saldo informado (1400.00). Diferencia: 100.00.',
-        libroOrigen: 'LIBRO_BANCO',
-        estado: 'ABIERTA',
-        transaccionId: transaccionIncorrectaId,
-      });
+      expect(res.body).toEqual([
+        {
+          codigoRegla: 'V3',
+          descripcion: 'Saldo de cuenta',
+          estado: 'FALLO',
+          observaciones: [
+            {
+              id: expect.any(Number),
+              cuentaMensualId,
+              codigoRegla: 'V3',
+              tipo: 'INTERNA',
+              descripcion:
+                'El saldo calculado (1300.00) no coincide con el saldo informado (1400.00). Diferencia: 100.00.',
+              libroOrigen: 'LIBRO_BANCO',
+              estado: 'ABIERTA',
+              transaccionId: transaccionIncorrectaId,
+            },
+          ],
+        },
+      ]);
     });
 
     it('200: ejecutar de nuevo no duplica la observación', async () => {
@@ -153,6 +161,7 @@ describe('Auditoría (e2e)', () => {
         .expect(200);
 
       expect(segunda.body).toEqual(primera.body);
+      expect(segunda.body[0].observaciones).toHaveLength(1);
 
       const [{ total }] = await dataSource.query(
         `SELECT count(*)::int AS total FROM observaciones WHERE cuenta_mensual_id = $1 AND codigo_regla = 'V3'`,
@@ -172,7 +181,7 @@ describe('Auditoría (e2e)', () => {
       expect(res.body[0].transaccionId).toBe(transaccionIncorrectaId);
     });
 
-    it('200: un mes sin libro cargado devuelve lista vacía al ejecutar y al listar', async () => {
+    it('200: un mes sin libro devuelve FALTAN_LIBROS al ejecutar y lista vacía al listar', async () => {
       const ejecucion = await ejecutar(cuentaMensualSinLibroId)
         .set('Authorization', bearerAdmin)
         .expect(200);
@@ -180,7 +189,15 @@ describe('Auditoría (e2e)', () => {
         .set('Authorization', bearerAdmin)
         .expect(200);
 
-      expect(ejecucion.body).toEqual([]);
+      expect(ejecucion.body).toEqual([
+        {
+          codigoRegla: 'V3',
+          descripcion: 'Saldo de cuenta',
+          estado: 'FALTAN_LIBROS',
+          mensaje: 'Faltan libros requeridos: LIBRO_BANCO',
+          observaciones: [],
+        },
+      ]);
       expect(listado.body).toEqual([]);
     });
   });

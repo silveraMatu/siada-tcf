@@ -1,7 +1,13 @@
 import { Observaciones } from '../entities/observaciones.domain.js';
+import {
+  EstadoValidacion,
+  type NombreLibro,
+  type ResultadoValidacion,
+} from '../types/auditoria.types.js';
 import type { AuditoriaContext } from './auditoria-context.js';
 import type { ReglaAuditoria } from './regla-auditoria.interface.js';
 import {
+  descripcionRegla,
   EstadoObservacion,
   LibroOrigen,
   validationsCode,
@@ -17,11 +23,15 @@ const TOLERANCIA_CENTAVOS = 1;
 
 //V3: cada fila debe cumplir saldo anterior + depósitos - retiro = saldo informado
 export class LibroBancoV3Rule implements ReglaAuditoria {
-  execute(context: AuditoriaContext): Observaciones[] {
+  readonly codigo = validationsCode.V3;
+  readonly descripcion = descripcionRegla[validationsCode.V3];
+  readonly librosRequeridos: NombreLibro[] = ['LIBRO_BANCO'];
+
+  execute(context: AuditoriaContext): ResultadoValidacion {
     const observaciones: Observaciones[] = [];
 
     //cada ingesta crea un libro nuevo entonces se evalúan por separado
-    for (const libro of context.librosBanco) {
+    for (const libro of context.librosBanco ?? []) {
       //copia ordenada por id
       const transacciones = [...libro.transacciones].sort(
         (a, b) => (a.id ?? 0) - (b.id ?? 0),
@@ -58,6 +68,13 @@ export class LibroBancoV3Rule implements ReglaAuditoria {
       }
     }
 
-    return observaciones;
+    return {
+      codigoRegla: this.codigo,
+      estado:
+        observaciones.length > 0
+          ? EstadoValidacion.FALLO
+          : EstadoValidacion.VERIFICADO,
+      observaciones,
+    };
   }
 }

@@ -23,8 +23,11 @@ import { ObtenerLibroBancoUseCase } from '../../../libro-banco/application/use-c
 import { AuditarLibroBancoUseCase } from '../../application/use-cases/auditar-libro-banco.use-case.js';
 import { ListarObservacionesUseCase } from '../../application/use-cases/listar-observaciones.use-case.js';
 import type { Observaciones } from '../../domain/entities/observaciones.domain.js';
+import { descripcionRegla } from '../../domain/rules/validations.js';
+import type { ResultadoValidacion } from '../../domain/types/auditoria.types.js';
 import { AuditoriaParamsDto } from './dto/auditoria-params.dto.js';
 import { ObservacionResponseDto } from './dto/observacion-response.dto.js';
+import { ResultadoValidacionResponseDto } from './dto/resultado-validacion-response.dto.js';
 
 @ApiTags('Auditoría')
 @ApiBearerAuth()
@@ -53,31 +56,44 @@ export class AuditoriaController {
     };
   }
 
+  private toResultadoResponse(
+    resultado: ResultadoValidacion,
+  ): ResultadoValidacionResponseDto {
+    return {
+      codigoRegla: resultado.codigoRegla,
+      descripcion: descripcionRegla[resultado.codigoRegla],
+      estado: resultado.estado,
+      mensaje: resultado.mensaje,
+      observaciones: resultado.observaciones.map((o) => this.toResponse(o)),
+    };
+  }
+
   @Post('libro-banco/ejecutar')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
       'Ejecutar manualmente la auditoría del Libro Banco de una cuenta mensual (endpoint temporal de prueba)',
     description:
-      'Corre las reglas internas sobre todos los libros banco del mes y persiste los hallazgos. Es idempotente: re-ejecutar no duplica observaciones. Devuelve lista vacía si no hay libros o no hay hallazgos.',
+      'Corre las reglas disponibles y persiste los hallazgos. Devuelve un resultado por regla: VERIFICADO (sin hallazgos), FALLO (con sus observaciones) o FALTAN_LIBROS (la regla no corrió porque falta un libro requerido, ej. un mes sin libro banco). Es idempotente: re-ejecutar no duplica observaciones.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Observaciones del libro banco (nuevas y ya existentes)',
-    type: [ObservacionResponseDto],
+    description:
+      'Resultado de cada regla; en los FALLO, las observaciones (nuevas y ya existentes)',
+    type: [ResultadoValidacionResponseDto],
   })
   @ApiResponse({ status: 400, description: 'ID de cuenta mensual inválido' })
   @ApiResponse({ status: 404, description: 'La Cuenta Mensual no existe' })
   async ejecutarLibroBanco(
     @Param() { cuentaMensualId }: AuditoriaParamsDto,
-  ): Promise<ObservacionResponseDto[]> {
+  ): Promise<ResultadoValidacionResponseDto[]> {
     //TODO: endpoint temporal, la auditoría se disparará desde el flujo de la cuenta mensual
     const libros = await this.obtenerLibroBancoUseCase.execute(cuentaMensualId);
-    const observaciones = await this.auditarLibroBancoUseCase.execute(
+    const resultados = await this.auditarLibroBancoUseCase.execute(
       cuentaMensualId,
       libros,
     );
-    return observaciones.map((o) => this.toResponse(o));
+    return resultados.map((r) => this.toResultadoResponse(r));
   }
 
   @Get('observaciones')
