@@ -1,7 +1,12 @@
 import { isAxiosError } from 'axios';
 
 import { api } from '@/lib/api';
-import type { Ejecucion, ResultadoValidacion } from '../types/auditoria.types';
+import type {
+  DecisionObservacion,
+  Ejecucion,
+  ObservacionApi,
+  ResultadoValidacion,
+} from '../types/auditoria.types';
 
 /**
  * Audita la rendición: el motor corre sobre sus libros y la ejecución queda guardada en el servidor.
@@ -34,4 +39,36 @@ export async function obtenerEjecucion(
     if (isAxiosError(error) && error.response?.status === 404) return null;
     throw error;
   }
+}
+
+/**
+ * Confirma, descarta (con motivo obligatorio) o reabre un hallazgo de la última ejecución, mientras la
+ * auditoría está en curso. 409 si la rendición no está en auditoría o si la observación es de una
+ * ejecución anterior.
+ */
+export async function revisarObservacion(
+  observacionId: number,
+  decision: DecisionObservacion,
+  motivo?: string,
+): Promise<ObservacionApi> {
+  const { data } = await api.patch<ObservacionApi>(
+    `/auditoria/observaciones/${observacionId}`,
+    { decision, ...(motivo ? { motivo } : {}) },
+  );
+  return data;
+}
+
+/**
+ * Cierra la auditoría con la conclusión del auditor. La rendición pasa a AUDITADA si ninguna observación
+ * quedó confirmada o a CON_OBSERVACIONES si hay al menos una; 409 si quedan observaciones abiertas.
+ */
+export async function cerrarAuditoria(
+  cuentaMensualId: number,
+  conclusion: string,
+): Promise<Ejecucion> {
+  const { data } = await api.post<Ejecucion>(
+    `/auditoria/cuentas-mensuales/${cuentaMensualId}/cerrar`,
+    { conclusion },
+  );
+  return data;
 }

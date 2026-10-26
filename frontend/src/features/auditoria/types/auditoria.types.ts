@@ -1,6 +1,9 @@
 /** Resultado de una regla del motor determinístico (lo que devuelve `POST .../libro-banco/ejecutar`). */
 export type EstadoValidacion = 'VERIFICADO' | 'FALLO' | 'FALTAN_LIBROS';
 
+/** Qué decide el auditor sobre un hallazgo. */
+export type DecisionObservacion = 'CONFIRMAR' | 'DESCARTAR' | 'REABRIR';
+
 /** Quién hizo algo, sin más datos personales que el nombre. */
 export interface PersonaResumen {
   id: number;
@@ -86,6 +89,14 @@ export interface Ejecucion {
 export interface ObservacionUbicada {
   id: number;
   mensaje: string;
+  estado: EstadoObservacion;
+  valorInformado: number | null;
+  valorCalculado: number | null;
+  diferencia: number | null;
+  motivoDescarte: string | null;
+  revisadaPor: PersonaResumen | null;
+  /** ISO */
+  revisadaEn: string | null;
   /** Id de la transacción hallada dentro de su libro (banco o Ingresos y Egresos); null si es de toda la cuenta. */
   transaccionId: number | null;
   libroTipo?: string;

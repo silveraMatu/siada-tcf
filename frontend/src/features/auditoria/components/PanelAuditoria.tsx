@@ -18,6 +18,7 @@ import type {
   ObservacionUbicada,
 } from '../types/auditoria.types';
 import { AuditarDialog } from './AuditarDialog';
+import { CierreAuditoria } from './CierreAuditoria';
 import { ReglaValidacionCard } from './ReglaValidacionCard';
 import { ScorecardValidaciones } from './ScorecardValidaciones';
 import { Button } from '@/components/ui/button';
@@ -88,6 +89,9 @@ export function PanelAuditoria({
     [resultados, filtroVigente],
   );
 
+  // se revisa mientras la rendición está en auditoría y la ejecución no se cerró
+  const enCurso =
+    estadoCuenta === 'EN_AUDITORIA' && ejecucion?.cerradaEn === null;
   const sinAuditar = !ejecucionConsulta.isPending && ejecucion === null;
   const puedeAuditar = sinAuditar && estadoCuenta === 'LISTO_PARA_AUDITAR';
 
@@ -212,11 +216,21 @@ export function PanelAuditoria({
                   ingresosEgresos: ingresosEgresos.data,
                 })}
                 ubicando={ubicando}
+                puedeRevisar={enCurso}
+                cuentaMensualId={cuentaMensualId}
                 onVerEnLibro={onVerEnLibro}
               />
             ))}
           </ul>
         </div>
+      )}
+
+      {ejecucion && (
+        <CierreAuditoria
+          cuentaMensualId={cuentaMensualId}
+          ejecucion={ejecucion}
+          enCurso={enCurso}
+        />
       )}
     </section>
   );

@@ -52,6 +52,13 @@ describe('ubicarObservaciones', () => {
       {
         id: 1,
         mensaje: observacion.descripcion,
+        estado: 'ABIERTA',
+        valorInformado: 1400,
+        valorCalculado: 1300,
+        diferencia: 100,
+        motivoDescarte: null,
+        revisadaPor: null,
+        revisadaEn: null,
         transaccionId: 12,
         libroTipo: 'LIBRO_BANCO',
         libroId: 2,

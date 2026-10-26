@@ -289,6 +289,48 @@ describe('PanelAuditoria', () => {
       );
     });
 
+    it('en auditoría muestra el cierre y deja revisar los hallazgos', async () => {
+      const { user } = renderPanel('EN_AUDITORIA');
+
+      expect(await screen.findByText('Cierre de la auditoría')).toBeTruthy();
+      expect(
+        screen.getByText('Quedan 1 observación sin revisar.'),
+      ).toBeTruthy();
+      await user.click(
+        await screen.findByRole('button', { name: /Saldo de cuenta/ }),
+      );
+      expect(
+        await screen.findByRole('button', {
+          name: /Confirmar la observación 1/,
+        }),
+      ).toBeTruthy();
+    });
+
+    it('cerrada queda de solo lectura: resumen del cierre y ninguna acción de revisión', async () => {
+      vi.mocked(obtenerEjecucion).mockResolvedValue({
+        ...MOCK_EJECUCION,
+        cerradaEn: '2026-10-26T16:00:00.000Z',
+        cerradaPorId: 44,
+        cerradaPor: { id: 44, nombre: 'Luis', apellido: 'Gómez' },
+        conclusion: 'Sin diferencias materiales.',
+        estadoFinal: 'AUDITADA',
+        observaciones: { abiertas: 0, confirmadas: 0, descartadas: 1 },
+      });
+      const { user } = renderPanel('AUDITADA');
+
+      expect(await screen.findByText('Auditoría cerrada')).toBeTruthy();
+      expect(screen.getByText('Sin diferencias materiales.')).toBeTruthy();
+      await user.click(
+        await screen.findByRole('button', { name: /Saldo de cuenta/ }),
+      );
+      expect(
+        screen.queryByRole('button', { name: /Confirmar la observación/ }),
+      ).toBeNull();
+      expect(
+        screen.queryByRole('button', { name: 'Cerrar auditoría' }),
+      ).toBeNull();
+    });
+
     it('sin reglas fallidas no se piden las filas de los libros', async () => {
       vi.mocked(obtenerEjecucion).mockResolvedValue({
         ...MOCK_EJECUCION,

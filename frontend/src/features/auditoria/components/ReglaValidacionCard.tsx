@@ -3,30 +3,18 @@ import {
   Check,
   CheckCircle2,
   Clock,
-  Crosshair,
   X,
   type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import {
   contarResultado,
@@ -37,6 +25,7 @@ import type {
   ObservacionUbicada,
   ResultadoValidacion,
 } from '../types/auditoria.types';
+import { TablaObservaciones } from './TablaObservaciones';
 
 interface Presentacion {
   etiqueta: string;
@@ -103,6 +92,9 @@ interface ReglaValidacionCardProps {
   observaciones: readonly ObservacionUbicada[];
   /** Los libros todavía se están trayendo, así que la fila no se puede indicar aún. */
   ubicando?: boolean;
+  /** La rendición está en auditoría y sin cerrar: se pueden confirmar, descartar o reabrir los hallazgos. */
+  puedeRevisar?: boolean;
+  cuentaMensualId: number;
   onVerEnLibro: (observacion: ObservacionUbicada) => void;
 }
 
@@ -114,6 +106,8 @@ export function ReglaValidacionCard({
   resultado,
   observaciones,
   ubicando = false,
+  puedeRevisar = false,
+  cuentaMensualId,
   onVerEnLibro,
 }: ReglaValidacionCardProps) {
   const [abierta, setAbierta] = useState(false);
@@ -193,6 +187,8 @@ export function ReglaValidacionCard({
                   contadoresVerificadas={contadores.verificadas}
                   observaciones={observaciones}
                   ubicando={ubicando}
+                  puedeRevisar={puedeRevisar}
+                  cuentaMensualId={cuentaMensualId}
                   onVerEnLibro={onVerEnLibro}
                 />
               </div>
@@ -209,12 +205,16 @@ function DetalleRegla({
   contadoresVerificadas,
   observaciones,
   ubicando,
+  puedeRevisar,
+  cuentaMensualId,
   onVerEnLibro,
 }: {
   resultado: ResultadoValidacion;
   contadoresVerificadas: number | null;
   observaciones: readonly ObservacionUbicada[];
   ubicando: boolean;
+  puedeRevisar: boolean;
+  cuentaMensualId: number;
   onVerEnLibro: (observacion: ObservacionUbicada) => void;
 }) {
   if (resultado.estado === 'VERIFICADO') {
@@ -242,61 +242,13 @@ function DetalleRegla({
   }
 
   return (
-    <div className="max-h-96 overflow-auto rounded-lg border bg-card text-card-foreground">
-      <Table>
-        <TableCaption className="sr-only">
-          Observaciones de la regla {resultado.codigoRegla}
-        </TableCaption>
-        <TableHeader className="sticky top-0 z-10 bg-card">
-          <TableRow>
-            <TableHead className="w-16 text-right">Fila</TableHead>
-            <TableHead>Libro</TableHead>
-            <TableHead>Detalle</TableHead>
-            <TableHead className="w-px">
-              <span className="sr-only">Acciones</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {observaciones.map((observacion) => {
-            const ubicada =
-              observacion.libroId !== undefined &&
-              observacion.transaccionId !== null;
-            return (
-              <TableRow key={observacion.id}>
-                <TableCell className="text-right font-medium tabular-nums">
-                  {ubicando && observacion.transaccionId !== null ? (
-                    <Skeleton className="ml-auto h-4 w-6" />
-                  ) : (
-                    (observacion.fila ?? '—')
-                  )}
-                </TableCell>
-                <TableCell className="max-w-28 break-words sm:max-w-none sm:whitespace-nowrap">
-                  {observacion.libroNombre ?? '—'}
-                </TableCell>
-                <TableCell className="min-w-40 sm:min-w-64">
-                  {observacion.mensaje}
-                </TableCell>
-                <TableCell className="text-right">
-                  {ubicada && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onVerEnLibro(observacion)}
-                      aria-label={`Ver la fila ${observacion.fila} de ${observacion.libroNombre} en el libro`}
-                    >
-                      <Crosshair />
-                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Ver en el libro
-                      </span>
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+    <TablaObservaciones
+      codigoRegla={resultado.codigoRegla}
+      observaciones={observaciones}
+      ubicando={ubicando}
+      puedeRevisar={puedeRevisar}
+      cuentaMensualId={cuentaMensualId}
+      onVerEnLibro={onVerEnLibro}
+    />
   );
 }

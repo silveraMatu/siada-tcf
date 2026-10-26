@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -9,7 +10,19 @@ import { ReglaValidacionCard } from './ReglaValidacionCard';
 
 const [fallo, verificado, faltan] = MOCK_RESULTADOS;
 
+/** Datos de revisión de una observación todavía abierta, para completar las de los tests. */
+const SIN_REVISAR = {
+  estado: 'ABIERTA',
+  valorInformado: null,
+  valorCalculado: null,
+  diferencia: null,
+  motivoDescarte: null,
+  revisadaPor: null,
+  revisadaEn: null,
+} as const;
+
 const ubicada: ObservacionUbicada = {
+  ...SIN_REVISAR,
   id: 1,
   mensaje: fallo.observaciones[0].descripcion,
   transaccionId: 12,
@@ -24,15 +37,19 @@ function renderCard(
   props: Partial<Parameters<typeof ReglaValidacionCard>[0]> = {},
 ) {
   const onVerEnLibro = vi.fn();
+  const client = new QueryClient();
   render(
-    <ul>
-      <ReglaValidacionCard
-        resultado={resultado}
-        observaciones={[ubicada]}
-        onVerEnLibro={onVerEnLibro}
-        {...props}
-      />
-    </ul>,
+    <QueryClientProvider client={client}>
+      <ul>
+        <ReglaValidacionCard
+          resultado={resultado}
+          observaciones={[ubicada]}
+          cuentaMensualId={5}
+          onVerEnLibro={onVerEnLibro}
+          {...props}
+        />
+      </ul>
+    </QueryClientProvider>,
   );
   return { user: userEvent.setup(), onVerEnLibro };
 }
@@ -104,7 +121,9 @@ describe('ReglaValidacionCard', () => {
 
   it('una observación que no se pudo ubicar se muestra sin el botón', async () => {
     const { user } = renderCard(fallo, {
-      observaciones: [{ id: 1, mensaje: 'Sin ubicar', transaccionId: 99 }],
+      observaciones: [
+        { ...SIN_REVISAR, id: 1, mensaje: 'Sin ubicar', transaccionId: 99 },
+      ],
     });
     await user.click(screen.getByRole('button', { name: /Saldo de cuenta/ }));
 
@@ -116,6 +135,7 @@ describe('ReglaValidacionCard', () => {
     const { user } = renderCard(fallo, {
       observaciones: [
         {
+          ...SIN_REVISAR,
           id: 7,
           mensaje: 'Los depósitos del banco no coinciden con los del libro',
           transaccionId: null,
@@ -183,7 +203,12 @@ describe('ReglaValidacionCard', () => {
     const { user } = renderCard(fallo, {
       ubicando: true,
       observaciones: [
-        { id: 1, mensaje: 'Diferencia de 100', transaccionId: 12 },
+        {
+          ...SIN_REVISAR,
+          id: 1,
+          mensaje: 'Diferencia de 100',
+          transaccionId: 12,
+        },
       ],
     });
     await user.click(screen.getByRole('button', { name: /Saldo de cuenta/ }));

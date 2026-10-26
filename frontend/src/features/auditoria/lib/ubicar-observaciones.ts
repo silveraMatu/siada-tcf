@@ -71,6 +71,13 @@ export function ubicarObservaciones(
     return {
       id: observacion.id,
       mensaje: observacion.descripcion,
+      estado: observacion.estado,
+      valorInformado: observacion.valorInformado,
+      valorCalculado: observacion.valorCalculado,
+      diferencia: observacion.diferencia,
+      motivoDescarte: observacion.motivoDescarte,
+      revisadaPor: observacion.revisadaPor,
+      revisadaEn: observacion.revisadaEn,
       transaccionId: transaccionIngresoEgresoId ?? transaccionId,
       ...ubicacion,
       // sin fila (cruce entre libros) se nombra igual el libro del que sale el hallazgo
