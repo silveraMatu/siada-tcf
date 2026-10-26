@@ -7,6 +7,7 @@ import { CuentaMensualListada } from '../../../../domain/entities/cuenta-mensual
 import { ResumenLibro } from '../../../../domain/entities/resumen-libro.domain.js';
 import { EstadoCuentaMensual } from '../../../../domain/enums/estado-cuenta-mensual.enum.js';
 import { TipoLibro } from '../../../../domain/enums/tipo-libro.enum.js';
+import { IngresosEgresosEntity } from '../../../../../ingresos-egresos/infrastructure/entities/ingresos-egresos.entity.js';
 import { LibroBancoEntity } from '../../../../../libro-banco/infrastructure/entities/libro-banco.entity.js';
 import { CuentaMensualEntity } from '../../../entities/cuenta-mensual.entity.js';
 import { CuentaMensualMapper } from '../../../mappers/cuenta-mensual.mapper.js';
@@ -37,10 +38,19 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
     return fila ? fila.organismoId : null;
   }
 
-  async tieneLibros(id: number): Promise<boolean> {
-    return await this.repository.manager.exists(LibroBancoEntity, {
-      where: { cuentaMensualId: id },
-    });
+  async documentosFaltantes(id: number): Promise<string[]> {
+    const [tieneLibroBanco, tieneIngresosEgresos] = await Promise.all([
+      this.repository.manager.exists(LibroBancoEntity, {
+        where: { cuentaMensualId: id },
+      }),
+      this.repository.manager.exists(IngresosEgresosEntity, {
+        where: { cuentaMensualId: id },
+      }),
+    ]);
+    const faltantes: string[] = [];
+    if (!tieneLibroBanco) faltantes.push('Libro Banco');
+    if (!tieneIngresosEgresos) faltantes.push('Ingresos y Egresos');
+    return faltantes;
   }
 
   async cambiarEstado(

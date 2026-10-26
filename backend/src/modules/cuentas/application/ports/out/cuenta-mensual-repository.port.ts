@@ -10,8 +10,9 @@ export abstract class CuentaMensualRepositoryPort {
   //organismo dueño de la cuenta (vía su cuenta anual); null si la cuenta mensual no existe
   abstract obtenerOrganismoId(cuentaMensualId: number): Promise<number | null>;
 
-  //¿la cuenta tiene al menos un libro cargado?
-  abstract tieneLibros(cuentaMensualId: number): Promise<boolean>;
+  //nombres legibles de los documentos obligatorios que la cuenta todavía no tiene cargados
+  //(Libro Banco e Ingresos y Egresos); vacío si está completa
+  abstract documentosFaltantes(cuentaMensualId: number): Promise<string[]>;
 
   //cambia el estado solo si sigue siendo `desde` (atómico); false si no existe o ya cambió
   abstract cambiarEstado(

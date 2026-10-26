@@ -37,8 +37,8 @@ class CuentaMensualRepositorioFalso extends CuentaMensualRepositoryPort {
   obtenerOrganismoId(): Promise<number | null> {
     return Promise.resolve(ID_ORGANISMO);
   }
-  tieneLibros(): Promise<boolean> {
-    return Promise.resolve(true);
+  documentosFaltantes(): Promise<string[]> {
+    return Promise.resolve([]);
   }
   cambiarEstado(): Promise<boolean> {
     return Promise.resolve(false);

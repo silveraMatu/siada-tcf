@@ -13,6 +13,7 @@ export const MES_SIN_LIBRO = 12; //reservado: nunca se ingesta ningun libro en e
 export const MES_PRESENTAR = 10; //reservado: los specs de presentar y del candado lo vuelven a EN_BORRADOR al empezar
 export const MES_AUDITORIA = 11; //reservado para auditoria: un unico libro con un saldo equivocado
 export const MES_INGRESOS_EGRESOS = 9; //reservado para el e2e de ingresos-egresos: se vuelve a EN_BORRADOR al empezar
+export const MES_PRESENTAR_INCOMPLETA = 7; //reservado: solo recibe el libro banco, así que presentar siempre falla por falta de Ingresos y Egresos
 export const MES_AUDITORIA_CRUCE = 8; //reservado para auditoria: banco e ingresos y egresos con fallos sembrados
 
 //organismo inicial que usan los e2e de cuentas, libro-banco y responsables
@@ -258,6 +259,45 @@ export async function cargarLibro(
     })
     .expect(201);
   return res.body;
+}
+
+//carga el libro de Ingresos y Egresos de la rendición (reemplaza el que haya) como responsable del organismo
+export async function cargarIngresosEgresos(
+  app: INestApplication,
+  bearerResponsable: string,
+  cuentaMensualId: number,
+): Promise<void> {
+  await request(app.getHttpServer())
+    .post(
+      `/api/v1/cuentas-mensuales/${cuentaMensualId}/ingresos-egresos/ingestar`,
+    )
+    .set('Authorization', bearerResponsable)
+    .send({
+      reemplazar: true,
+      transacciones: [
+        {
+          fila: 4,
+          fecha: '2026-03-02',
+          concepto: 'Saldo inicial E2E',
+          cajaDebe: 0,
+          cajaHaber: 0,
+          cajaSaldo: 100,
+          bancoDebe: 0,
+          bancoHaber: 0,
+          bancoSaldo: 90,
+          egresoInc1: 0,
+          egresoInc2: 0,
+          egresoInc3: 0,
+          egresoInc4: 0,
+          egresoInc5: 0,
+          ingresoMunicipal: 0,
+          ingresoOtras: 0,
+          cuentasVariasDebe: 0,
+          cuentasVariasHaber: 0,
+        },
+      ],
+    })
+    .expect(201);
 }
 
 //deja la cuenta en el estado indicado (por defecto EN_BORRADOR): la presentacion no se puede deshacer por la API

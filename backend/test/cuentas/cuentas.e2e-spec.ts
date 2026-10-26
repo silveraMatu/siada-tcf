@@ -7,7 +7,9 @@ import {
   ID_INEXISTENTE,
   MES_CON_LIBRO,
   MES_PRESENTAR,
+  MES_PRESENTAR_INCOMPLETA,
   MES_SIN_LIBRO,
+  cargarIngresosEgresos,
   cargarLibro,
   crearResponsableConSesion,
   crearSesionConRol,
@@ -221,6 +223,7 @@ describe('Cuentas (e2e)', () => {
     };
 
     let cuentaSinLibrosId: number;
+    let cuentaIncompletaId: number;
 
     beforeAll(async () => {
       const res = await resolver({
@@ -231,9 +234,21 @@ describe('Cuentas (e2e)', () => {
       cuentaPresentarId = res.body.id;
       //la presentacion no se deshace por la API: cada corrida parte de EN_BORRADOR
       await fijarEstadoCuenta(dataSource, cuentaPresentarId);
-      //presentar exige al menos un libro cargado
+      //presentar exige los dos documentos: Libro Banco e Ingresos y Egresos
       const propio = await crearResponsableConSesion(app, organismoId);
       await cargarLibro(app, propio.bearer, cuentaPresentarId);
+      await cargarIngresosEgresos(app, propio.bearer, cuentaPresentarId);
+
+      //el mes reservado con solo el libro banco nunca recibe Ingresos y Egresos
+      cuentaIncompletaId = (
+        await resolver({
+          organismoId,
+          ejercicioFiscal: EJERCICIO,
+          mes: MES_PRESENTAR_INCOMPLETA,
+        }).expect(200)
+      ).body.id;
+      await fijarEstadoCuenta(dataSource, cuentaIncompletaId);
+      await cargarLibro(app, propio.bearer, cuentaIncompletaId);
 
       //el mes reservado sin libros nunca recibe uno: sirve para el rechazo por rendicion vacia
       cuentaSinLibrosId = (
@@ -245,15 +260,28 @@ describe('Cuentas (e2e)', () => {
       ).body.id;
     });
 
-    it('409: una rendición sin ningún libro no se puede presentar', async () => {
+    it('409: una rendición sin ningún documento no se puede presentar', async () => {
       const propio = await crearResponsableConSesion(app, organismoId);
 
       const res = await presentar(cuentaSinLibrosId, propio.bearer).expect(409);
 
       expect(res.body.message).toBe(
-        'Debe cargar al menos un libro antes de presentar la rendición.',
+        'Faltan documentos para presentar la rendición: Libro Banco, Ingresos y Egresos.',
       );
       expect(await estadoEnBase(cuentaSinLibrosId)).toBe('EN_BORRADOR');
+    });
+
+    it('409: con el Libro Banco pero sin Ingresos y Egresos tampoco se puede presentar', async () => {
+      const propio = await crearResponsableConSesion(app, organismoId);
+
+      const res = await presentar(cuentaIncompletaId, propio.bearer).expect(
+        409,
+      );
+
+      expect(res.body.message).toBe(
+        'Faltan documentos para presentar la rendición: Ingresos y Egresos.',
+      );
+      expect(await estadoEnBase(cuentaIncompletaId)).toBe('EN_BORRADOR');
     });
 
     it('401: sin token', async () => {

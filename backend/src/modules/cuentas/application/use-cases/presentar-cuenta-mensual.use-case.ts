@@ -48,10 +48,12 @@ export class PresentarCuentaMensualUseCase {
       throw new ConflictException('La cuenta ya fue presentada');
     }
 
-    //presentar es irreversible: una rendición sin ningún libro no tiene nada que auditar
-    if (!(await this.cuentaMensualRepository.tieneLibros(cuentaMensualId))) {
+    //presentar es irreversible: la rendición debe traer todos los documentos que se cruzan al auditar
+    const faltantes =
+      await this.cuentaMensualRepository.documentosFaltantes(cuentaMensualId);
+    if (faltantes.length > 0) {
       throw new ConflictException(
-        'Debe cargar al menos un libro antes de presentar la rendición.',
+        `Faltan documentos para presentar la rendición: ${faltantes.join(', ')}.`,
       );
     }
 
