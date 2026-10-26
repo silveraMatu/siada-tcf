@@ -8,7 +8,7 @@ interface RolesSelectorProps {
   disabled?: boolean;
 }
 
-/** Los cuatro roles como tags que se activan y desactivan (toggle). */
+/** Los roles como tags que se activan y desactivan (toggle). */
 export function RolesSelector({
   value,
   onChange,

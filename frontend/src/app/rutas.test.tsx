@@ -36,6 +36,9 @@ vi.mock('@/features/auditoria/components/DashboardAuditorPage', () => ({
 vi.mock('@/features/auditoria/components/AuditarCuentaPage', () => ({
   AuditarCuentaPage: () => <p>pantalla auditar cuenta</p>,
 }));
+vi.mock('@/features/actividad/components/ActividadPage', () => ({
+  ActividadPage: () => <p>pantalla bitácora</p>,
+}));
 vi.mock('@/features/usuarios/components/AdminUsuariosPage', () => ({
   AdminUsuariosPage: () => <p>pantalla usuarios</p>,
 }));
@@ -74,6 +77,7 @@ describe('rutas del panel', () => {
       '/auditoria',
       '/auditoria/cuenta/3',
       '/admin/usuarios',
+      '/actividad',
     ])('%s lleva al login', (ruta) => {
       expect(abrir(ruta, null)).toBe('/login');
       expect(screen.getByText('pantalla login')).toBeTruthy();
@@ -98,6 +102,7 @@ describe('rutas del panel', () => {
       ['/auditoria', 'ADMIN', 'pantalla panel auditor'],
       ['/auditoria/cuenta/3', 'AUDITOR', 'pantalla auditar cuenta'],
       ['/admin/usuarios', 'ADMIN', 'pantalla usuarios'],
+      ['/actividad', 'SUPERVISOR', 'pantalla bitácora'],
     ] as const)('%s lo ve un %s', (ruta, rol, pantalla) => {
       expect(abrir(ruta, [rol])).toBe(ruta);
       expect(screen.getByText(pantalla)).toBeTruthy();
@@ -114,6 +119,9 @@ describe('rutas del panel', () => {
       ['/auditoria/cuenta/3', 'JUEZ_TRAMITE', '/organismos'],
       ['/admin/usuarios', 'RESPONSABLE', '/libro-banco'],
       ['/admin/usuarios', 'AUDITOR', '/auditoria'],
+      ['/actividad', 'ADMIN', '/organismos'],
+      ['/actividad', 'AUDITOR', '/auditoria'],
+      ['/organismos', 'SUPERVISOR', '/actividad'],
     ] as const)('%s con rol %s termina en %s', (ruta, rol, destino) => {
       expect(abrir(ruta, [rol])).toBe(destino);
     });
@@ -124,6 +132,7 @@ describe('rutas del panel', () => {
       ['/login', 'RESPONSABLE', '/libro-banco'],
       ['/registro', 'AUDITOR', '/auditoria'],
       ['/login', 'ADMIN', '/organismos'],
+      ['/login', 'SUPERVISOR', '/actividad'],
     ] as const)('%s lleva a un %s a %s', (ruta, rol, destino) => {
       expect(abrir(ruta, [rol])).toBe(destino);
     });

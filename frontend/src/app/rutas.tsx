@@ -8,6 +8,7 @@ import { LoginPage } from '@/features/auth/components/LoginPage';
 import { RegistroPage } from '@/features/auth/components/RegistroPage';
 import { RequireRole } from '@/features/auth/components/RequireRole';
 import { SoloSinSesion } from '@/features/auth/components/SoloSinSesion';
+import { ActividadPage } from '@/features/actividad/components/ActividadPage';
 import { AdminUsuariosPage } from '@/features/usuarios/components/AdminUsuariosPage';
 import { LandingPage } from '@/features/landing/components/LandingPage';
 import { LibroBancoPage } from '@/features/libro-banco/components/LibroBancoPage';
@@ -51,6 +52,9 @@ export const rutas: RouteObject[] = [
       ]),
       seccion('/admin/usuarios', [
         { path: 'admin/usuarios', element: <AdminUsuariosPage /> },
+      ]),
+      seccion('/actividad', [
+        { path: 'actividad', element: <ActividadPage /> },
       ]),
     ],
   },

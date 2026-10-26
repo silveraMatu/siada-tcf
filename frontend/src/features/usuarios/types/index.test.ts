@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { alternarRol, restriccionPropia, type Rol } from './index';
+import {
+  alternarRol,
+  restriccionPropia,
+  ROL_LABEL,
+  ROLES,
+  type Rol,
+} from './index';
 
 describe('alternarRol', () => {
   it('agrega un rol que no estaba', () => {
@@ -16,6 +22,15 @@ describe('alternarRol', () => {
   it('mantiene el orden de visualización sin importar el orden de clic', () => {
     const roles = alternarRol(['RESPONSABLE'], 'ADMIN');
     expect(roles).toEqual(['ADMIN', 'RESPONSABLE']);
+  });
+
+  it('el rol SUPERVISOR existe, se muestra último y se ordena como los demás', () => {
+    expect(ROLES.at(-1)).toBe('SUPERVISOR');
+    expect(ROL_LABEL.SUPERVISOR).toBe('Supervisor');
+    expect(alternarRol(['SUPERVISOR'], 'AUDITOR')).toEqual([
+      'AUDITOR',
+      'SUPERVISOR',
+    ]);
   });
 
   it('no muta el arreglo original', () => {
@@ -38,8 +53,12 @@ describe('restriccionPropia', () => {
   });
 
   it('bloquea quitarse ADMIN, pero no otros roles', () => {
-    expect(restriccionPropia(1, 1, ['AUDITOR']).noPuedeQuitarseAdmin).toBe(true);
-    expect(restriccionPropia(1, 1, ['ADMIN', 'AUDITOR']).noPuedeQuitarseAdmin).toBe(false);
+    expect(restriccionPropia(1, 1, ['AUDITOR']).noPuedeQuitarseAdmin).toBe(
+      true,
+    );
+    expect(
+      restriccionPropia(1, 1, ['ADMIN', 'AUDITOR']).noPuedeQuitarseAdmin,
+    ).toBe(false);
   });
 
   it('no restringe a otros usuarios ni sin sesión', () => {

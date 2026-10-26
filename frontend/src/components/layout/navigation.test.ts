@@ -16,6 +16,7 @@ describe('rolesPermitidos', () => {
     ['/libro-banco', ['RESPONSABLE']],
     ['/auditoria', ['AUDITOR', 'ADMIN']],
     ['/admin/usuarios', ['ADMIN']],
+    ['/actividad', ['SUPERVISOR']],
   ])('%s admite %j', (ruta, roles) => {
     expect(rolesPermitidos(ruta)).toEqual(roles);
   });
@@ -23,7 +24,13 @@ describe('rolesPermitidos', () => {
   it('coincide, para cada ítem del menú, con quién lo ve', () => {
     for (const { to } of navigationGroups.flatMap((g) => g.items)) {
       const roles = rolesPermitidos(to) ?? [];
-      for (const rol of ['ADMIN', 'JUEZ_TRAMITE', 'AUDITOR', 'RESPONSABLE']) {
+      for (const rol of [
+        'ADMIN',
+        'JUEZ_TRAMITE',
+        'AUDITOR',
+        'RESPONSABLE',
+        'SUPERVISOR',
+      ]) {
         expect(roles.includes(rol as never)).toBe(
           rutasVisibles([rol]).includes(to),
         );
@@ -61,6 +68,11 @@ describe('filtrarNavegacion', () => {
 
   it('JUEZ_TRAMITE solo ve organismos (el panel de auditoría es de AUDITOR y ADMIN)', () => {
     expect(rutasVisibles(['JUEZ_TRAMITE'])).toEqual(['/organismos']);
+  });
+
+  it('SUPERVISOR solo ve la bitácora, y el administrador no la ve', () => {
+    expect(rutasVisibles(['SUPERVISOR'])).toEqual(['/actividad']);
+    expect(rutasVisibles(['ADMIN'])).not.toContain('/actividad');
   });
 
   it('AUDITOR solo ve auditoría', () => {
@@ -116,6 +128,7 @@ describe('rutaInicial', () => {
     expect(rutaInicial(['ADMIN'])).toBe('/organismos');
     expect(rutaInicial(['RESPONSABLE'])).toBe('/libro-banco');
     expect(rutaInicial(['AUDITOR'])).toBe('/auditoria');
+    expect(rutaInicial(['SUPERVISOR'])).toBe('/actividad');
   });
 
   it('vuelve a la raíz si no tiene ninguna', () => {

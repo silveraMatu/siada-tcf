@@ -1,4 +1,5 @@
-export type Rol = 'ADMIN' | 'JUEZ_TRAMITE' | 'AUDITOR' | 'RESPONSABLE';
+export type Rol =
+  'ADMIN' | 'JUEZ_TRAMITE' | 'AUDITOR' | 'RESPONSABLE' | 'SUPERVISOR';
 
 /** Orden en que se muestran (y se envían) los roles. */
 export const ROLES: readonly Rol[] = [
@@ -6,6 +7,7 @@ export const ROLES: readonly Rol[] = [
   'JUEZ_TRAMITE',
   'AUDITOR',
   'RESPONSABLE',
+  'SUPERVISOR',
 ];
 
 export const ROL_LABEL: Record<Rol, string> = {
@@ -13,6 +15,7 @@ export const ROL_LABEL: Record<Rol, string> = {
   JUEZ_TRAMITE: 'Juez de Trámite',
   AUDITOR: 'Auditor',
   RESPONSABLE: 'Responsable',
+  SUPERVISOR: 'Supervisor',
 };
 
 export interface Usuario {
@@ -42,8 +45,13 @@ export function restriccionPropia(
   usuarioId: number,
   sub: number | string | null | undefined,
   rolesNuevos: readonly Rol[],
-): { esPropia: boolean; noPuedeDesactivar: boolean; noPuedeQuitarseAdmin: boolean } {
-  const esPropia = sub !== null && sub !== undefined && Number(sub) === usuarioId;
+): {
+  esPropia: boolean;
+  noPuedeDesactivar: boolean;
+  noPuedeQuitarseAdmin: boolean;
+} {
+  const esPropia =
+    sub !== null && sub !== undefined && Number(sub) === usuarioId;
   return {
     esPropia,
     noPuedeDesactivar: esPropia,

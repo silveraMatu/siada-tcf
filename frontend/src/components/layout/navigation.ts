@@ -1,5 +1,6 @@
 import {
   Building2,
+  Activity,
   ClipboardCheck,
   FileSpreadsheet,
   UserCheck,
@@ -60,6 +61,18 @@ export const navigationGroups: readonly NavGroup[] = [
         label: 'Solicitudes de Acceso',
         icon: UserCheck,
         allowedRoles: ['ADMIN'],
+      },
+    ],
+  },
+  {
+    label: 'Supervisión',
+    items: [
+      {
+        to: '/actividad',
+        label: 'Bitácora de actividad',
+        icon: Activity,
+        // solo lee la bitácora quien tiene el rol SUPERVISOR: ni el administrador la ve
+        allowedRoles: ['SUPERVISOR'],
       },
     ],
   },

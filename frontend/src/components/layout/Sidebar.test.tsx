@@ -29,8 +29,7 @@ function renderSidebar() {
   return userEvent.setup();
 }
 
-const enlaces = () =>
-  screen.queryAllByRole('link').map((a) => a.textContent);
+const enlaces = () => screen.queryAllByRole('link').map((a) => a.textContent);
 
 beforeEach(() => {
   localStorage.clear();
