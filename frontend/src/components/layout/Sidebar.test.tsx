@@ -43,6 +43,7 @@ describe('Sidebar según el rol', () => {
     renderSidebar();
     expect(enlaces()).toEqual([
       'Organismos',
+      'Asignación de auditores',
       'Responsables',
       'Auditoría',
       'Solicitudes de Acceso',

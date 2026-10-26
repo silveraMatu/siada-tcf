@@ -4,6 +4,7 @@ import {
   ClipboardCheck,
   FileSpreadsheet,
   UserCheck,
+  UserCog,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -31,6 +32,12 @@ export const navigationGroups: readonly NavGroup[] = [
         to: '/organismos',
         label: 'Organismos',
         icon: Building2,
+        allowedRoles: ['ADMIN', 'JUEZ_TRAMITE'],
+      },
+      {
+        to: '/asignacion-auditores',
+        label: 'Asignación de auditores',
+        icon: UserCog,
         allowedRoles: ['ADMIN', 'JUEZ_TRAMITE'],
       },
       {

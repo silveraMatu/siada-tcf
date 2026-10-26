@@ -24,6 +24,9 @@ vi.mock('@/features/auth/components/RegistroPage', () => ({
 vi.mock('@/features/organismos/components/OrganismosPage', () => ({
   OrganismosPage: () => <p>pantalla organismos</p>,
 }));
+vi.mock('@/features/organismos/components/AsignacionAuditoresPage', () => ({
+  AsignacionAuditoresPage: () => <p>pantalla asignación</p>,
+}));
 vi.mock('@/features/responsables/components/ResponsablesPage', () => ({
   ResponsablesPage: () => <p>pantalla responsables</p>,
 }));
@@ -72,6 +75,7 @@ describe('rutas del panel', () => {
   describe('sin sesión', () => {
     it.each([
       '/organismos',
+      '/asignacion-auditores',
       '/responsables',
       '/libro-banco',
       '/auditoria',
@@ -96,6 +100,8 @@ describe('rutas del panel', () => {
     it.each([
       ['/organismos', 'ADMIN', 'pantalla organismos'],
       ['/organismos', 'JUEZ_TRAMITE', 'pantalla organismos'],
+      ['/asignacion-auditores', 'JUEZ_TRAMITE', 'pantalla asignación'],
+      ['/asignacion-auditores', 'ADMIN', 'pantalla asignación'],
       ['/responsables', 'ADMIN', 'pantalla responsables'],
       ['/libro-banco', 'RESPONSABLE', 'pantalla libro banco'],
       ['/auditoria', 'AUDITOR', 'pantalla panel auditor'],
@@ -114,6 +120,8 @@ describe('rutas del panel', () => {
       ['/organismos', 'AUDITOR', '/auditoria'],
       ['/organismos', 'RESPONSABLE', '/libro-banco'],
       ['/responsables', 'JUEZ_TRAMITE', '/organismos'],
+      ['/asignacion-auditores', 'AUDITOR', '/auditoria'],
+      ['/asignacion-auditores', 'RESPONSABLE', '/libro-banco'],
       ['/libro-banco', 'ADMIN', '/organismos'],
       ['/auditoria', 'RESPONSABLE', '/libro-banco'],
       ['/auditoria/cuenta/3', 'JUEZ_TRAMITE', '/organismos'],

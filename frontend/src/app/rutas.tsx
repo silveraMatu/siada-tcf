@@ -12,6 +12,7 @@ import { ActividadPage } from '@/features/actividad/components/ActividadPage';
 import { AdminUsuariosPage } from '@/features/usuarios/components/AdminUsuariosPage';
 import { LandingPage } from '@/features/landing/components/LandingPage';
 import { LibroBancoPage } from '@/features/libro-banco/components/LibroBancoPage';
+import { AsignacionAuditoresPage } from '@/features/organismos/components/AsignacionAuditoresPage';
 import { OrganismosPage } from '@/features/organismos/components/OrganismosPage';
 import { ResponsablesPage } from '@/features/responsables/components/ResponsablesPage';
 
@@ -39,6 +40,12 @@ export const rutas: RouteObject[] = [
     children: [
       seccion('/organismos', [
         { path: 'organismos', element: <OrganismosPage /> },
+      ]),
+      seccion('/asignacion-auditores', [
+        {
+          path: 'asignacion-auditores',
+          element: <AsignacionAuditoresPage />,
+        },
       ]),
       seccion('/responsables', [
         { path: 'responsables', element: <ResponsablesPage /> },

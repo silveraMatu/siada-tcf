@@ -12,6 +12,7 @@ import {
 describe('rolesPermitidos', () => {
   it.each([
     ['/organismos', ['ADMIN', 'JUEZ_TRAMITE']],
+    ['/asignacion-auditores', ['ADMIN', 'JUEZ_TRAMITE']],
     ['/responsables', ['ADMIN']],
     ['/libro-banco', ['RESPONSABLE']],
     ['/auditoria', ['AUDITOR', 'ADMIN']],
@@ -60,14 +61,18 @@ describe('filtrarNavegacion', () => {
   it('ADMIN ve gestión, auditoría y solicitudes, pero no la ingesta', () => {
     expect(rutasVisibles(['ADMIN'])).toEqual([
       '/organismos',
+      '/asignacion-auditores',
       '/responsables',
       '/auditoria',
       '/admin/usuarios',
     ]);
   });
 
-  it('JUEZ_TRAMITE solo ve organismos (el panel de auditoría es de AUDITOR y ADMIN)', () => {
-    expect(rutasVisibles(['JUEZ_TRAMITE'])).toEqual(['/organismos']);
+  it('JUEZ_TRAMITE ve organismos y la asignación de auditores (el panel de auditoría es de AUDITOR y ADMIN)', () => {
+    expect(rutasVisibles(['JUEZ_TRAMITE'])).toEqual([
+      '/organismos',
+      '/asignacion-auditores',
+    ]);
   });
 
   it('SUPERVISOR solo ve la bitácora, y el administrador no la ve', () => {
