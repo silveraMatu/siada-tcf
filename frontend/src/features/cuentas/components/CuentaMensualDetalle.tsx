@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { IngestarIngresosEgresosDialog } from '@/features/ingresos-egresos/components/IngestarIngresosEgresosDialog';
 import { IngestaDialog } from '@/features/libro-banco/components/IngestaDialog';
 import { LibroGuardado } from '@/features/libro-banco/components/LibroGuardado';
 import { useLibrosBanco } from '@/features/libro-banco/hooks/useLibrosBanco';
@@ -24,6 +25,7 @@ export function CuentaMensualDetalle({
   onActualizada,
 }: CuentaMensualDetalleProps) {
   const [dialogAbierto, setDialogAbierto] = useState(false);
+  const [ingresosEgresosAbierto, setIngresosEgresosAbierto] = useState(false);
   const resolver = useResolverCuentaMensual();
 
   // Solo en borrador se pueden cargar documentos: después la evidencia es inmutable.
@@ -88,6 +90,13 @@ export function CuentaMensualDetalle({
                   <Upload />
                   Cargar Documentos
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIngresosEgresosAbierto(true)}
+                >
+                  <Upload />
+                  Cargar Ingresos y Egresos
+                </Button>
               </div>
               {sinLibros && !libros.isPending && (
                 <p className="text-xs text-muted-foreground">
@@ -108,6 +117,12 @@ export function CuentaMensualDetalle({
           <IngestaDialog
             open={dialogAbierto}
             onOpenChange={setDialogAbierto}
+            cuentaMensualId={cuenta.id}
+            onIngestada={refrescar}
+          />
+          <IngestarIngresosEgresosDialog
+            open={ingresosEgresosAbierto}
+            onOpenChange={setIngresosEgresosAbierto}
             cuentaMensualId={cuenta.id}
             onIngestada={refrescar}
           />
