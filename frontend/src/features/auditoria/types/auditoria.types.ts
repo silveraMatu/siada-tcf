@@ -1,19 +1,33 @@
 /** Resultado de una regla del motor determinístico (lo que devuelve `POST .../libro-banco/ejecutar`). */
 export type EstadoValidacion = 'VERIFICADO' | 'FALLO' | 'FALTAN_LIBROS';
 
+/** Cómo va la revisión del auditor sobre un hallazgo. */
+export type EstadoObservacion = 'ABIERTA' | 'CONFIRMADA' | 'DESCARTADA';
+
 /** Observación persistida por el motor cuando una regla falla. */
 export interface ObservacionApi {
   id: number;
   cuentaMensualId: number;
+  /** Ejecución de la que sale; solo se puede revisar la de la última. */
+  ejecucionId: number;
   codigoRegla: string;
   tipo: string;
   descripcion: string;
   libroOrigen: string;
-  estado: string;
+  estado: EstadoObservacion;
   /** Transacción del libro banco donde se detectó (solo V3); null si no es de ese libro. */
   transaccionId: number | null;
   /** Transacción del libro de Ingresos y Egresos donde se detectó (V1 y V2); null en los cruces, que son de toda la cuenta. */
   transaccionIngresoEgresoId: number | null;
+  /** Lo que dice el libro auditado, lo esperado y la diferencia absoluta; null si el hallazgo no es de un importe. */
+  valorInformado: number | null;
+  valorCalculado: number | null;
+  diferencia: number | null;
+  /** Obligatorio al descartar; null en cualquier otro estado. */
+  motivoDescarte: string | null;
+  revisadaPorId: number | null;
+  /** ISO; null mientras está abierta. */
+  revisadaEn: string | null;
 }
 
 export interface ResultadoValidacion {
@@ -28,6 +42,34 @@ export interface ResultadoValidacion {
   filasEvaluadas: number | null;
   /** Códigos de los libros que le faltan para correr, por ejemplo `INGRESOS_EGRESOS`; vacío si corrió. */
   librosFaltantes: string[];
+}
+
+/** Cuántas observaciones de una ejecución hay en cada estado. */
+export interface ConteoObservaciones {
+  abiertas: number;
+  confirmadas: number;
+  descartadas: number;
+}
+
+/** Estado con el que queda la rendición al cerrar la auditoría. */
+export type EstadoFinalAuditoria = 'AUDITADA' | 'CON_OBSERVACIONES';
+
+/** `GET …/ejecucion`: la última ejecución de la auditoría tal como la guarda el servidor. */
+export interface Ejecucion {
+  id: number;
+  cuentaMensualId: number;
+  /** Versión del conjunto de reglas que corrió. */
+  versionReglas: string;
+  ejecutadaPorId: number;
+  /** ISO */
+  ejecutadaEn: string;
+  /** ISO; null mientras la auditoría está en curso. */
+  cerradaEn: string | null;
+  cerradaPorId: number | null;
+  conclusion: string | null;
+  estadoFinal: EstadoFinalAuditoria | null;
+  resultados: ResultadoValidacion[];
+  observaciones: ConteoObservaciones;
 }
 
 /** Resultado de una ejecución, con la hora en que se pidió. */
