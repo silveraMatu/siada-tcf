@@ -6,9 +6,15 @@ import { cn } from '@/lib/utils';
 interface DropZoneProps {
   onArchivo: (archivo: File) => void;
   cargando?: boolean;
+  /** Para el lector de pantalla: qué archivo se espera. */
+  etiqueta?: string;
 }
 
-export function DropZone({ onArchivo, cargando = false }: DropZoneProps) {
+export function DropZone({
+  onArchivo,
+  cargando = false,
+  etiqueta = 'Zona para soltar el archivo del Libro Banco',
+}: DropZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [arrastrando, setArrastrando] = useState(false);
 
@@ -23,7 +29,7 @@ export function DropZone({ onArchivo, cargando = false }: DropZoneProps) {
     <div
       role="button"
       tabIndex={0}
-      aria-label="Zona para soltar el archivo del Libro Banco"
+      aria-label={etiqueta}
       onClick={() => !cargando && inputRef.current?.click()}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
