@@ -3,7 +3,7 @@ import type { TransaccionLibroBanco } from '../../../libro-banco/domain/entities
 import { Observaciones } from '../entities/observaciones.domain.js';
 import {
   EstadoValidacion,
-  type ResultadoValidacion,
+  type ResultadoRegla,
 } from '../types/auditoria.types.js';
 import type { AuditoriaContext } from './auditoria-context.js';
 import { aCentavos, aMonto, TOLERANCIA_CENTAVOS } from './montos.js';
@@ -49,7 +49,7 @@ export function compararTotales(
   conceptos: { ingresosEgresos: string; banco: string },
   totalIngresosEgresos: number,
   totalBanco: number,
-): ResultadoValidacion {
+): ResultadoRegla {
   const diferencia = Math.abs(totalIngresosEgresos - totalBanco);
   const observaciones =
     diferencia > TOLERANCIA_CENTAVOS
@@ -72,5 +72,6 @@ export function compararTotales(
         ? EstadoValidacion.FALLO
         : EstadoValidacion.VERIFICADO,
     observaciones,
+    filasEvaluadas: 1, //una comparación: un total contra otro
   };
 }

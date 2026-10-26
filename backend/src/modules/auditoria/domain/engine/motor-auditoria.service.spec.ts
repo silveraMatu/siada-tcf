@@ -6,7 +6,7 @@ import { validationsCode } from '../rules/validations.js';
 import {
   EstadoValidacion,
   type NombreLibro,
-  type ResultadoValidacion,
+  type ResultadoRegla,
 } from '../types/auditoria.types.js';
 import { MotorAuditoriaService } from './motor-auditoria.service.js';
 
@@ -20,12 +20,13 @@ class ReglaFalsa implements ReglaAuditoria {
     public librosRequeridos: NombreLibro[],
   ) {}
 
-  execute(): ResultadoValidacion {
+  execute(): ResultadoRegla {
     this.ejecuciones++;
     return {
       codigoRegla: this.codigo,
       estado: EstadoValidacion.VERIFICADO,
       observaciones: [],
+      filasEvaluadas: 3,
     };
   }
 }
@@ -51,6 +52,8 @@ describe('MotorAuditoriaService', () => {
         codigoRegla: validationsCode.V3,
         estado: EstadoValidacion.VERIFICADO,
         observaciones: [],
+        filasEvaluadas: 3,
+        librosFaltantes: [],
       },
     ]);
   });
@@ -69,6 +72,8 @@ describe('MotorAuditoriaService', () => {
         estado: EstadoValidacion.FALTAN_LIBROS,
         mensaje: 'Faltan libros requeridos: LIBRO_BANCO',
         observaciones: [],
+        filasEvaluadas: null,
+        librosFaltantes: ['LIBRO_BANCO'],
       },
     ]);
   });
@@ -98,6 +103,8 @@ describe('MotorAuditoriaService', () => {
     expect(resultado.mensaje).toBe(
       'Faltan libros requeridos: INGRESOS_EGRESOS, RACI',
     );
+    expect(resultado.librosFaltantes).toEqual(['INGRESOS_EGRESOS', 'RACI']);
+    expect(resultado.filasEvaluadas).toBeNull();
   });
 
   it('con varias reglas, corre las que pueden y conserva el orden', () => {

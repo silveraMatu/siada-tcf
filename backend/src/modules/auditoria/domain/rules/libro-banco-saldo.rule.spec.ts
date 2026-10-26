@@ -53,7 +53,22 @@ describe('LibroBancoV3Rule (V3)', () => {
       codigoRegla: validationsCode.V3,
       estado: EstadoValidacion.VERIFICADO,
       observaciones: [],
+      filasEvaluadas: 1,
     });
+  });
+
+  it('filasEvaluadas suma, por libro, todas las filas menos la primera (la base)', () => {
+    const resultado = regla.execute(
+      contexto(
+        libro([tx(1, 100, 0, 100), tx(2, 50, 0, 150), tx(3, 0, 1, 149)]),
+        libro([tx(4, 0, 0, 900), tx(5, 0, 100, 1)]),
+        //con una sola fila o ninguna no hay nada que validar
+        libro([tx(6, 100, 0, 5)]),
+        libro([]),
+      ),
+    );
+
+    expect(resultado.filasEvaluadas).toBe(3);
   });
 
   it('devuelve FALLO con las observaciones si hay una fila incorrecta', () => {
@@ -71,6 +86,7 @@ describe('LibroBancoV3Rule (V3)', () => {
 
     expect(resultado.estado).toBe(EstadoValidacion.VERIFICADO);
     expect(resultado.observaciones).toEqual([]);
+    expect(resultado.filasEvaluadas).toBe(0);
   });
 
   it('no genera observaciones si todos los saldos son consistentes', () => {

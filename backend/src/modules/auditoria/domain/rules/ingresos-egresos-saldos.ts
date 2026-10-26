@@ -2,7 +2,7 @@ import type { TransaccionIngresoEgreso } from '../../../ingresos-egresos/domain/
 import { Observaciones } from '../entities/observaciones.domain.js';
 import {
   EstadoValidacion,
-  type ResultadoValidacion,
+  type ResultadoRegla,
 } from '../types/auditoria.types.js';
 import type { AuditoriaContext } from './auditoria-context.js';
 import { aCentavos, aMonto, TOLERANCIA_CENTAVOS } from './montos.js';
@@ -36,7 +36,7 @@ export function validarSaldosConsecutivos(
   context: AuditoriaContext,
   codigo: validationsCode,
   columnas: ColumnasSaldo,
-): ResultadoValidacion {
+): ResultadoRegla {
   const observaciones: Observaciones[] = [];
   const transacciones = ordenarPorFila(
     context.ingresosEgresos?.transacciones ?? [],
@@ -80,5 +80,7 @@ export function validarSaldosConsecutivos(
         ? EstadoValidacion.FALLO
         : EstadoValidacion.VERIFICADO,
     observaciones,
+    //la primera fila es la base: se validan las demás
+    filasEvaluadas: Math.max(transacciones.length - 1, 0),
   };
 }

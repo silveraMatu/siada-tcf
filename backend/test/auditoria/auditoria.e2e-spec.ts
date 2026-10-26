@@ -32,6 +32,8 @@ describe('Auditoría (e2e)', () => {
     codigoRegla: string;
     estado: string;
     observaciones: unknown[];
+    filasEvaluadas: number | null;
+    librosFaltantes: string[];
   }
   const deRegla = (cuerpo: Resultado[], codigo: string) =>
     cuerpo.find((r) => r.codigoRegla === codigo);
@@ -48,6 +50,8 @@ describe('Auditoría (e2e)', () => {
     estado: 'FALTAN_LIBROS',
     mensaje: `Faltan libros requeridos: ${libros}`,
     observaciones: [],
+    filasEvaluadas: null,
+    librosFaltantes: libros.split(', '),
   });
 
   const ejecutar = (id: number | string) =>
@@ -167,6 +171,9 @@ describe('Auditoría (e2e)', () => {
         codigoRegla: 'V3',
         descripcion: 'Saldo de cuenta',
         estado: 'FALLO',
+        //3 filas: la primera es la base y se validan las otras 2
+        filasEvaluadas: 2,
+        librosFaltantes: [],
         observaciones: [
           {
             id: expect.any(Number),
@@ -188,9 +195,14 @@ describe('Auditoría (e2e)', () => {
         estado: 'FALTAN_LIBROS',
         mensaje: 'Faltan libros requeridos: INGRESOS_EGRESOS',
         observaciones: [],
+        filasEvaluadas: null,
+        librosFaltantes: ['INGRESOS_EGRESOS'],
       });
+      //el cruce tiene el banco pero no el libro de ingresos y egresos: solo informa el que falta
       expect(deRegla(res.body, 'C4')).toMatchObject({
         mensaje: 'Faltan libros requeridos: INGRESOS_EGRESOS',
+        filasEvaluadas: null,
+        librosFaltantes: ['INGRESOS_EGRESOS'],
       });
     });
 
@@ -370,6 +382,22 @@ describe('Auditoría (e2e)', () => {
         ['C6', 'FALLO'],
       ]);
 
+      //cobertura: V1 y V2 validan 3 de las 4 filas, V3 2 de las 3 y los cruces hacen una comparación
+      expect(
+        res.body.map((r: Resultado) => [
+          r.codigoRegla,
+          r.filasEvaluadas,
+          r.librosFaltantes,
+        ]),
+      ).toEqual([
+        ['V1', 3, []],
+        ['V2', 3, []],
+        ['V3', 2, []],
+        ['C4', 1, []],
+        ['C5', 1, []],
+        ['C6', 1, []],
+      ]);
+
       const observacion = (
         codigo: string,
         tipo: string,
@@ -416,6 +444,8 @@ describe('Auditoría (e2e)', () => {
         descripcion: 'Saldo de cuenta',
         estado: 'VERIFICADO',
         observaciones: [],
+        filasEvaluadas: 2,
+        librosFaltantes: [],
       });
       expect(deRegla(res.body, 'C4')!.observaciones).toEqual([]);
       expect(deRegla(res.body, 'C5')!.observaciones).toEqual([

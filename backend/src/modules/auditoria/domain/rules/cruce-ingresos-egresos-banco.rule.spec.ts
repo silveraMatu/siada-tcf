@@ -107,6 +107,7 @@ describe.each([
       codigoRegla: codigo,
       estado: EstadoValidacion.VERIFICADO,
       observaciones: [],
+      filasEvaluadas: 1,
     });
   });
 
@@ -116,6 +117,8 @@ describe.each([
     );
 
     expect(resultado.estado).toBe(EstadoValidacion.FALLO);
+    //una comparación, falle o no
+    expect(resultado.filasEvaluadas).toBe(1);
     expect(resultado.observaciones).toHaveLength(1);
     const [obs] = resultado.observaciones;
     expect(obs.cuentaMensualId).toBe(7);
@@ -181,6 +184,7 @@ describe('C6 (saldo final)', () => {
       codigoRegla: validationsCode.C6,
       estado: EstadoValidacion.VERIFICADO,
       observaciones: [],
+      filasEvaluadas: 1,
     });
   });
 

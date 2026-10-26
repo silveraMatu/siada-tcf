@@ -1,7 +1,4 @@
-import type {
-  NombreLibro,
-  ResultadoValidacion,
-} from '../types/auditoria.types.js';
+import type { NombreLibro, ResultadoRegla } from '../types/auditoria.types.js';
 import type { AuditoriaContext } from './auditoria-context.js';
 import type { validationsCode } from './validations.js';
 
@@ -10,5 +7,5 @@ export interface ReglaAuditoria {
   codigo: validationsCode;
   descripcion: string;
   librosRequeridos: NombreLibro[];
-  execute(contexto: AuditoriaContext): ResultadoValidacion;
+  execute(contexto: AuditoriaContext): ResultadoRegla;
 }

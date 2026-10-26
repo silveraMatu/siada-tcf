@@ -31,10 +31,12 @@ export class MotorAuditoriaService {
           estado: EstadoValidacion.FALTAN_LIBROS,
           mensaje: `Faltan libros requeridos: ${faltantes.join(', ')}`,
           observaciones: [],
+          filasEvaluadas: null,
+          librosFaltantes: faltantes,
         };
       }
 
-      return regla.execute(contexto);
+      return { ...regla.execute(contexto), librosFaltantes: [] };
     });
   }
 }

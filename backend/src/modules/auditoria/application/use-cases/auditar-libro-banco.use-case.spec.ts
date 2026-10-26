@@ -77,6 +77,8 @@ describe('AuditarLibroBancoUseCase', () => {
         codigoRegla: validationsCode.V3,
         estado: EstadoValidacion.VERIFICADO,
         observaciones: [],
+        filasEvaluadas: 1,
+        librosFaltantes: [],
       },
     ]);
   });
@@ -89,6 +91,9 @@ describe('AuditarLibroBancoUseCase', () => {
     expect(repositorio.guardadas[0]).toHaveLength(1);
     expect(resultados).toHaveLength(1);
     expect(resultados[0].estado).toBe(EstadoValidacion.FALLO);
+    //el resultado FALLO conserva la cobertura de la regla al reemplazar sus observaciones por las persistidas
+    expect(resultados[0].filasEvaluadas).toBe(1);
+    expect(resultados[0].librosFaltantes).toEqual([]);
     expect(resultados[0].observaciones).toHaveLength(1);
     expect(resultados[0].observaciones[0]).toMatchObject({
       id: 1,
@@ -120,6 +125,8 @@ describe('AuditarLibroBancoUseCase', () => {
         estado: EstadoValidacion.FALTAN_LIBROS,
         mensaje: 'Faltan libros requeridos: LIBRO_BANCO',
         observaciones: [],
+        filasEvaluadas: null,
+        librosFaltantes: ['LIBRO_BANCO'],
       },
     ]);
     expect(repositorio.guardadas.flat()).toEqual([]);

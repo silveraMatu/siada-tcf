@@ -2,7 +2,7 @@ import { Observaciones } from '../entities/observaciones.domain.js';
 import {
   EstadoValidacion,
   type NombreLibro,
-  type ResultadoValidacion,
+  type ResultadoRegla,
 } from '../types/auditoria.types.js';
 import type { AuditoriaContext } from './auditoria-context.js';
 import { aCentavos, aMonto, TOLERANCIA_CENTAVOS } from './montos.js';
@@ -21,8 +21,9 @@ export class LibroBancoV3Rule implements ReglaAuditoria {
   readonly descripcion = descripcionRegla[validationsCode.V3];
   readonly librosRequeridos: NombreLibro[] = ['LIBRO_BANCO'];
 
-  execute(context: AuditoriaContext): ResultadoValidacion {
+  execute(context: AuditoriaContext): ResultadoRegla {
     const observaciones: Observaciones[] = [];
+    let filasEvaluadas = 0;
 
     //cada ingesta crea un libro nuevo entonces se evalúan por separado
     for (const libro of context.librosBanco ?? []) {
@@ -31,6 +32,8 @@ export class LibroBancoV3Rule implements ReglaAuditoria {
         (a, b) => (a.id ?? 0) - (b.id ?? 0),
       );
       if (transacciones.length < 2) continue;
+      //la primera fila es la base: se validan las demás
+      filasEvaluadas += transacciones.length - 1;
 
       //la primera fila es la base, su saldo inicial no se valida
       let saldoPrevio = aCentavos(transacciones[0].saldo);
@@ -69,6 +72,7 @@ export class LibroBancoV3Rule implements ReglaAuditoria {
           ? EstadoValidacion.FALLO
           : EstadoValidacion.VERIFICADO,
       observaciones,
+      filasEvaluadas,
     };
   }
 }

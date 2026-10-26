@@ -99,7 +99,20 @@ describe.each<[string, ReglaAuditoria, validationsCode, Columnas, Columnas]>([
       codigoRegla: codigo,
       estado: EstadoValidacion.VERIFICADO,
       observaciones: [],
+      filasEvaluadas: 2,
     });
+  });
+
+  it('filasEvaluadas cuenta las filas validadas: todas menos la primera, también las que fallan', () => {
+    const conFallo = regla.execute(
+      contexto(fila(1, 100, 0, 100), fila(2, 50, 0, 999), fila(3, 0, 1, 998)),
+    );
+    const unaFila = regla.execute(contexto(fila(1, 100, 0, 100)));
+    const sinFilas = regla.execute(contexto());
+
+    expect(conFallo.filasEvaluadas).toBe(2);
+    expect(unaFila.filasEvaluadas).toBe(0);
+    expect(sinFilas.filasEvaluadas).toBe(0);
   });
 
   it('marca la fila con saldo incorrecto: FALLO con todos los campos de la observación', () => {
@@ -197,6 +210,7 @@ describe.each<[string, ReglaAuditoria, validationsCode, Columnas, Columnas]>([
 
     expect(resultado.estado).toBe(EstadoValidacion.VERIFICADO);
     expect(resultado.observaciones).toEqual([]);
+    expect(resultado.filasEvaluadas).toBe(0);
   });
 
   it('no muta el arreglo de transacciones del libro', () => {

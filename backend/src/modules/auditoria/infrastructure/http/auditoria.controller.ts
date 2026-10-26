@@ -69,6 +69,8 @@ export class AuditoriaController {
       estado: resultado.estado,
       mensaje: resultado.mensaje,
       observaciones: resultado.observaciones.map((o) => this.toResponse(o)),
+      filasEvaluadas: resultado.filasEvaluadas,
+      librosFaltantes: resultado.librosFaltantes,
     };
   }
 
