@@ -1,91 +1,78 @@
 import { describe, expect, it } from 'vitest';
 
 import { MOCK_RESULTADOS } from '../mocks/resultados.mock';
-import {
-  contarResultado,
-  librosFaltantes,
-  nombreDeLibroFaltante,
-} from './contar-resultado';
+import { contarResultado, nombreDeLibroFaltante } from './contar-resultado';
 
 const [fallo, verificado, faltan] = MOCK_RESULTADOS;
-const banco = (cantidadTransacciones: number) => ({
-  tipo: 'LIBRO_BANCO',
-  cantidadTransacciones,
-});
-
-describe('librosFaltantes', () => {
-  it('lee los códigos del mensaje del motor', () => {
-    expect(
-      librosFaltantes('Faltan libros requeridos: LIBRO_BANCO, RACI'),
-    ).toEqual(['LIBRO_BANCO', 'RACI']);
-  });
-
-  it('un mensaje ausente o que no se entiende no da libros', () => {
-    expect(librosFaltantes(undefined)).toEqual([]);
-    expect(librosFaltantes('Algo distinto')).toEqual([]);
-    expect(librosFaltantes('Faltan libros requeridos: ')).toEqual([]);
-  });
-});
 
 describe('nombreDeLibroFaltante', () => {
-  it('traduce el libro banco y deja el código de los que no conoce', () => {
+  it('traduce los libros que conoce y deja el código de los que no', () => {
     expect(nombreDeLibroFaltante('LIBRO_BANCO')).toBe('Libro Banco');
+    expect(nombreDeLibroFaltante('INGRESOS_EGRESOS')).toBe(
+      'Ingresos y Egresos',
+    );
     expect(nombreDeLibroFaltante('RACI')).toBe('RACI');
   });
 });
 
 describe('contarResultado', () => {
-  it('V3: la primera fila de cada libro es la base y las observaciones se descuentan de las verificadas', () => {
-    // 10 + 5 filas → 9 + 4 evaluadas; 1 observación → 12 verificadas
-    expect(contarResultado(fallo, [banco(10), banco(5)])).toEqual({
+  it('descuenta las observaciones de los controles que informó el motor', () => {
+    // 9 controles, 1 con observación → 8 sin diferencias
+    expect(contarResultado(fallo)).toEqual({
       falladas: 1,
-      verificadas: 12,
+      verificadas: 8,
       librosFaltantes: 0,
     });
   });
 
-  it('un libro de una sola fila no tiene nada que evaluar', () => {
-    expect(
-      contarResultado({ ...fallo, estado: 'VERIFICADO', observaciones: [] }, [
-        banco(1),
-      ]),
-    ).toEqual({ falladas: 0, verificadas: 0, librosFaltantes: 0 });
-  });
-
-  it('ignora los libros que V3 no recorre', () => {
-    expect(
-      contarResultado({ ...fallo, observaciones: [] }, [
-        banco(4),
-        { tipo: 'RACI', cantidadTransacciones: 100 },
-      ]).verificadas,
-    ).toBe(3);
-  });
-
-  it('una regla cuyo total no conocemos no inventa las verificadas', () => {
-    expect(contarResultado(verificado, [banco(10)])).toEqual({
+  it('una regla verificada cuenta todos sus controles como verificados', () => {
+    expect(contarResultado(verificado)).toEqual({
       falladas: 0,
-      verificadas: null,
+      verificadas: 4,
       librosFaltantes: 0,
     });
   });
 
-  it('FALTAN_LIBROS cuenta libros, no filas', () => {
-    expect(contarResultado(faltan, [])).toEqual({
+  it('un cruce entre libros es un único control', () => {
+    expect(
+      contarResultado({ ...verificado, filasEvaluadas: 1 }).verificadas,
+    ).toBe(1);
+    expect(contarResultado({ ...fallo, filasEvaluadas: 1 })).toEqual({
+      falladas: 1,
+      verificadas: 0,
+      librosFaltantes: 0,
+    });
+  });
+
+  it('nunca da verificadas negativas si el motor informa menos controles que observaciones', () => {
+    expect(contarResultado({ ...fallo, filasEvaluadas: 0 }).verificadas).toBe(
+      0,
+    );
+  });
+
+  it('sin el total del motor no inventa las verificadas', () => {
+    expect(
+      contarResultado({ ...verificado, filasEvaluadas: null }).verificadas,
+    ).toBeNull();
+  });
+
+  it('FALTAN_LIBROS cuenta los libros que informa el motor, no controles', () => {
+    expect(contarResultado(faltan)).toEqual({
       falladas: 0,
       verificadas: 0,
       librosFaltantes: 1,
     });
     expect(
-      contarResultado(
-        { ...faltan, mensaje: 'Faltan libros requeridos: RACI, RAI' },
-        [],
-      ).librosFaltantes,
+      contarResultado({
+        ...faltan,
+        librosFaltantes: ['LIBRO_BANCO', 'INGRESOS_EGRESOS'],
+      }).librosFaltantes,
     ).toBe(2);
   });
 
-  it('un mensaje ilegible sigue contando al menos un libro faltante', () => {
+  it('un estado omitido sin lista de libros sigue contando al menos uno', () => {
     expect(
-      contarResultado({ ...faltan, mensaje: undefined }, []).librosFaltantes,
+      contarResultado({ ...faltan, librosFaltantes: [] }).librosFaltantes,
     ).toBe(1);
   });
 });

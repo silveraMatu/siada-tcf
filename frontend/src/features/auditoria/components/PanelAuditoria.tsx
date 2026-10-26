@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorAlert } from '@/components/feedback/ErrorAlert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { ResumenLibro } from '@/features/cuentas/types';
+import { useIngresosEgresos } from '@/features/ingresos-egresos/hooks/useIngresosEgresos';
 import { useLibrosBanco } from '@/features/libro-banco/hooks/useLibrosBanco';
 import { cn } from '@/lib/utils';
 import { useEjecutarValidaciones } from '../hooks/useEjecutarValidaciones';
@@ -42,8 +42,6 @@ const CLAVE_RESUMEN = {
 
 interface PanelAuditoriaProps {
   cuentaMensualId: number;
-  /** Resumen de los libros de la rendición. */
-  libros: ResumenLibro[];
   onVerEnLibro: (observacion: ObservacionUbicada) => void;
 }
 
@@ -53,7 +51,6 @@ interface PanelAuditoriaProps {
  */
 export function PanelAuditoria({
   cuentaMensualId,
-  libros,
   onVerEnLibro,
 }: PanelAuditoriaProps) {
   const { data: ejecucion } = useResultadosValidacion(cuentaMensualId);
@@ -67,6 +64,11 @@ export function PanelAuditoria({
   const librosGuardados = useLibrosBanco(cuentaMensualId, {
     enabled: hayFallos,
   });
+  const ingresosEgresos = useIngresosEgresos(cuentaMensualId, {
+    enabled: hayFallos,
+  });
+  const ubicando =
+    hayFallos && (librosGuardados.isPending || ingresosEgresos.isPending);
 
   const resumen = useMemo(
     () => (resultados ? resumirResultados(resultados) : null),
@@ -203,12 +205,11 @@ export function PanelAuditoria({
               <ReglaValidacionCard
                 key={resultado.codigoRegla}
                 resultado={resultado}
-                libros={libros}
-                observaciones={ubicarObservaciones(
-                  resultado.observaciones,
-                  librosGuardados.data,
-                )}
-                ubicando={librosGuardados.isPending && hayFallos}
+                observaciones={ubicarObservaciones(resultado.observaciones, {
+                  librosBanco: librosGuardados.data,
+                  ingresosEgresos: ingresosEgresos.data,
+                })}
+                ubicando={ubicando}
                 onVerEnLibro={onVerEnLibro}
               />
             ))}

@@ -30,9 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
   contarResultado,
-  librosFaltantes,
   nombreDeLibroFaltante,
-  type LibroParaContar,
 } from '../lib/contar-resultado';
 import type {
   EstadoValidacion,
@@ -101,8 +99,6 @@ function Contador({
 
 interface ReglaValidacionCardProps {
   resultado: ResultadoValidacion;
-  /** Resumen de los libros de la rendición, para saber cuántas filas recorrió la regla. */
-  libros: readonly LibroParaContar[];
   /** Las observaciones de la regla con su libro y fila (solo importan si falló). */
   observaciones: readonly ObservacionUbicada[];
   /** Los libros todavía se están trayendo, así que la fila no se puede indicar aún. */
@@ -111,12 +107,11 @@ interface ReglaValidacionCardProps {
 }
 
 /**
- * Una regla del motor, plegada por defecto: nombre, código y tres contadores (✗ filas con observación,
- * ✓ filas verificadas, ⏱ libros que faltan). Al abrirla muestra el detalle según cómo terminó.
+ * Una regla del motor, plegada por defecto: nombre, código y tres contadores (✗ controles con observación,
+ * ✓ controles sin diferencias, ⏱ libros que faltan). Al abrirla muestra el detalle según cómo terminó.
  */
 export function ReglaValidacionCard({
   resultado,
-  libros,
   observaciones,
   ubicando = false,
   onVerEnLibro,
@@ -125,7 +120,7 @@ export function ReglaValidacionCard({
   const presentacion =
     PRESENTACION[resultado.estado] ?? PRESENTACION.FALTAN_LIBROS;
   const Icono = presentacion.icono;
-  const contadores = contarResultado(resultado, libros);
+  const contadores = contarResultado(resultado);
   const idTitulo = `regla-${resultado.codigoRegla}`;
 
   return (
@@ -159,8 +154,8 @@ export function ReglaValidacionCard({
                   valor={contadores.falladas}
                   etiqueta={plural(
                     contadores.falladas,
-                    'fila con observaciones',
-                    'filas con observaciones',
+                    'control con observaciones',
+                    'controles con observaciones',
                   )}
                   tono="border-danger-border bg-danger-subtle text-danger"
                 />
@@ -169,11 +164,11 @@ export function ReglaValidacionCard({
                   valor={contadores.verificadas}
                   etiqueta={
                     contadores.verificadas === null
-                      ? 'Filas verificadas: dato no disponible'
+                      ? 'Controles verificados: dato no disponible'
                       : plural(
                           contadores.verificadas,
-                          'fila verificada',
-                          'filas verificadas',
+                          'control verificado',
+                          'controles verificados',
                         )
                   }
                   tono="border-success-border bg-success-subtle text-success"
@@ -227,15 +222,15 @@ function DetalleRegla({
       <p className="text-sm text-foreground">
         {contadoresVerificadas === null
           ? 'La regla se ejecutó y no encontró diferencias.'
-          : `Se evaluaron ${plural(contadoresVerificadas, 'fila', 'filas')} y no se encontraron diferencias.`}
+          : contadoresVerificadas === 1
+            ? 'Se hizo 1 control y no se encontraron diferencias.'
+            : `Se hicieron ${contadoresVerificadas} controles y no se encontraron diferencias.`}
       </p>
     );
   }
 
   if (resultado.estado === 'FALTAN_LIBROS') {
-    const faltantes = librosFaltantes(resultado.mensaje).map(
-      nombreDeLibroFaltante,
-    );
+    const faltantes = resultado.librosFaltantes.map(nombreDeLibroFaltante);
     return (
       <p className="text-sm">
         {faltantes.length > 0

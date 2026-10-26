@@ -8,12 +8,12 @@ import type { ObservacionUbicada } from '../types/auditoria.types';
 import { ReglaValidacionCard } from './ReglaValidacionCard';
 
 const [fallo, verificado, faltan] = MOCK_RESULTADOS;
-const LIBROS = [{ tipo: 'LIBRO_BANCO', cantidadTransacciones: 10 }];
 
 const ubicada: ObservacionUbicada = {
   id: 1,
   mensaje: fallo.observaciones[0].descripcion,
   transaccionId: 12,
+  libroTipo: 'LIBRO_BANCO',
   libroId: 2,
   libroNombre: 'Cta. Cte. 200/2',
   fila: 3,
@@ -28,7 +28,6 @@ function renderCard(
     <ul>
       <ReglaValidacionCard
         resultado={resultado}
-        libros={LIBROS}
         observaciones={[ubicada]}
         onVerEnLibro={onVerEnLibro}
         {...props}
@@ -55,11 +54,13 @@ describe('ReglaValidacionCard', () => {
     const contadores = screen.getByRole('list', {
       name: 'Resultado de la regla',
     });
-    // 10 filas → 9 evaluadas (la primera es la base); 1 con observación → 8 verificadas
+    // el motor informa 9 controles; 1 con observación → 8 verificados
     expect(
-      within(contadores).getByText('1 fila con observaciones'),
+      within(contadores).getByText('1 control con observaciones'),
     ).toBeTruthy();
-    expect(within(contadores).getByText('8 filas verificadas')).toBeTruthy();
+    expect(
+      within(contadores).getByText('8 controles verificados'),
+    ).toBeTruthy();
     expect(within(contadores).getByText('0 libros faltantes')).toBeTruthy();
   });
 
@@ -111,7 +112,38 @@ describe('ReglaValidacionCard', () => {
     expect(screen.queryByRole('button', { name: /Ver la fila/ })).toBeNull();
   });
 
-  it('VERIFICADO: no hay tabla, solo cuántas filas se evaluaron', async () => {
+  it('un cruce entre libros se lista sin fila y sin botón para ir a ella', async () => {
+    const { user } = renderCard(fallo, {
+      observaciones: [
+        {
+          id: 7,
+          mensaje: 'Los depósitos del banco no coinciden con los del libro',
+          transaccionId: null,
+          libroNombre: 'Ingresos y Egresos',
+        },
+      ],
+    });
+    await user.click(screen.getByRole('button', { name: /Saldo de cuenta/ }));
+
+    const fila = screen.getAllByRole('row')[1];
+    expect(within(fila).getByText('Ingresos y Egresos')).toBeTruthy();
+    expect(within(fila).getByText('—')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Ver la fila/ })).toBeNull();
+  });
+
+  it('con un único control lo dice en singular', async () => {
+    const { user } = renderCard(
+      { ...verificado, filasEvaluadas: 1 },
+      { observaciones: [] },
+    );
+    await user.click(screen.getByRole('button', { name: /Verificada/ }));
+
+    expect(
+      screen.getByText('Se hizo 1 control y no se encontraron diferencias.'),
+    ).toBeTruthy();
+  });
+
+  it('VERIFICADO: no hay tabla, solo cuántos controles se hicieron', async () => {
     const { user } = renderCard(
       { ...verificado, codigoRegla: 'V3' },
       { observaciones: [] },
@@ -121,23 +153,27 @@ describe('ReglaValidacionCard', () => {
 
     expect(screen.queryByRole('table')).toBeNull();
     expect(
-      screen.getByText('Se evaluaron 9 filas y no se encontraron diferencias.'),
+      screen.getByText(
+        'Se hicieron 4 controles y no se encontraron diferencias.',
+      ),
     ).toBeTruthy();
   });
 
-  it('FALTAN_LIBROS: dice qué libro falta y cuenta libros, no filas', async () => {
+  it('FALTAN_LIBROS: dice qué libro falta y cuenta libros, no controles', async () => {
     const { user } = renderCard(faltan, { observaciones: [] });
 
     const contadores = screen.getByRole('list', {
       name: 'Resultado de la regla',
     });
     expect(within(contadores).getByText('1 libro faltante')).toBeTruthy();
-    expect(within(contadores).getByText('0 filas verificadas')).toBeTruthy();
+    expect(
+      within(contadores).getByText('0 controles verificados'),
+    ).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: /Omitida/ }));
     expect(
       screen.getByText(
-        'No se pudo evaluar esta regla porque falta: INGRESOS_EGRESOS. Necesita ese libro para poder correr.',
+        'No se pudo evaluar esta regla porque falta: Ingresos y Egresos. Necesita ese libro para poder correr.',
       ),
     ).toBeTruthy();
     expect(screen.queryByRole('table')).toBeNull();

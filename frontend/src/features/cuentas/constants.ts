@@ -22,6 +22,7 @@ export const MESES = [
 
 export const TIPOS_LIBRO: Record<TipoLibro, string> = {
   LIBRO_BANCO: 'Libro Banco',
+  INGRESOS_EGRESOS: 'Ingresos y Egresos',
 };
 
 export const ESTADOS: Record<

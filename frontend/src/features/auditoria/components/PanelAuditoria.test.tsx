@@ -8,31 +8,26 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ResumenLibro } from '@/features/cuentas/types';
+import { obtenerIngresosEgresos } from '@/features/ingresos-egresos/api/ingresos-egresos.api';
+import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
 import { obtenerLibrosBanco } from '@/features/libro-banco/api/libro-banco.api';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
 import { ejecutarValidaciones } from '../api/auditoria.api';
 import { MOCK_RESULTADOS } from '../mocks/resultados.mock';
+import type { ResultadoValidacion } from '../types/auditoria.types';
 import { PanelAuditoria } from './PanelAuditoria';
 
 vi.mock('../api/auditoria.api', () => ({ ejecutarValidaciones: vi.fn() }));
+vi.mock('@/features/ingresos-egresos/api/ingresos-egresos.api', () => ({
+  obtenerIngresosEgresos: vi.fn(),
+  ingestarIngresosEgresos: vi.fn(),
+}));
 vi.mock('@/features/libro-banco/api/libro-banco.api', () => ({
   obtenerLibrosBanco: vi.fn(),
   ingestarLibroBanco: vi.fn(),
 }));
-
-const LIBROS: ResumenLibro[] = [
-  {
-    id: 2,
-    tipo: 'LIBRO_BANCO',
-    numeroCuentaCte: '200/2',
-    cantidadTransacciones: 20,
-    fechaDesde: '2026-03-02',
-    fechaHasta: '2026-03-30',
-  },
-];
 
 const transaccion = (id: number) => ({
   id,
@@ -60,11 +55,7 @@ function renderPanel(onVerEnLibro = vi.fn()) {
   });
   render(
     <QueryClientProvider client={client}>
-      <PanelAuditoria
-        cuentaMensualId={5}
-        libros={LIBROS}
-        onVerEnLibro={onVerEnLibro}
-      />
+      <PanelAuditoria cuentaMensualId={5} onVerEnLibro={onVerEnLibro} />
     </QueryClientProvider>,
   );
   return { user: userEvent.setup(), onVerEnLibro, client };
@@ -72,6 +63,10 @@ function renderPanel(onVerEnLibro = vi.fn()) {
 
 const botonEjecutar = () =>
   screen.getByRole('button', { name: 'Ejecutar Validaciones Determinísticas' });
+
+beforeEach(() => {
+  vi.mocked(obtenerIngresosEgresos).mockResolvedValue(null);
+});
 
 afterEach(() => {
   cleanup();
@@ -142,7 +137,64 @@ describe('PanelAuditoria', () => {
     await user.click(boton);
 
     expect(onVerEnLibro).toHaveBeenCalledWith(
-      expect.objectContaining({ libroId: 2, transaccionId: 12, fila: 3 }),
+      expect.objectContaining({
+        libroTipo: 'LIBRO_BANCO',
+        libroId: 2,
+        transaccionId: 12,
+        fila: 3,
+      }),
+    );
+  });
+
+  it('un hallazgo del libro de Ingresos y Egresos se ubica por la fila del archivo y lleva a ese libro', async () => {
+    const fallaV1: ResultadoValidacion = {
+      codigoRegla: 'V1',
+      descripcion: 'Saldo de caja',
+      estado: 'FALLO',
+      observaciones: [
+        {
+          ...MOCK_RESULTADOS[0].observaciones[0],
+          id: 31,
+          codigoRegla: 'V1',
+          descripcion: 'Error de fórmula en la fila 9: el saldo no coincide.',
+          libroOrigen: 'INGRESOS_EGRESOS',
+          transaccionId: null,
+          transaccionIngresoEgresoId: 58,
+        },
+      ],
+      filasEvaluadas: 3,
+      librosFaltantes: [],
+    };
+    vi.mocked(ejecutarValidaciones).mockResolvedValue([fallaV1]);
+    vi.mocked(obtenerIngresosEgresos).mockResolvedValue({
+      id: 2,
+      cuentaMensualId: 5,
+      numeroCuentaCte: null,
+      fechaCreacion: '2026-10-15T12:00:00.000Z',
+      transacciones: [
+        { id: 57, fila: 4 },
+        { id: 58, fila: 9 },
+      ],
+    } as unknown as IngresosEgresosGuardado);
+    const { user, onVerEnLibro } = renderPanel();
+    await user.click(botonEjecutar());
+
+    await user.click(
+      await screen.findByRole('button', { name: /Saldo de caja/ }),
+    );
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Ver la fila 9 de Ingresos y Egresos en el libro',
+      }),
+    );
+
+    expect(onVerEnLibro).toHaveBeenCalledWith(
+      expect.objectContaining({
+        libroTipo: 'INGRESOS_EGRESOS',
+        libroId: 2,
+        transaccionId: 58,
+        fila: 9,
+      }),
     );
   });
 
@@ -252,11 +304,7 @@ describe('PanelAuditoria', () => {
     });
     const vista = () => (
       <QueryClientProvider client={client}>
-        <PanelAuditoria
-          cuentaMensualId={5}
-          libros={LIBROS}
-          onVerEnLibro={vi.fn()}
-        />
+        <PanelAuditoria cuentaMensualId={5} onVerEnLibro={vi.fn()} />
       </QueryClientProvider>
     );
     const primera = render(vista());

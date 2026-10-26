@@ -10,8 +10,10 @@ export interface ObservacionApi {
   descripcion: string;
   libroOrigen: string;
   estado: string;
-  /** Fila (transacción) donde se detectó; null si el hallazgo es de toda la cuenta. */
+  /** Transacción del libro banco donde se detectó (solo V3); null si no es de ese libro. */
   transaccionId: number | null;
+  /** Transacción del libro de Ingresos y Egresos donde se detectó (V1 y V2); null en los cruces, que son de toda la cuenta. */
+  transaccionIngresoEgresoId: number | null;
 }
 
 export interface ResultadoValidacion {
@@ -22,6 +24,10 @@ export interface ResultadoValidacion {
   /** Solo en FALTAN_LIBROS: «Faltan libros requeridos: LIBRO_BANCO, RACI». */
   mensaje?: string;
   observaciones: ObservacionApi[];
+  /** Controles que hizo la regla (filas validadas, o 1 si compara un total contra otro); null si no corrió. */
+  filasEvaluadas: number | null;
+  /** Códigos de los libros que le faltan para correr, por ejemplo `INGRESOS_EGRESOS`; vacío si corrió. */
+  librosFaltantes: string[];
 }
 
 /** Resultado de una ejecución, con la hora en que se pidió. */
@@ -35,18 +41,20 @@ export interface EjecucionValidaciones {
 export interface ObservacionUbicada {
   id: number;
   mensaje: string;
+  /** Id de la transacción hallada dentro de su libro (banco o Ingresos y Egresos); null si es de toda la cuenta. */
   transaccionId: number | null;
+  libroTipo?: string;
   libroId?: number;
   libroNombre?: string;
-  /** Posición de la fila en el libro (base 1), igual que la numeración de la tabla. */
+  /** Número de fila tal como lo muestra la tabla del libro: la posición en el libro banco, la fila del archivo en Ingresos y Egresos. */
   fila?: number;
 }
 
 /** Los tres contadores que acompañan a cada regla. `null` = no se puede calcular. */
 export interface ContadoresRegla {
-  /** Filas con observación. */
+  /** Controles con observación. */
   falladas: number;
-  /** Filas evaluadas sin diferencias. */
+  /** Controles sin diferencias. */
   verificadas: number | null;
   /** Libros requeridos que faltan para correr la regla. */
   librosFaltantes: number;

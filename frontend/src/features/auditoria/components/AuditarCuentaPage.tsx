@@ -114,7 +114,6 @@ export function AuditarCuentaPage() {
 
       <PanelAuditoria
         cuentaMensualId={cuenta.id}
-        libros={cuenta.libros}
         onVerEnLibro={verEnLibro}
       />
 

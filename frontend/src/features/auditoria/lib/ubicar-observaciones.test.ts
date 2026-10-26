@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
 import { MOCK_RESULTADOS } from '../mocks/resultados.mock';
 import { ubicarObservaciones } from './ubicar-observaciones';
@@ -14,7 +15,7 @@ const transaccion = (id: number) => ({
   saldo: 0,
 });
 
-const libros: LibroBancoGuardado[] = [
+const librosBanco: LibroBancoGuardado[] = [
   {
     id: 1,
     cuentaMensualId: 5,
@@ -31,15 +32,28 @@ const libros: LibroBancoGuardado[] = [
   },
 ];
 
+/** El id de este libro coincide a propósito con el del libro banco 2: se distinguen por tipo. */
+const ingresosEgresos = {
+  id: 2,
+  cuentaMensualId: 5,
+  numeroCuentaCte: null,
+  fechaCreacion: '2026-10-15T12:00:00.000Z',
+  transacciones: [
+    { id: 57, fila: 4 },
+    { id: 58, fila: 9 },
+  ],
+} as unknown as IngresosEgresosGuardado;
+
 const [observacion] = MOCK_RESULTADOS[0].observaciones; // transaccionId 12
 
 describe('ubicarObservaciones', () => {
-  it('encuentra el libro y la fila (base 1) de la transacción', () => {
-    expect(ubicarObservaciones([observacion], libros)).toEqual([
+  it('encuentra el libro banco y la fila (base 1) de la transacción', () => {
+    expect(ubicarObservaciones([observacion], { librosBanco })).toEqual([
       {
         id: 1,
         mensaje: observacion.descripcion,
         transaccionId: 12,
+        libroTipo: 'LIBRO_BANCO',
         libroId: 2,
         libroNombre: 'Cta. Cte. 200/2',
         fila: 3,
@@ -47,10 +61,45 @@ describe('ubicarObservaciones', () => {
     ]);
   });
 
+  it('en Ingresos y Egresos la fila es la del archivo, no la posición en la tabla', () => {
+    const [ubicada] = ubicarObservaciones(
+      [
+        {
+          ...observacion,
+          codigoRegla: 'V1',
+          libroOrigen: 'INGRESOS_EGRESOS',
+          transaccionId: null,
+          transaccionIngresoEgresoId: 58,
+        },
+      ],
+      { librosBanco, ingresosEgresos },
+    );
+
+    expect(ubicada).toMatchObject({
+      transaccionId: 58,
+      libroTipo: 'INGRESOS_EGRESOS',
+      libroId: 2,
+      libroNombre: 'Ingresos y Egresos',
+      fila: 9,
+    });
+  });
+
   it('sin los libros cargados o con una transacción que ya no existe, queda sin ubicar', () => {
     for (const ubicadas of [
-      ubicarObservaciones([observacion], undefined),
-      ubicarObservaciones([{ ...observacion, transaccionId: 999 }], libros),
+      ubicarObservaciones([observacion], {}),
+      ubicarObservaciones([{ ...observacion, transaccionId: 999 }], {
+        librosBanco,
+      }),
+      ubicarObservaciones(
+        [
+          {
+            ...observacion,
+            transaccionId: null,
+            transaccionIngresoEgresoId: 999,
+          },
+        ],
+        { librosBanco, ingresosEgresos },
+      ),
     ]) {
       expect(ubicadas).toHaveLength(1);
       expect(ubicadas[0].fila).toBeUndefined();
@@ -58,12 +107,23 @@ describe('ubicarObservaciones', () => {
     }
   });
 
-  it('una observación de toda la cuenta (sin transacción) no tiene fila', () => {
+  it('un cruce entre libros (de toda la cuenta) no tiene fila pero nombra el libro de origen', () => {
     const [ubicada] = ubicarObservaciones(
-      [{ ...observacion, transaccionId: null }],
-      libros,
+      [
+        {
+          ...observacion,
+          codigoRegla: 'C5',
+          libroOrigen: 'INGRESOS_EGRESOS',
+          transaccionId: null,
+          transaccionIngresoEgresoId: null,
+        },
+      ],
+      { librosBanco, ingresosEgresos },
     );
+
     expect(ubicada.transaccionId).toBeNull();
     expect(ubicada.fila).toBeUndefined();
+    expect(ubicada.libroId).toBeUndefined();
+    expect(ubicada.libroNombre).toBe('Ingresos y Egresos');
   });
 });

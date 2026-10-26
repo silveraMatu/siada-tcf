@@ -14,15 +14,15 @@ export interface CuentaMensual {
   fechaCreacion: string;
 }
 
-/** Tipos de libro contable que puede traer una rendición; hoy solo existe el libro banco. */
-export type TipoLibro = 'LIBRO_BANCO';
+/** Tipos de libro contable que puede traer una rendición. */
+export type TipoLibro = 'LIBRO_BANCO' | 'INGRESOS_EGRESOS';
 
 /** Qué trae un libro cargado en una rendición, sin sus transacciones. */
 export interface ResumenLibro {
   id: number;
   /** Puede llegar un tipo nuevo del backend que aún no conocemos. */
   tipo: TipoLibro | (string & {});
-  /** Solo el libro banco tiene N° de cuenta corriente; null en libros anteriores a que fuera obligatorio. */
+  /** El libro banco lo tiene siempre salvo en libros anteriores a que fuera obligatorio; el de Ingresos y Egresos, solo si se informó. */
   numeroCuentaCte: string | null;
   cantidadTransacciones: number;
   /** Primera y última fecha de sus transacciones (YYYY-MM-DD); null si ninguna trae fecha. */

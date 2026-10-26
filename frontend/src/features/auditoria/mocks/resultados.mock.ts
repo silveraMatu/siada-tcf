@@ -20,14 +20,19 @@ export const MOCK_RESULTADOS: ResultadoValidacion[] = [
         libroOrigen: 'LIBRO_BANCO',
         estado: 'ABIERTA',
         transaccionId: 12,
+        transaccionIngresoEgresoId: null,
       },
     ],
+    filasEvaluadas: 9,
+    librosFaltantes: [],
   },
   {
     codigoRegla: 'V1',
     descripcion: 'Fechas dentro del período',
     estado: 'VERIFICADO',
     observaciones: [],
+    filasEvaluadas: 4,
+    librosFaltantes: [],
   },
   {
     codigoRegla: 'V7',
@@ -35,5 +40,7 @@ export const MOCK_RESULTADOS: ResultadoValidacion[] = [
     estado: 'FALTAN_LIBROS',
     mensaje: 'Faltan libros requeridos: INGRESOS_EGRESOS',
     observaciones: [],
+    filasEvaluadas: null,
+    librosFaltantes: ['INGRESOS_EGRESOS'],
   },
 ];
