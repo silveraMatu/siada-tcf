@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ObservacionRepositoryPort } from '../ports/out/observacion-repository.port.js';
+import type { IngresosEgresos } from '../../../ingresos-egresos/domain/entities/ingresos-egresos.domain.js';
 import type { LibroBanco } from '../../../libro-banco/domain/entities/libro-banco.domain.js';
 import { MotorAuditoriaService } from '../../domain/engine/motor-auditoria.service.js';
 import type { Observaciones } from '../../domain/entities/observaciones.domain.js';
@@ -19,10 +20,12 @@ export class AuditarLibroBancoUseCase {
   async execute(
     cuentaMensualId: number,
     librosBanco: LibroBanco[],
+    ingresosEgresos?: IngresosEgresos,
   ): Promise<ResultadoValidacion[]> {
     const resultados = this.motor.ejecutarAuditoriaCompleta({
       cuentaMensualId,
       librosBanco,
+      ingresosEgresos,
     });
 
     //solo los resultados FALLO traen hallazgos que persistir

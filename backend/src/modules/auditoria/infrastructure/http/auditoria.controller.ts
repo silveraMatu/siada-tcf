@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../../../auth/infrastructure/security/jwt-auth.gua
 import { Roles } from '../../../auth/infrastructure/security/roles.decorator.js';
 import { RolesGuard } from '../../../auth/infrastructure/security/roles.guard.js';
 import { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
+import { BuscarIngresosEgresosUseCase } from '../../../ingresos-egresos/application/use-cases/buscar-ingresos-egresos.use-case.js';
 import { ObtenerLibroBancoUseCase } from '../../../libro-banco/application/use-cases/obtener-libro-banco.use-case.js';
 import { AuditarLibroBancoUseCase } from '../../application/use-cases/auditar-libro-banco.use-case.js';
 import { ListarObservacionesUseCase } from '../../application/use-cases/listar-observaciones.use-case.js';
@@ -39,6 +40,7 @@ import { ResultadoValidacionResponseDto } from './dto/resultado-validacion-respo
 export class AuditoriaController {
   constructor(
     private readonly obtenerLibroBancoUseCase: ObtenerLibroBancoUseCase,
+    private readonly buscarIngresosEgresosUseCase: BuscarIngresosEgresosUseCase,
     private readonly auditarLibroBancoUseCase: AuditarLibroBancoUseCase,
     private readonly listarObservacionesUseCase: ListarObservacionesUseCase,
   ) {}
@@ -53,6 +55,8 @@ export class AuditoriaController {
       libroOrigen: observacion.libroOrigen,
       estado: observacion.estado,
       transaccionId: observacion.transaccionId ?? null,
+      transaccionIngresoEgresoId:
+        observacion.transaccionIngresoEgresoId ?? null,
     };
   }
 
@@ -89,9 +93,12 @@ export class AuditoriaController {
   ): Promise<ResultadoValidacionResponseDto[]> {
     //TODO: endpoint temporal, la auditoría se disparará desde el flujo de la cuenta mensual
     const libros = await this.obtenerLibroBancoUseCase.execute(cuentaMensualId);
+    const ingresosEgresos =
+      await this.buscarIngresosEgresosUseCase.execute(cuentaMensualId);
     const resultados = await this.auditarLibroBancoUseCase.execute(
       cuentaMensualId,
       libros,
+      ingresosEgresos ?? undefined,
     );
     return resultados.map((r) => this.toResultadoResponse(r));
   }

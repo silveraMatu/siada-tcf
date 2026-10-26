@@ -5,8 +5,10 @@ import { createTestApp } from '../helpers/create-test-app.js';
 import {
   ID_INEXISTENTE,
   MES_AUDITORIA,
+  MES_AUDITORIA_CRUCE,
   MES_SIN_LIBRO,
   crearResponsableConSesion,
+  fijarEstadoCuenta,
   habilitarUsuario,
   obtenerBearerAdmin,
   obtenerOrganismoBaseId,
@@ -24,6 +26,29 @@ describe('Auditoría (e2e)', () => {
   let cuentaMensualSinLibroId: number;
   //id de la fila del libro con el saldo equivocado
   let transaccionIncorrectaId: number;
+
+  //el resultado de una regla dentro de la respuesta de ejecutar
+  interface Resultado {
+    codigoRegla: string;
+    estado: string;
+    observaciones: unknown[];
+  }
+  const deRegla = (cuerpo: Resultado[], codigo: string) =>
+    cuerpo.find((r) => r.codigoRegla === codigo);
+  const estados = (cuerpo: Resultado[]) =>
+    cuerpo.map((r) => [r.codigoRegla, r.estado]);
+
+  const faltanLibros = (
+    codigo: string,
+    descripcion: string,
+    libros: string,
+  ) => ({
+    codigoRegla: codigo,
+    descripcion,
+    estado: 'FALTAN_LIBROS',
+    mensaje: `Faltan libros requeridos: ${libros}`,
+    observaciones: [],
+  });
 
   const ejecutar = (id: number | string) =>
     request(app.getHttpServer()).post(
@@ -125,31 +150,48 @@ describe('Auditoría (e2e)', () => {
   });
 
   describe('POST .../libro-banco/ejecutar y GET .../observaciones', () => {
-    it('200: V3 queda en FALLO con la única fila de saldo incorrecto', async () => {
+    it('200: V3 queda en FALLO con la única fila de saldo incorrecto y las reglas de ingresos y egresos esperan su libro', async () => {
       const res = await ejecutar(cuentaMensualId)
         .set('Authorization', bearerAdmin)
         .expect(200);
 
-      expect(res.body).toEqual([
-        {
-          codigoRegla: 'V3',
-          descripcion: 'Saldo de cuenta',
-          estado: 'FALLO',
-          observaciones: [
-            {
-              id: expect.any(Number),
-              cuentaMensualId,
-              codigoRegla: 'V3',
-              tipo: 'INTERNA',
-              descripcion:
-                'El saldo calculado (1300.00) no coincide con el saldo informado (1400.00). Diferencia: 100.00.',
-              libroOrigen: 'LIBRO_BANCO',
-              estado: 'ABIERTA',
-              transaccionId: transaccionIncorrectaId,
-            },
-          ],
-        },
+      expect(estados(res.body)).toEqual([
+        ['V1', 'FALTAN_LIBROS'],
+        ['V2', 'FALTAN_LIBROS'],
+        ['V3', 'FALLO'],
+        ['C4', 'FALTAN_LIBROS'],
+        ['C5', 'FALTAN_LIBROS'],
+        ['C6', 'FALTAN_LIBROS'],
       ]);
+      expect(deRegla(res.body, 'V3')).toEqual({
+        codigoRegla: 'V3',
+        descripcion: 'Saldo de cuenta',
+        estado: 'FALLO',
+        observaciones: [
+          {
+            id: expect.any(Number),
+            cuentaMensualId,
+            codigoRegla: 'V3',
+            tipo: 'INTERNA',
+            descripcion:
+              'El saldo calculado (1300.00) no coincide con el saldo informado (1400.00). Diferencia: 100.00.',
+            libroOrigen: 'LIBRO_BANCO',
+            estado: 'ABIERTA',
+            transaccionId: transaccionIncorrectaId,
+            transaccionIngresoEgresoId: null,
+          },
+        ],
+      });
+      expect(deRegla(res.body, 'V1')).toEqual({
+        codigoRegla: 'V1',
+        descripcion: 'Saldo de caja',
+        estado: 'FALTAN_LIBROS',
+        mensaje: 'Faltan libros requeridos: INGRESOS_EGRESOS',
+        observaciones: [],
+      });
+      expect(deRegla(res.body, 'C4')).toMatchObject({
+        mensaje: 'Faltan libros requeridos: INGRESOS_EGRESOS',
+      });
     });
 
     it('200: ejecutar de nuevo no duplica la observación', async () => {
@@ -161,7 +203,7 @@ describe('Auditoría (e2e)', () => {
         .expect(200);
 
       expect(segunda.body).toEqual(primera.body);
-      expect(segunda.body[0].observaciones).toHaveLength(1);
+      expect(deRegla(segunda.body, 'V3')!.observaciones).toHaveLength(1);
 
       const [{ total }] = await dataSource.query(
         `SELECT count(*)::int AS total FROM observaciones WHERE cuenta_mensual_id = $1 AND codigo_regla = 'V3'`,
@@ -190,15 +232,263 @@ describe('Auditoría (e2e)', () => {
         .expect(200);
 
       expect(ejecucion.body).toEqual([
-        {
-          codigoRegla: 'V3',
-          descripcion: 'Saldo de cuenta',
-          estado: 'FALTAN_LIBROS',
-          mensaje: 'Faltan libros requeridos: LIBRO_BANCO',
-          observaciones: [],
-        },
+        faltanLibros('V1', 'Saldo de caja', 'INGRESOS_EGRESOS'),
+        faltanLibros(
+          'V2',
+          'Saldo de banco (ingresos y egresos)',
+          'INGRESOS_EGRESOS',
+        ),
+        faltanLibros('V3', 'Saldo de cuenta', 'LIBRO_BANCO'),
+        faltanLibros(
+          'C4',
+          'Depósitos bancarios',
+          'LIBRO_BANCO, INGRESOS_EGRESOS',
+        ),
+        faltanLibros(
+          'C5',
+          'Retiros bancarios',
+          'LIBRO_BANCO, INGRESOS_EGRESOS',
+        ),
+        faltanLibros(
+          'C6',
+          'Saldo final bancario',
+          'LIBRO_BANCO, INGRESOS_EGRESOS',
+        ),
       ]);
       expect(listado.body).toEqual([]);
+    });
+  });
+
+  //banco consistente (depósitos 1500, retiros 200, saldo final 1300) contra un libro de ingresos y egresos
+  //con fallos sembrados: V1 en las filas 3 y 4 (dos hallazgos del mismo código en la cuenta), V2 en la
+  //fila 2, retiros 250 (C5) y saldo final 1150 (C6)
+  describe('cruce con el libro de Ingresos y Egresos', () => {
+    let cuentaCruceId: number;
+    //id de las filas del libro de ingresos y egresos, en orden de fila
+    let idsFilasIE: number[];
+
+    const filaIE = (fila: number, extra: Record<string, unknown>) => ({
+      fila,
+      fecha: '2026-03-01',
+      concepto: `Fila ${fila}`,
+      cajaDebe: 0,
+      cajaHaber: 0,
+      cajaSaldo: 0,
+      bancoDebe: 0,
+      bancoHaber: 0,
+      bancoSaldo: 0,
+      egresoInc1: 0,
+      egresoInc2: 0,
+      egresoInc3: 0,
+      egresoInc4: 0,
+      egresoInc5: 0,
+      ingresoMunicipal: 0,
+      ingresoOtras: 0,
+      cuentasVariasDebe: 0,
+      cuentasVariasHaber: 0,
+      ...extra,
+    });
+
+    beforeAll(async () => {
+      const organismoId = await obtenerOrganismoBaseId(dataSource);
+      cuentaCruceId = await resolverCuentaMensualId(
+        app,
+        organismoId,
+        MES_AUDITORIA_CRUCE,
+      );
+      await fijarEstadoCuenta(dataSource, cuentaCruceId);
+      const { bearer } = await crearResponsableConSesion(app, organismoId);
+
+      //reemplazar=true: los dos libros se dejan siempre iguales, sin importar lo que hubiera
+      await request(app.getHttpServer())
+        .post(`/api/v1/cuentas-mensuales/${cuentaCruceId}/libro-banco/ingestar`)
+        .set('Authorization', bearer)
+        .send({
+          numeroCuentaCte: '999-CRUCE/E2E',
+          reemplazar: true,
+          transacciones: [
+            { aLaOrdenDe: 'Base', depositos: 1000, retiro: 0, saldo: 1000 },
+            { aLaOrdenDe: 'Cobro', depositos: 500, retiro: 0, saldo: 1500 },
+            { aLaOrdenDe: 'Pago', depositos: 0, retiro: 200, saldo: 1300 },
+          ],
+        })
+        .expect(201);
+      const ingestado = await request(app.getHttpServer())
+        .post(
+          `/api/v1/cuentas-mensuales/${cuentaCruceId}/ingresos-egresos/ingestar`,
+        )
+        .set('Authorization', bearer)
+        .send({
+          numeroCuentaCte: '999-CRUCE/E2E',
+          reemplazar: true,
+          transacciones: [
+            filaIE(1, {
+              cajaDebe: 100,
+              cajaSaldo: 100,
+              bancoDebe: 1000,
+              bancoSaldo: 1000,
+            }),
+            //V2: debería ser 1500
+            filaIE(2, {
+              cajaDebe: 50,
+              cajaSaldo: 150,
+              bancoDebe: 500,
+              bancoSaldo: 1400,
+            }),
+            //V1: la caja debería ser 130; banco 1400 - 250 = 1150 es coherente
+            filaIE(3, {
+              cajaHaber: 20,
+              cajaSaldo: 140,
+              bancoHaber: 250,
+              bancoSaldo: 1150,
+            }),
+            //V1: la caja debería ser 150; el banco no se mueve
+            filaIE(4, {
+              cajaDebe: 10,
+              cajaSaldo: 999,
+              bancoSaldo: 1150,
+            }),
+          ],
+        })
+        .expect(201);
+      idsFilasIE = ingestado.body.transacciones.map(
+        (t: { id: number }) => t.id,
+      );
+    });
+
+    it('200: cada regla da su resultado, con las filas y los totales que no coinciden', async () => {
+      const res = await ejecutar(cuentaCruceId)
+        .set('Authorization', bearerAdmin)
+        .expect(200);
+
+      expect(estados(res.body)).toEqual([
+        ['V1', 'FALLO'],
+        ['V2', 'FALLO'],
+        ['V3', 'VERIFICADO'],
+        ['C4', 'VERIFICADO'],
+        ['C5', 'FALLO'],
+        ['C6', 'FALLO'],
+      ]);
+
+      const observacion = (
+        codigo: string,
+        tipo: string,
+        descripcion: string,
+        transaccionIngresoEgresoId: number | null,
+      ) => ({
+        id: expect.any(Number),
+        cuentaMensualId: cuentaCruceId,
+        codigoRegla: codigo,
+        tipo,
+        descripcion,
+        libroOrigen: 'INGRESOS_EGRESOS',
+        estado: 'ABIERTA',
+        transaccionId: null,
+        transaccionIngresoEgresoId,
+      });
+      expect(deRegla(res.body, 'V1')!).toMatchObject({
+        descripcion: 'Saldo de caja',
+        observaciones: [
+          observacion(
+            'V1',
+            'INTERNA',
+            'Error de fórmula en la fila 3: el saldo de caja calculado (130.00) no coincide con el saldo informado (140.00). Diferencia: 10.00.',
+            idsFilasIE[2],
+          ),
+          observacion(
+            'V1',
+            'INTERNA',
+            'Error de fórmula en la fila 4: el saldo de caja calculado (150.00) no coincide con el saldo informado (999.00). Diferencia: 849.00.',
+            idsFilasIE[3],
+          ),
+        ],
+      });
+      expect(deRegla(res.body, 'V2')!.observaciones).toEqual([
+        observacion(
+          'V2',
+          'INTERNA',
+          'Error de fórmula en la fila 2: el saldo de banco calculado (1500.00) no coincide con el saldo informado (1400.00). Diferencia: 100.00.',
+          idsFilasIE[1],
+        ),
+      ]);
+      expect(deRegla(res.body, 'V3')).toEqual({
+        codigoRegla: 'V3',
+        descripcion: 'Saldo de cuenta',
+        estado: 'VERIFICADO',
+        observaciones: [],
+      });
+      expect(deRegla(res.body, 'C4')!.observaciones).toEqual([]);
+      expect(deRegla(res.body, 'C5')!.observaciones).toEqual([
+        observacion(
+          'C5',
+          'CRUZAMIENTO',
+          'Inconsistencia en retiros bancarios: el total de banco haber del libro de Ingresos y Egresos (250.00) no coincide con el total de retiros del Libro Banco (200.00). Diferencia: 50.00.',
+          null,
+        ),
+      ]);
+      expect(deRegla(res.body, 'C6')!.observaciones).toEqual([
+        observacion(
+          'C6',
+          'CRUZAMIENTO',
+          'Saldo bancario inconsistente: el saldo final de banco del libro de Ingresos y Egresos (1150.00) no coincide con el saldo final del Libro Banco (1300.00). Diferencia: 150.00.',
+          null,
+        ),
+      ]);
+    });
+
+    it('200: ejecutar de nuevo no duplica ninguna observación y se conservan los dos hallazgos V1', async () => {
+      const primera = await ejecutar(cuentaCruceId)
+        .set('Authorization', bearerAdmin)
+        .expect(200);
+      const segunda = await ejecutar(cuentaCruceId)
+        .set('Authorization', bearerAdmin)
+        .expect(200);
+
+      expect(segunda.body).toEqual(primera.body);
+      const [{ total }] = await dataSource.query(
+        `SELECT count(*)::int AS total FROM observaciones WHERE cuenta_mensual_id = $1`,
+        [cuentaCruceId],
+      );
+      expect(total).toBe(5);
+    });
+
+    it('200: GET observaciones lista las cinco, todas del libro de ingresos y egresos', async () => {
+      const res = await listar(cuentaCruceId)
+        .set('Authorization', bearerAdmin)
+        .expect(200);
+
+      expect(
+        res.body.map((o: { codigoRegla: string }) => o.codigoRegla).sort(),
+      ).toEqual(['C5', 'C6', 'V1', 'V1', 'V2']);
+      expect(
+        res.body.every(
+          (o: { libroOrigen: string }) => o.libroOrigen === 'INGRESOS_EGRESOS',
+        ),
+      ).toBe(true);
+    });
+
+    it('las observaciones de una fila caen con el libro cuando se reemplaza, y las de cuenta no', async () => {
+      const organismoId = await obtenerOrganismoBaseId(dataSource);
+      const { bearer } = await crearResponsableConSesion(app, organismoId);
+      await request(app.getHttpServer())
+        .post(
+          `/api/v1/cuentas-mensuales/${cuentaCruceId}/ingresos-egresos/ingestar`,
+        )
+        .set('Authorization', bearer)
+        .send({
+          reemplazar: true,
+          transacciones: [filaIE(1, {})],
+        })
+        .expect(201);
+
+      const res = await listar(cuentaCruceId)
+        .set('Authorization', bearerAdmin)
+        .expect(200);
+
+      //V1 y V2 estaban ligadas a filas del libro viejo; C5 y C6 son de toda la cuenta
+      expect(
+        res.body.map((o: { codigoRegla: string }) => o.codigoRegla).sort(),
+      ).toEqual(['C5', 'C6']);
     });
   });
 });
