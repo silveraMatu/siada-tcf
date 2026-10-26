@@ -79,7 +79,14 @@ export function LibrosDeRendicion({
       onValueChange={setActiva}
       className="space-y-3"
     >
-      <TabsList className="h-auto max-w-full flex-wrap justify-start gap-1">
+      {/* Con ningún libro abierto la lista de pestañas sería una sola («Resumen»): no aporta nada. */}
+      <TabsList
+        className={
+          pestanas.length === 0
+            ? 'sr-only'
+            : 'h-auto max-w-full flex-wrap justify-start gap-1'
+        }
+      >
         <TabsTrigger value={RESUMEN}>
           Resumen
           <span className="ml-2 min-w-5 rounded-full bg-muted px-1.5 py-0.5 text-center text-xs font-medium tabular-nums text-muted-foreground">

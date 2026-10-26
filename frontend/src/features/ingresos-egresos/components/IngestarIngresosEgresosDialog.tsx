@@ -2,6 +2,7 @@ import { AlertCircle, FileSpreadsheet, Loader2, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,12 +15,14 @@ import {
 import { DropZone } from '@/features/libro-banco/components/DropZone';
 import { ReemplazarLibroDialog } from '@/features/libro-banco/components/ReemplazarLibroDialog';
 import { leerLibroDuplicado } from '@/features/libro-banco/lib/libro-duplicado';
+import { formatearMomento } from '@/features/libro-banco/lib/formato-libro';
 import type { LibroExistente } from '@/features/libro-banco/types';
 import { useIngestarIngresosEgresos } from '../hooks/useIngestarIngresosEgresos';
 import {
   IngresosEgresosParseError,
   parseIngresosEgresosExcel,
 } from '../lib/parse-ingresos-egresos';
+import type { ResumenIngresosEgresos } from '../lib/resumir-ingresos-egresos';
 import type { ResultadoParseoIngresosEgresos } from '../types';
 import { PreviewIngresosEgresosTable } from './PreviewIngresosEgresosTable';
 
@@ -34,6 +37,8 @@ interface IngestarIngresosEgresosDialogProps {
   cuentaMensualId: number;
   /** Se invoca tras un envío exitoso, para que la vista refresque el estado. */
   onIngestada: () => void;
+  /** Libro ya cargado en la rendición: el diálogo pasa a ser un reemplazo y lo avisa de entrada. */
+  libroExistente?: ResumenIngresosEgresos | null;
 }
 
 export function IngestarIngresosEgresosDialog({
@@ -41,6 +46,7 @@ export function IngestarIngresosEgresosDialog({
   onOpenChange,
   cuentaMensualId,
   onIngestada,
+  libroExistente = null,
 }: IngestarIngresosEgresosDialogProps) {
   const [leyendo, setLeyendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,8 +108,11 @@ export function IngestarIngresosEgresosDialog({
   const puedeEnviar =
     resultado !== null && invalidas.length === 0 && !ingestar.isPending;
 
-  function enviar(reemplazar = false) {
+  const reemplaza = libroExistente !== null;
+
+  function enviar(confirmaReemplazo = false) {
     if (!resultado || !puedeEnviar) return;
+    const reemplazar = reemplaza || confirmaReemplazo;
     ingestar.mutate(
       {
         ...(reemplazar ? { reemplazar: true } : {}),
@@ -130,12 +139,27 @@ export function IngestarIngresosEgresosDialog({
     <Dialog open={open} onOpenChange={cambiarApertura}>
       <DialogContent className="flex max-h-[90vh] flex-col gap-6 overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
-          <DialogTitle>Cargar Ingresos y Egresos</DialogTitle>
+          <DialogTitle>
+            {reemplaza
+              ? 'Reemplazar Ingresos y Egresos'
+              : 'Cargar Ingresos y Egresos'}
+          </DialogTitle>
           <DialogDescription>
-            Suba el archivo del libro de Ingresos y Egresos y revise los datos
-            antes de enviarlos. Las 3 primeras filas se toman como encabezado.
+            Suba el Excel del libro de Ingresos y Egresos y revise los datos
+            antes de confirmar. Las 3 primeras filas se toman como encabezado.
           </DialogDescription>
         </DialogHeader>
+
+        {libroExistente && (
+          <Alert variant="info">
+            <AlertDescription>
+              Ya hay un libro cargado ({libroExistente.filas}{' '}
+              {libroExistente.filas === 1 ? 'fila' : 'filas'}, el{' '}
+              {formatearMomento(libroExistente.cargadoEl)}). Al confirmar se
+              reemplaza por el del archivo nuevo.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {!resultado && (
           <DropZone
@@ -203,7 +227,7 @@ export function IngestarIngresosEgresosDialog({
           </Button>
           <Button onClick={() => enviar()} disabled={!puedeEnviar}>
             {ingestar.isPending && <Loader2 className="animate-spin" />}
-            Confirmar y Subir
+            {reemplaza ? 'Confirmar y reemplazar' : 'Confirmar y subir'}
           </Button>
         </DialogFooter>
       </DialogContent>

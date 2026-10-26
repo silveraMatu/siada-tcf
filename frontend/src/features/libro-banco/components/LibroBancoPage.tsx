@@ -16,8 +16,8 @@ export function LibroBancoPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Ingesta Libro Banco"
-        description="Seleccione el período para cargar la rendición mensual de su organismo."
+        title="Rendición mensual"
+        description="Seleccione el período y cargue los documentos de su organismo."
       />
 
       <ContextoForm

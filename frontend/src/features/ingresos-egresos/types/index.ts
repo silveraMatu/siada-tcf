@@ -43,3 +43,22 @@ export interface FilaIngresoEgresoPreview {
 export interface ResultadoParseoIngresosEgresos {
   filas: FilaIngresoEgresoPreview[];
 }
+
+/** Fila tal como la devuelve `GET /cuentas-mensuales/:id/ingresos-egresos` (los textos vacíos llegan como null). */
+export type TransaccionIngresoEgresoGuardada = Omit<
+  TransaccionIngresoEgreso,
+  'cheque' | 'comprobante' | 'cuentasVariasConcepto'
+> & {
+  id: number;
+  cheque: string | null;
+  comprobante: string | null;
+  cuentasVariasConcepto: string | null;
+};
+
+export interface IngresosEgresosGuardado {
+  id: number;
+  cuentaMensualId: number;
+  numeroCuentaCte: string | null;
+  fechaCreacion: string;
+  transacciones: TransaccionIngresoEgresoGuardada[];
+}

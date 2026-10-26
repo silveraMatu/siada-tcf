@@ -24,8 +24,13 @@ interface PresentarRendicionDialogProps {
   /** La cuenta ya no estaba en borrador (409): la vista debe traer el estado vigente. */
   onDesactualizada: () => void;
   /** Lo que se presentará, para que el responsable lo vea antes del paso irreversible. */
-  resumen?: { libros: number; transacciones: number };
-  /** Sin ningún libro cargado no hay nada que presentar. */
+  resumen?: {
+    libros: number;
+    transacciones: number;
+    /** Filas del libro de Ingresos y Egresos, si ya está cargado. */
+    ingresosEgresos?: number;
+  };
+  /** Sin todos los documentos cargados no hay nada que presentar. */
   deshabilitado?: boolean;
 }
 
@@ -90,6 +95,15 @@ export function PresentarRendicionDialog({
                     ? 'transacción'
                     : 'transacciones'}
                 </strong>
+                {resumen.ingresosEgresos !== undefined && (
+                  <>
+                    , más el libro de Ingresos y Egresos con{' '}
+                    <strong>
+                      {resumen.ingresosEgresos}{' '}
+                      {resumen.ingresosEgresos === 1 ? 'fila' : 'filas'}
+                    </strong>
+                  </>
+                )}
                 .
               </>
             )}

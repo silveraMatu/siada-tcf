@@ -95,7 +95,7 @@ async function subirArchivo(
 
 const botonConfirmar = () =>
   screen.getByRole('button', {
-    name: 'Confirmar y Subir',
+    name: 'Confirmar y subir',
   }) as HTMLButtonElement;
 
 beforeEach(() => {
@@ -108,10 +108,10 @@ afterEach(() => {
 });
 
 describe('IngestarIngresosEgresosDialog', () => {
-  it('al soltar el archivo muestra la vista previa y habilita «Confirmar y Subir»', async () => {
+  it('al soltar el archivo muestra la vista previa y habilita «Confirmar y subir»', async () => {
     const { user } = renderDialogo();
     expect(
-      screen.queryByRole('button', { name: 'Confirmar y Subir' }),
+      screen.queryByRole('button', { name: 'Confirmar y subir' }),
     ).toBeTruthy();
     expect(botonConfirmar().disabled).toBe(true);
 

@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AxiosError, type AxiosResponse } from 'axios';
-import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -20,34 +19,6 @@ vi.mock('../lib/parse-libro-banco', () => ({
   parseLibroBanco: vi.fn(),
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-// El Select de Radix no es fiable en jsdom: se lo reemplaza por un <select> nativo con la misma interfaz.
-vi.mock('@/components/ui/select', () => ({
-  Select: ({
-    value,
-    onValueChange,
-    children,
-  }: {
-    value: string;
-    onValueChange: (valor: string) => void;
-    children: ReactNode;
-  }) => (
-    <select
-      aria-label="Tipo de documento"
-      value={value}
-      onChange={(e) => onValueChange(e.target.value)}
-    >
-      <option value="">Seleccione un tipo</option>
-      {children}
-    </select>
-  ),
-  SelectTrigger: () => null,
-  SelectValue: () => null,
-  SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
-  SelectItem: ({ value, children }: { value: string; children: ReactNode }) => (
-    <option value={value}>{children}</option>
-  ),
-}));
-
 const fila = {
   fila: 8,
   transaccion: { aLaOrdenDe: 'Proveedor', depositos: 0, retiro: 10, saldo: 90 },
@@ -95,7 +66,7 @@ function renderDialogo() {
   return { user: userEvent.setup(), onIngestada };
 }
 
-//elige el tipo de documento y sube un archivo (el parser está simulado)
+//sube un archivo (el parser está simulado)
 async function subirArchivo(
   user: ReturnType<typeof userEvent.setup>,
   numeroCuentaCte?: string,
@@ -104,9 +75,6 @@ async function subirArchivo(
     numeroCuentaCte,
     filas: [fila, { ...fila, fila: 9 }],
   });
-  await user.selectOptions(screen.getByLabelText('Tipo de documento'), [
-    'libro-banco',
-  ]);
   const archivo = new File(['contenido'], 'libro.xlsx');
   Object.assign(archivo, {
     arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
@@ -117,7 +85,7 @@ async function subirArchivo(
 }
 
 const botonEnviar = () =>
-  screen.getByRole('button', { name: 'Enviar' }) as HTMLButtonElement;
+  screen.getByRole('button', { name: 'Confirmar y subir' }) as HTMLButtonElement;
 
 beforeEach(() => {
   vi.mocked(ingestarLibroBanco).mockResolvedValue({});
@@ -136,7 +104,9 @@ describe('IngestaDialog', () => {
 
       expect(botonEnviar().disabled).toBe(true);
       expect(
-        screen.getByText(/Complete el N° de cuenta corriente para poder enviar/),
+        screen.getByText(
+          /Complete el N° de cuenta corriente para poder enviar/,
+        ),
       ).toBeTruthy();
 
       await user.type(screen.getByLabelText(/N° de Cta\. Cte\./), '100234/1');

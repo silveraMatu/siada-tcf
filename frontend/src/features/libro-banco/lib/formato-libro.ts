@@ -46,3 +46,13 @@ export function describirTransacciones(cantidad: number): string {
 export function describirLibrosCargados(cantidad: number): string {
   return cantidad === 1 ? '1 libro cargado' : `${cantidad} libros cargados`;
 }
+
+const formatoMomento = new Intl.DateTimeFormat('es-AR', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
+/** «26 oct 2026, 3:05 p. m.» a partir de un instante ISO. */
+export function formatearMomento(iso: string): string {
+  return formatoMomento.format(new Date(iso));
+}

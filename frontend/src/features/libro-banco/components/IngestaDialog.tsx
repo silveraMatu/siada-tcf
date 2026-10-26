@@ -13,13 +13,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useIngestarLibroBanco } from '../hooks/useIngestarLibroBanco';
 import {
   LibroBancoParseError,
@@ -47,7 +40,6 @@ export function IngestaDialog({
   cuentaMensualId,
   onIngestada,
 }: IngestaDialogProps) {
-  const [tipo, setTipo] = useState('');
   const [leyendo, setLeyendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nombreArchivo, setNombreArchivo] = useState('');
@@ -67,7 +59,6 @@ export function IngestaDialog({
 
   function cerrar() {
     limpiarArchivo();
-    setTipo('');
     ingestar.reset();
     onOpenChange(false);
   }
@@ -146,34 +137,14 @@ export function IngestaDialog({
     <Dialog open={open} onOpenChange={cambiarApertura}>
       <DialogContent className="flex max-h-[90vh] flex-col gap-6 overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Cargar documentos</DialogTitle>
+          <DialogTitle>Cargar Libro Banco</DialogTitle>
           <DialogDescription>
-            Seleccione el tipo de documento y suba el archivo para revisar los
-            datos antes de enviarlos.
+            Suba el Excel o CSV de una cuenta corriente y revise los datos antes
+            de confirmar.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-2">
-          <Label htmlFor="tipo-documento">Tipo de documento</Label>
-          <Select
-            value={tipo}
-            onValueChange={(valor) => {
-              setTipo(valor);
-              limpiarArchivo();
-            }}
-          >
-            <SelectTrigger id="tipo-documento" className="sm:w-72">
-              <SelectValue placeholder="Seleccione un tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="libro-banco">Libro Banco</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {tipo === 'libro-banco' && !resultado && (
-          <DropZone onArchivo={leerArchivo} cargando={leyendo} />
-        )}
+        {!resultado && <DropZone onArchivo={leerArchivo} cargando={leyendo} />}
 
         {error && (
           <p
@@ -261,7 +232,7 @@ export function IngestaDialog({
           </Button>
           <Button onClick={() => enviar()} disabled={!puedeEnviar}>
             {ingestar.isPending && <Loader2 className="animate-spin" />}
-            Enviar
+            Confirmar y subir
           </Button>
         </DialogFooter>
       </DialogContent>
