@@ -10,6 +10,7 @@ import { ResponsableDelOrganismoService } from '../../../cuentas/application/ser
 import { LibroBanco } from '../../domain/entities/libro-banco.domain.js';
 import { TransaccionLibroBanco } from '../../domain/entities/transaccion-libro-banco.domain.js';
 import { LibroBancoDuplicadoError } from '../../domain/errors/libro-banco-duplicado.error.js';
+import { ContextoActividadPort } from '../../../registro-actividad/application/ports/out/contexto-actividad.port.js';
 
 //entrada del caso de uso, independiente del DTO HTTP
 export interface IngestarLibroBancoComando {
@@ -35,6 +36,7 @@ export class IngestarLibroBancoUseCase {
     private readonly libroBancoRepository: LibroBancoRepositoryPort,
     private readonly cuentaMensualRepository: CuentaMensualRepositoryPort,
     private readonly responsableDelOrganismo: ResponsableDelOrganismoService,
+    private readonly actividad: ContextoActividadPort,
   ) {}
 
   async execute(
@@ -64,6 +66,13 @@ export class IngestarLibroBancoUseCase {
         'La Cuenta Mensual no pertenece al organismo del responsable.',
       );
     }
+
+    if (organismoId !== null) this.actividad.organismo(organismoId);
+    this.actividad.detalle({
+      numeroCuentaCte: comando.numeroCuentaCte,
+      filas: comando.transacciones.length,
+      reemplazoSolicitado: comando.reemplazar ?? false,
+    });
 
     //candado: una cuenta ya enviada a auditoría no admite cambios en su evidencia
     if (!cuenta.estaEnBorrador()) {

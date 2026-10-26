@@ -7,6 +7,11 @@ import { UsuarioResponseDto } from '../../../usuarios/infrastructure/http/dto/us
 import { toUsuarioResponse } from '../../../usuarios/infrastructure/http/usuario-response.mapper.js';
 import { RegistrarUsuarioUseCase } from '../../application/use-cases/registrar-usuario.use-case.js';
 import { LoginUseCase } from '../../application/use-cases/login.use-case.js';
+import { Registrar } from '../../../registro-actividad/infrastructure/http/registrar.decorator.js';
+import {
+  AccionActividad,
+  TipoEntidadActividad,
+} from '../../../registro-actividad/domain/enums/accion-actividad.enum.js';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -17,6 +22,10 @@ export class AuthController {
   ) {}
 
   //endpoint público
+  @Registrar(AccionActividad.USUARIO_REGISTRADO, {
+    entidad: TipoEntidadActividad.USUARIO,
+    idRespuesta: 'id',
+  })
   @Post('registro')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -42,6 +51,7 @@ export class AuthController {
   }
 
   //endpoint público
+  @Registrar(AccionActividad.LOGIN)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

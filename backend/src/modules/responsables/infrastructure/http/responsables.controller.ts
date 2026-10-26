@@ -38,6 +38,11 @@ import { ListarResponsablesUseCase } from '../../application/use-cases/listar-re
 import { ObtenerResponsablesPorOrganismoUseCase } from '../../application/use-cases/obtener-responsables-por-organismo.use-case.js';
 import { ObtenerOrganismoDeResponsableUseCase } from '../../application/use-cases/obtener-organismo-de-responsable.use-case.js';
 import type { Responsable } from '../../domain/entities/responsable.domain.js';
+import { Registrar } from '../../../registro-actividad/infrastructure/http/registrar.decorator.js';
+import {
+  AccionActividad,
+  TipoEntidadActividad,
+} from '../../../registro-actividad/domain/enums/accion-actividad.enum.js';
 
 @ApiTags('Responsables')
 @Controller()
@@ -111,6 +116,10 @@ export class ResponsablesController {
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
   @ApiForbiddenResponse({ description: 'Requiere el rol ADMIN' })
+  @Registrar(AccionActividad.RESPONSABLE_CREADO, {
+    entidad: TipoEntidadActividad.RESPONSABLE,
+    idRespuesta: 'id',
+  })
   @Post('responsables')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -212,6 +221,10 @@ export class ResponsablesController {
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
   @ApiForbiddenResponse({ description: 'Requiere el rol ADMIN' })
+  @Registrar(AccionActividad.RESPONSABLE_ASIGNADO, {
+    entidad: TipoEntidadActividad.RESPONSABLE,
+    idParam: 'id',
+  })
   @Patch('responsables/:id/organismo')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

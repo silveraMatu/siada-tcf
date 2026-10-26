@@ -8,6 +8,7 @@ import { OrganismoRepositoryPort } from '../../../organismos/application/ports/o
 import { UsuarioRepositoryPort } from '../../../usuarios/application/ports/out/usuario-repository.port.js';
 import { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
 import { Responsable } from '../../domain/entities/responsable.domain.js';
+import { ContextoActividadPort } from '../../../registro-actividad/application/ports/out/contexto-actividad.port.js';
 
 @Injectable()
 export class AsignarOrganismoAResponsableUseCase {
@@ -15,6 +16,7 @@ export class AsignarOrganismoAResponsableUseCase {
     private readonly responsableRepository: ResponsableRepositoryPort,
     private readonly organismoRepository: OrganismoRepositoryPort,
     private readonly usuarioRepository: UsuarioRepositoryPort,
+    private readonly actividad: ContextoActividadPort,
   ) {}
 
   //las validaciones son secuenciales: primero el responsable (y su usuario) y luego el organismo
@@ -22,6 +24,7 @@ export class AsignarOrganismoAResponsableUseCase {
     responsableId: number,
     organismoId: number,
   ): Promise<Responsable> {
+    this.actividad.organismo(organismoId);
     const responsable =
       await this.responsableRepository.buscarPorId(responsableId);
     if (!responsable) {

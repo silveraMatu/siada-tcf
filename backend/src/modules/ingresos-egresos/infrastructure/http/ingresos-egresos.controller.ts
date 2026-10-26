@@ -28,6 +28,11 @@ import type { IngresosEgresos } from '../../domain/entities/ingresos-egresos.dom
 import { IngestarIngresosEgresosDto } from './dto/ingestar-ingresos-egresos.dto.js';
 import { IngresosEgresosParamsDto } from './dto/ingresos-egresos-params.dto.js';
 import { IngresosEgresosResponseDto } from './dto/ingresos-egresos-response.dto.js';
+import { Registrar } from '../../../registro-actividad/infrastructure/http/registrar.decorator.js';
+import {
+  AccionActividad,
+  TipoEntidadActividad,
+} from '../../../registro-actividad/domain/enums/accion-actividad.enum.js';
 
 @ApiTags('Ingresos y Egresos')
 @Controller('cuentas-mensuales/:cuentaMensualId/ingresos-egresos')
@@ -77,6 +82,11 @@ export class IngresosEgresosController {
   @ApiForbiddenResponse({
     description:
       'Requiere el rol RESPONSABLE y que la cuenta sea de su organismo',
+  })
+  @Registrar(AccionActividad.INGRESOS_EGRESOS_CARGADO, {
+    entidad: TipoEntidadActividad.CUENTA_MENSUAL,
+    idParam: 'cuentaMensualId',
+    cuentaParam: 'cuentaMensualId',
   })
   @Post('ingestar')
   @HttpCode(HttpStatus.CREATED)

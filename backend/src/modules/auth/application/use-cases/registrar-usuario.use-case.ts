@@ -5,6 +5,7 @@ import {
   type UsuarioSinPassword,
 } from '../../../usuarios/domain/entities/usuario.domain.js';
 import { PasswordHasherPort } from '../ports/out/password-hasher.port.js';
+import { ContextoActividadPort } from '../../../registro-actividad/application/ports/out/contexto-actividad.port.js';
 
 export interface RegistrarUsuarioComando {
   nombre: string;
@@ -19,6 +20,7 @@ export class RegistrarUsuarioUseCase {
   constructor(
     private readonly usuarioRepository: UsuarioRepositoryPort,
     private readonly passwordHasher: PasswordHasherPort,
+    private readonly actividad: ContextoActividadPort,
   ) {}
 
   //el usuario nace inactivo y sin roles, un administrador debe aprobarlo y asignarle roles
@@ -42,6 +44,16 @@ export class RegistrarUsuarioUseCase {
     const creado = await this.usuarioRepository.crear(
       new Usuario(nombre, apellido, dni, email, passwordHasheada, false, []),
     );
+
+    //el nuevo usuario es quien actúa en su propio registro
+    this.actividad.actor({
+      usuarioId: creado.id!,
+      nombre: creado.nombre,
+      apellido: creado.apellido,
+      dni: creado.dni,
+      roles: [],
+    });
+    this.actividad.detalle({ email: creado.email });
 
     const { password: _password, ...usuarioSinPassword } = creado;
     return usuarioSinPassword;

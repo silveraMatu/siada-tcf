@@ -14,6 +14,16 @@ const LIMITE_GENERAL = '100kb';
 export function configurarApp(app: NestExpressApplication): void {
   app.setGlobalPrefix(PREFIJO_API);
 
+  //TRUST_PROXY (true, cantidad de saltos o lista de subredes): detrás de un proxy la IP del cliente
+  //llega en X-Forwarded-For; sin definir se ignora esa cabecera (nadie puede falsear su IP)
+  const proxy = process.env.TRUST_PROXY;
+  if (proxy) {
+    app.set(
+      'trust proxy',
+      proxy === 'true' ? true : /^\d+$/.test(proxy) ? Number(proxy) : proxy,
+    );
+  }
+
   //el primer parser que lee el body lo marca como leído y el siguiente lo omite
   app.use(RUTA_INGESTA, express.json({ limit: LIMITE_INGESTA }));
   app.use(express.json({ limit: LIMITE_GENERAL }));

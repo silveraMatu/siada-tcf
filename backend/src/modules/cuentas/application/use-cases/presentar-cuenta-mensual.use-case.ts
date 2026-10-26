@@ -8,6 +8,7 @@ import { CuentaMensualRepositoryPort } from '../ports/out/cuenta-mensual-reposit
 import { ResponsableDelOrganismoService } from '../services/responsable-del-organismo.service.js';
 import { CuentaMensual } from '../../domain/entities/cuenta-mensual.domain.js';
 import { EstadoCuentaMensual } from '../../domain/enums/estado-cuenta-mensual.enum.js';
+import { ContextoActividadPort } from '../../../registro-actividad/application/ports/out/contexto-actividad.port.js';
 
 //el responsable envía su cuenta a auditoría: desde ahí la evidencia (libros) queda inmutable
 @Injectable()
@@ -15,6 +16,7 @@ export class PresentarCuentaMensualUseCase {
   constructor(
     private readonly cuentaMensualRepository: CuentaMensualRepositoryPort,
     private readonly responsableDelOrganismo: ResponsableDelOrganismoService,
+    private readonly actividad: ContextoActividadPort,
   ) {}
 
   async execute(
@@ -33,6 +35,7 @@ export class PresentarCuentaMensualUseCase {
     //un único mensaje para no revelar cuál de las condiciones falló
     const organismoId =
       await this.cuentaMensualRepository.obtenerOrganismoId(cuentaMensualId);
+    if (organismoId !== null) this.actividad.organismo(organismoId);
     const esDelOrganismo =
       await this.responsableDelOrganismo.esResponsableDelOrganismo(
         usuarioId,

@@ -35,6 +35,11 @@ import { ResolverCuentaMensualUseCase } from '../../application/use-cases/resolv
 import { PresentarCuentaMensualUseCase } from '../../application/use-cases/presentar-cuenta-mensual.use-case.js';
 import { ListarCuentasMensualesUseCase } from '../../application/use-cases/listar-cuentas-mensuales.use-case.js';
 import type { CuentaMensual } from '../../domain/entities/cuenta-mensual.domain.js';
+import { Registrar } from '../../../registro-actividad/infrastructure/http/registrar.decorator.js';
+import {
+  AccionActividad,
+  TipoEntidadActividad,
+} from '../../../registro-actividad/domain/enums/accion-actividad.enum.js';
 
 @ApiTags('Cuentas')
 @Controller('cuentas-mensuales')
@@ -61,6 +66,10 @@ export class CuentasController {
   @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
   @ApiForbiddenResponse({
     description: 'Requiere el rol RESPONSABLE (solo de su organismo) o ADMIN',
+  })
+  @Registrar(AccionActividad.CUENTA_RESUELTA, {
+    entidad: TipoEntidadActividad.CUENTA_MENSUAL,
+    idRespuesta: 'id',
   })
   @Post('resolver')
   @HttpCode(HttpStatus.OK)
@@ -147,6 +156,11 @@ export class CuentasController {
   @Roles(Rol.RESPONSABLE)
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
+  @Registrar(AccionActividad.CUENTA_PRESENTADA, {
+    entidad: TipoEntidadActividad.CUENTA_MENSUAL,
+    idParam: 'id',
+    cuentaParam: 'id',
+  })
   @Patch(':id/presentar')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

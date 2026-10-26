@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
 import { configurarApp } from './app.setup.js';
 
@@ -8,7 +9,9 @@ async function bootstrap() {
   //false: configurarApp registra los parsers, con límites distintos por ruta
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
+    bufferLogs: true,
   });
+  app.useLogger(app.get(Logger));
   configurarApp(app);
 
   const esProduccion = process.env.NODE_ENV === 'production';

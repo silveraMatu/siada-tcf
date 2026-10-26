@@ -28,6 +28,11 @@ import { UsuarioResponseDto } from './dto/usuario-response.dto.js';
 import { toUsuarioResponse } from './usuario-response.mapper.js';
 import { ListarUsuariosUseCase } from '../../application/use-cases/listar-usuarios.use-case.js';
 import { ActivarUsuarioYAsignarRolesUseCase } from '../../application/use-cases/activar-usuario-y-asignar-roles.use-case.js';
+import { Registrar } from '../../../registro-actividad/infrastructure/http/registrar.decorator.js';
+import {
+  AccionActividad,
+  TipoEntidadActividad,
+} from '../../../registro-actividad/domain/enums/accion-actividad.enum.js';
 
 @ApiTags('Usuarios')
 @ApiBearerAuth()
@@ -66,6 +71,10 @@ export class UsuariosController {
     return usuarios.map((usuario) => toUsuarioResponse(usuario));
   }
 
+  @Registrar(AccionActividad.USUARIO_ACTIVADO, {
+    entidad: TipoEntidadActividad.USUARIO,
+    idParam: 'id',
+  })
   @Patch(':id/activar')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

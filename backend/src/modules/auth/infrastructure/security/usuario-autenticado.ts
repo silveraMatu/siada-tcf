@@ -4,5 +4,9 @@ import type { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
 export interface UsuarioAutenticado {
   id: number;
   email: string;
+  //para la instantánea del actor en la bitácora
+  nombre: string;
+  apellido: string;
+  dni: string;
   roles: Rol[];
 }

@@ -24,6 +24,11 @@ import { OrganismoResponseDto } from './dto/organismo-response.dto.js';
 import { CrearOrganismoUseCase } from '../../application/use-cases/crear-organismo.use-case.js';
 import { ListarOrganismosUseCase } from '../../application/use-cases/listar-organismos.use-case.js';
 import type { Organismo } from '../../domain/entities/organismo.domain.js';
+import { Registrar } from '../../../registro-actividad/infrastructure/http/registrar.decorator.js';
+import {
+  AccionActividad,
+  TipoEntidadActividad,
+} from '../../../registro-actividad/domain/enums/accion-actividad.enum.js';
 
 @ApiTags('Organismos')
 @Controller('organismos')
@@ -66,6 +71,10 @@ export class OrganismosController {
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' })
   @ApiForbiddenResponse({ description: 'Requiere el rol ADMIN' })
+  @Registrar(AccionActividad.ORGANISMO_CREADO, {
+    entidad: TipoEntidadActividad.ORGANISMO,
+    idRespuesta: 'id',
+  })
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Registrar un nuevo organismo' })

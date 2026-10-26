@@ -11,6 +11,7 @@ import { EstadoCuentaMensual } from '../../domain/enums/estado-cuenta-mensual.en
 import { CuentaMensualRepositoryPort } from '../ports/out/cuenta-mensual-repository.port.js';
 import { ResponsableDelOrganismoService } from '../services/responsable-del-organismo.service.js';
 import { PresentarCuentaMensualUseCase } from './presentar-cuenta-mensual.use-case.js';
+import { ContextoActividadNulo } from '../../../registro-actividad/application/services/contexto-actividad-nulo.js';
 
 const ID_CUENTA = 5;
 const ID_ORGANISMO = 10;
@@ -113,6 +114,7 @@ const armar = (
   const casoDeUso = new PresentarCuentaMensualUseCase(
     cuentas,
     new ResponsableDelOrganismoService(new ResponsableRepositorioFalso(resp)),
+    new ContextoActividadNulo(),
   );
   return { cuentas, casoDeUso };
 };

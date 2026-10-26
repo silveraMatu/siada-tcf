@@ -15,6 +15,7 @@ export const MES_AUDITORIA = 11; //reservado para auditoria: un unico libro con 
 export const MES_INGRESOS_EGRESOS = 9; //reservado para el e2e de ingresos-egresos: se vuelve a EN_BORRADOR al empezar
 export const MES_PRESENTAR_INCOMPLETA = 7; //reservado: solo recibe el libro banco, así que presentar siempre falla por falta de Ingresos y Egresos
 export const MES_AUDITORIA_CRUCE = 8; //reservado para auditoria: banco e ingresos y egresos con fallos sembrados
+export const MES_BITACORA = 5; //reservado para el e2e de la bitacora: carga dos libros y presenta; se vuelve a EN_BORRADOR al empezar
 
 //organismo inicial que usan los e2e de cuentas, libro-banco y responsables
 export async function obtenerOrganismoBaseId(
@@ -215,7 +216,7 @@ export async function crearResponsableConSesion(
 //usuario nuevo y activo con un solo rol (sin perfil de responsable), ya con sesion iniciada
 export async function crearSesionConRol(
   app: INestApplication,
-  rol: 'ADMIN' | 'JUEZ_TRAMITE' | 'AUDITOR' | 'RESPONSABLE',
+  rol: 'ADMIN' | 'JUEZ_TRAMITE' | 'AUDITOR' | 'RESPONSABLE' | 'SUPERVISOR',
 ): Promise<string> {
   const { id, email, password } = await registrarUsuarioConCredenciales(app);
   await habilitarUsuario(app, id, [rol]);

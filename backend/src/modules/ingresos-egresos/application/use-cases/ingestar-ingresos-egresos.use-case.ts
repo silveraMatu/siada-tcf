@@ -10,6 +10,7 @@ import { IngresosEgresos } from '../../domain/entities/ingresos-egresos.domain.j
 import { TransaccionIngresoEgreso } from '../../domain/entities/transaccion-ingreso-egreso.domain.js';
 import { IngresosEgresosDuplicadoError } from '../../domain/errors/ingresos-egresos-duplicado.error.js';
 import { IngresosEgresosRepositoryPort } from '../ports/out/ingresos-egresos-repository.port.js';
+import { ContextoActividadPort } from '../../../registro-actividad/application/ports/out/contexto-actividad.port.js';
 
 //fila del comando, independiente del DTO HTTP; los textos opcionales pueden venir vacíos
 export interface TransaccionIngresoEgresoComando {
@@ -56,6 +57,7 @@ export class IngestarIngresosEgresosUseCase {
     private readonly ingresosEgresosRepository: IngresosEgresosRepositoryPort,
     private readonly cuentaMensualRepository: CuentaMensualRepositoryPort,
     private readonly responsableDelOrganismo: ResponsableDelOrganismoService,
+    private readonly actividad: ContextoActividadPort,
   ) {}
 
   async execute(
@@ -84,6 +86,13 @@ export class IngestarIngresosEgresosUseCase {
         'La Cuenta Mensual no pertenece al organismo del responsable.',
       );
     }
+
+    if (organismoId !== null) this.actividad.organismo(organismoId);
+    this.actividad.detalle({
+      numeroCuentaCte: comando.numeroCuentaCte ?? null,
+      filas: comando.transacciones.length,
+      reemplazoSolicitado: comando.reemplazar ?? false,
+    });
 
     //candado: una cuenta ya enviada a auditoría no admite cambios en su evidencia
     if (!cuenta.estaEnBorrador()) {

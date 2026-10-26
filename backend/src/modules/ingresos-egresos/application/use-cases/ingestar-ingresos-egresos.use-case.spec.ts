@@ -19,6 +19,7 @@ import {
   IngestarIngresosEgresosUseCase,
   type TransaccionIngresoEgresoComando,
 } from './ingestar-ingresos-egresos.use-case.js';
+import { ContextoActividadNulo } from '../../../registro-actividad/application/services/contexto-actividad-nulo.js';
 
 const ID_CUENTA = 5;
 const ID_ORGANISMO = 10;
@@ -174,6 +175,7 @@ const armar = (
     libros,
     new CuentaMensualRepositorioFalso(cuenta),
     new ResponsableDelOrganismoService(new ResponsableRepositorioFalso(resp)),
+    new ContextoActividadNulo(),
   );
   return { libros, casoDeUso };
 };

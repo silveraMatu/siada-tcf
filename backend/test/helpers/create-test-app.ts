@@ -15,6 +15,7 @@ import { ResponsablesModule } from '../../src/modules/responsables/responsables.
 import { UsuariosModule } from '../../src/modules/usuarios/usuarios.module.js';
 import { AuthModule } from '../../src/modules/auth/auth.module.js';
 import { IngresosEgresosModule } from '../../src/modules/ingresos-egresos/ingresos-egresos.module.js';
+import { RegistroActividadModule } from '../../src/modules/registro-actividad/registro-actividad.module.js';
 import { AuditoriaModule } from '../../src/modules/auditoria/auditoria.module.js';
 
 //replica AppModule/main.ts: misma config y setup; solo cambian las entidades (autoLoadEntities en vez del glob, que Node no parsea fuera del build)
@@ -37,6 +38,7 @@ export async function createTestApp(): Promise<{
           autoLoadEntities: true,
         }),
       }),
+      RegistroActividadModule,
       OrganismosModule,
       CuentasModule,
       LibroBancoModule,

@@ -8,6 +8,7 @@ import { CuentaMensualResolverPort } from '../ports/out/cuenta-mensual-resolver.
 import { OrganismoRepositoryPort } from '../../../organismos/application/ports/out/organismo-repository.port.js';
 import { CuentaMensual } from '../../domain/entities/cuenta-mensual.domain.js';
 import { ResponsableDelOrganismoService } from '../services/responsable-del-organismo.service.js';
+import { ContextoActividadPort } from '../../../registro-actividad/application/ports/out/contexto-actividad.port.js';
 
 //quién pide resolver la cuenta; el administrador puede hacerlo para cualquier organismo
 export interface SolicitanteResolver {
@@ -21,6 +22,7 @@ export class ResolverCuentaMensualUseCase {
     private readonly organismoRepo: OrganismoRepositoryPort,
     private readonly cuentaMensualResolver: CuentaMensualResolverPort,
     private readonly responsableDelOrganismo: ResponsableDelOrganismoService,
+    private readonly actividad: ContextoActividadPort,
   ) {}
 
   async execute(
@@ -29,6 +31,8 @@ export class ResolverCuentaMensualUseCase {
     mes: number,
     solicitante: SolicitanteResolver,
   ): Promise<CuentaMensual> {
+    this.actividad.organismo(organismoId);
+    this.actividad.detalle({ ejercicioFiscal, mes });
     //primero la propiedad: resolver crea filas y un 404 distinto revelaría qué organismos existen
     if (
       !solicitante.esAdmin &&

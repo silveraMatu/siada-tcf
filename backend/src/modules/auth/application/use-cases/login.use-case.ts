@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsuarioRepositoryPort } from '../../../usuarios/application/ports/out/usuario-repository.port.js';
 import { PasswordHasherPort } from '../ports/out/password-hasher.port.js';
 import { TokenServicePort } from '../ports/out/token-service.port.js';
+import { ContextoActividadPort } from '../../../registro-actividad/application/ports/out/contexto-actividad.port.js';
 
 //hash bcrypt de un valor descartable: se compara cuando el email no existe para que el tiempo de respuesta no lo delate
 const HASH_FICTICIO =
@@ -18,12 +19,15 @@ export class LoginUseCase {
     private readonly usuarioRepository: UsuarioRepositoryPort,
     private readonly passwordHasher: PasswordHasherPort,
     private readonly tokenService: TokenServicePort,
+    private readonly actividad: ContextoActividadPort,
   ) {}
 
   async execute({
     email,
     password,
   }: LoginComando): Promise<{ accessToken: string }> {
+    //el email intentado queda en la bitácora, también si el login falla
+    this.actividad.detalle({ email });
     const usuario = await this.usuarioRepository.buscarPorEmail(email);
 
     const passwordValida = await this.passwordHasher.comparar(
@@ -42,6 +46,13 @@ export class LoginUseCase {
       );
     }
 
+    this.actividad.actor({
+      usuarioId: usuario.id!,
+      nombre: usuario.nombre,
+      apellido: usuario.apellido,
+      dni: usuario.dni,
+      roles: usuario.roles,
+    });
     const accessToken = await this.tokenService.firmar({
       sub: usuario.id!,
       email: usuario.email,
