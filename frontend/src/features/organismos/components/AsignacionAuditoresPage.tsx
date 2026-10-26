@@ -18,6 +18,8 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -42,6 +44,8 @@ export function AsignacionAuditoresPage() {
   const esAdmin = useAuthStore((s) => s.user?.roles.includes('ADMIN') ?? false);
   const [paraAsignar, setParaAsignar] = useState<Organismo | null>(null);
   const [paraQuitar, setParaQuitar] = useState<Organismo | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [soloSinAuditor, setSoloSinAuditor] = useState(false);
 
   const lista = organismos.data
     ? [...organismos.data].sort((a, b) =>
@@ -49,6 +53,16 @@ export function AsignacionAuditoresPage() {
       )
     : [];
   const sinAuditor = lista.filter((o) => o.active && !o.auditor).length;
+  // se compara sin tildes ni mayúsculas, así «hospital» encuentra «Hospital Central»
+  const normalizar = (texto: string) =>
+    texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const consulta = normalizar(busqueda.trim());
+  const visibles = lista.filter(
+    (o) =>
+      (!soloSinAuditor || (o.active && !o.auditor)) &&
+      (consulta === '' ||
+        normalizar(`${o.nombre} ${o.rubro}`).includes(consulta)),
+  );
   const sinCandidatos = auditores.data?.length === 0;
 
   return (
@@ -102,8 +116,32 @@ export function AsignacionAuditoresPage() {
 
       {lista.length > 0 && (
         <section className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {lista.length === 1 ? '1 organismo' : `${lista.length} organismos`}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-1.5 sm:w-80">
+              <Label htmlFor="buscar-organismo">Buscar organismo</Label>
+              <Input
+                id="buscar-organismo"
+                type="search"
+                placeholder="Nombre o rubro"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+              />
+            </div>
+            <Button
+              variant={soloSinAuditor ? 'default' : 'outline'}
+              size="sm"
+              aria-pressed={soloSinAuditor}
+              onClick={() => setSoloSinAuditor((activo) => !activo)}
+            >
+              Solo sin auditor
+            </Button>
+          </div>
+          <p role="status" className="text-sm text-muted-foreground">
+            {visibles.length === lista.length
+              ? lista.length === 1
+                ? '1 organismo'
+                : `${lista.length} organismos`
+              : `${visibles.length} de ${lista.length} organismos`}
             {sinAuditor > 0 && (
               <>
                 {' · '}
@@ -128,9 +166,9 @@ export function AsignacionAuditoresPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lista.map((organismo) => (
+                {visibles.map((organismo) => (
                   <TableRow key={organismo.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className="max-w-md whitespace-normal break-words font-medium">
                       {organismo.nombre}
                       {!organismo.active && (
                         <Badge
@@ -141,7 +179,7 @@ export function AsignacionAuditoresPage() {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="max-w-48 whitespace-normal break-words text-muted-foreground">
                       {organismo.rubro}
                     </TableCell>
                     <TableCell>
@@ -188,6 +226,13 @@ export function AsignacionAuditoresPage() {
               </TableBody>
             </Table>
           </div>
+          {visibles.length === 0 && (
+            <EmptyState
+              icon={Building2}
+              title="Ningún organismo coincide"
+              description="Pruebe con otro nombre o quite el filtro «Solo sin auditor»."
+            />
+          )}
         </section>
       )}
 

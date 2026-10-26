@@ -147,6 +147,43 @@ describe('AsignacionAuditoresPage', () => {
     expect(screen.getByText('1 activo sin auditor')).toBeTruthy();
   });
 
+  it('busca por nombre o rubro sin distinguir mayúsculas ni tildes', async () => {
+    const user = renderPagina();
+    await screen.findByText('Hospital Central');
+
+    await user.type(screen.getByLabelText('Buscar organismo'), 'PIRANE');
+
+    expect(screen.getByText('Municipalidad de Pirané')).toBeTruthy();
+    expect(screen.queryByText('Hospital Central')).toBeNull();
+    expect(screen.getByText(/^1 de 3 organismos/)).toBeTruthy();
+  });
+
+  it('«Solo sin auditor» deja los organismos activos que todavía no tienen y se puede quitar', async () => {
+    const user = renderPagina();
+    await screen.findByText('Hospital Central');
+
+    const filtro = screen.getByRole('button', { name: 'Solo sin auditor' });
+    await user.click(filtro);
+
+    expect(filtro.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('Municipalidad de Pirané')).toBeTruthy();
+    // el que ya tiene auditor y el inactivo no cuentan como pendientes
+    expect(screen.queryByText('Hospital Central')).toBeNull();
+    expect(screen.queryByText('Escuela 12')).toBeNull();
+
+    await user.click(filtro);
+    expect(screen.getByText('Hospital Central')).toBeTruthy();
+  });
+
+  it('si nada coincide con la búsqueda lo dice', async () => {
+    const user = renderPagina();
+    await screen.findByText('Hospital Central');
+
+    await user.type(screen.getByLabelText('Buscar organismo'), 'zzz');
+
+    expect(await screen.findByText('Ningún organismo coincide')).toBeTruthy();
+  });
+
   it('un organismo sin auditor ofrece «Asignar» y uno con auditor, «Cambiar» y «Quitar»', async () => {
     renderPagina();
     await screen.findByText('Hospital Central');
