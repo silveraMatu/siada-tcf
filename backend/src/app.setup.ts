@@ -6,7 +6,7 @@ export const PREFIJO_API = 'api/v1';
 
 //el front envía el csv ya parseado como json: solo la ingesta necesita un límite alto
 const RUTA_INGESTA =
-  /^\/api\/v1\/cuentas-mensuales\/[^/]+\/libro-banco\/ingestar\/?$/;
+  /^\/api\/v1\/cuentas-mensuales\/[^/]+\/(?:libro-banco|ingresos-egresos)\/ingestar\/?$/;
 const LIMITE_INGESTA = '10mb';
 const LIMITE_GENERAL = '100kb';
 

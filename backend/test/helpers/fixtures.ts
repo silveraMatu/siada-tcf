@@ -12,6 +12,7 @@ export const MES_CON_LIBRO = 3;
 export const MES_SIN_LIBRO = 12; //reservado: nunca se ingesta ningun libro en este mes
 export const MES_PRESENTAR = 10; //reservado: los specs de presentar y del candado lo vuelven a EN_BORRADOR al empezar
 export const MES_AUDITORIA = 11; //reservado para auditoria: un unico libro con un saldo equivocado
+export const MES_INGRESOS_EGRESOS = 9; //reservado para el e2e de ingresos-egresos: se vuelve a EN_BORRADOR al empezar
 
 //organismo inicial que usan los e2e de cuentas, libro-banco y responsables
 export async function obtenerOrganismoBaseId(

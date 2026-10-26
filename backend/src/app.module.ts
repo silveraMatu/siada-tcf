@@ -9,6 +9,7 @@ import { LibroBancoModule } from './modules/libro-banco/libro-banco.module.js';
 import { ResponsablesModule } from './modules/responsables/responsables.module.js';
 import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { IngresosEgresosModule } from './modules/ingresos-egresos/ingresos-egresos.module.js';
 import { AuditoriaModule } from './modules/auditoria/auditoria.module.js';
 
 @Module({
@@ -26,6 +27,7 @@ import { AuditoriaModule } from './modules/auditoria/auditoria.module.js';
     OrganismosModule,
     CuentasModule,
     LibroBancoModule,
+    IngresosEgresosModule,
     ResponsablesModule,
     UsuariosModule,
     AuthModule,
