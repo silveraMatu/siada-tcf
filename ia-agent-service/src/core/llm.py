@@ -1,7 +1,7 @@
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
-from src.core.config import settings
+from core.config import settings
 
 
 def get_llm() -> ChatOpenAI:
@@ -10,4 +10,5 @@ def get_llm() -> ChatOpenAI:
         api_key=SecretStr(settings.LLM_API_KEY),
         model=settings.LLM_MODEL,
         temperature=0.2,
+        timeout=settings.LLM_TIMEOUT_SECONDS,
     )
