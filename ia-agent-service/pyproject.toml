@@ -8,10 +8,12 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
+    "asyncpg>=0.32.0",
     "fastapi>=0.162.0",
     "langchain>=1.4.7",
     "langchain-openai>=1.7.3",
     "langgraph>=1.2.18",
     "pydantic-settings>=2.16.2",
+    "sqlalchemy>=2.1.6",
     "uvicorn>=0.54.0",
 ]
