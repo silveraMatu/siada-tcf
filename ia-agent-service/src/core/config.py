@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "nemotron-3-nano:30b-cloud"
     LLM_TIMEOUT_SECONDS: float = 60.0
     ENVIRONMENT: str = "development"
+    LOG_LEVEL: str = "INFO"
     SERVICE_API_KEY: str = Field(min_length=32)
 
     # Rol de solo lectura `siada_ia_ro` (ver backend/scripts/crear-rol-ia-lectura.sql).
