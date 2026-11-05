@@ -20,6 +20,32 @@ TABLAS_PERMITIDAS: frozenset[str] = frozenset(
     }
 )
 
+# Lo que el auditor puede ver de dónde salió un dato: nunca nombres de tablas.
+AREA_POR_TABLA: dict[str, str] = {
+    "organismos": "datos del organismo",
+    "cuentas_anuales": "rendiciones",
+    "cuentas_mensuales": "rendiciones",
+    "libros_banco": "libro banco",
+    "transacciones_libro_banco": "libro banco",
+    "ingresos_egresos": "libro de ingresos y egresos",
+    "transacciones_ingresos_egresos": "libro de ingresos y egresos",
+    "observaciones": "hallazgos de auditoría",
+    "ejecuciones_auditoria": "hallazgos de auditoría",
+}
+
+# Reemplazo de un nombre de tabla que se le escapó al modelo en su respuesta (con artículo, para que lea bien).
+NOMBRE_AMIGABLE_POR_TABLA: dict[str, str] = {
+    "organismos": "los organismos",
+    "cuentas_anuales": "los ejercicios fiscales",
+    "cuentas_mensuales": "las rendiciones mensuales",
+    "libros_banco": "el libro banco",
+    "transacciones_libro_banco": "los movimientos del libro banco",
+    "ingresos_egresos": "el libro de ingresos y egresos",
+    "transacciones_ingresos_egresos": "los movimientos del libro de ingresos y egresos",
+    "observaciones": "los hallazgos de auditoría",
+    "ejecuciones_auditoria": "las ejecuciones de auditoría",
+}
+
 SCHEMA_PERMITIDO: str = """\
 -- Base PostgreSQL de SIADA. Solo estas tablas existen y solo se ven los datos del organismo del auditor.
 -- Los importes son pesos en numeric(14,2). Las fechas de los libros son varchar 'YYYY-MM-DD'

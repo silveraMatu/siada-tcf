@@ -1,5 +1,3 @@
-import json
-import re
 from typing import Any, Literal
 
 from langchain_core.language_models import LanguageModelInput
@@ -16,10 +14,10 @@ from langgraph.prebuilt import ToolNode
 
 from core.config import settings
 from core.llm import get_llm
-from features.agent.models import ACCION_CONSULTA_SQL
 from features.agent.prompts import construir_prompt_sistema, construir_prompt_sql
 from features.agent.state import AgentInput, AgentOutput, AgentState
-from features.agent.tools import auditor_tools, ejecutar_consulta_sql
+from features.agent.tools import auditor_tools
+from features.agent.traza import paso_fallido, paso_publico
 
 MENSAJE_SIN_ORGANISMO: str = (
     "No se encuentra auditando ningún organismo en este momento, "
@@ -86,36 +84,11 @@ def should_continue(state: AgentState) -> Literal["tools", "__end__"]:
 _tool_node = ToolNode(auditor_tools, handle_tool_errors=True)
 
 
-def _paso_de_llamada_fallida(
-    mensaje: ToolMessage, llamadas: dict[str, dict[str, Any]]
-) -> dict[str, Any]:
-    """Reconstruye la traza de una llamada que explotó: ToolNode no deja artefacto en ese caso."""
-    llamada = llamadas.get(mensaje.tool_call_id, {})
-    nombre = str(llamada.get("name") or ejecutar_consulta_sql.name)
-    argumentos = llamada.get("args") or {}
-    query = argumentos.get("query")
-    tipo = re.match(r"Error: (\w+)", str(mensaje.content))
-    return {
-        "accion": ACCION_CONSULTA_SQL if nombre == ejecutar_consulta_sql.name else nombre,
-        "query_sql": query
-        if isinstance(query, str)
-        else json.dumps(argumentos, ensure_ascii=False, default=str),
-        "cantidad_filas": 0,
-        "duracion_ms": None,
-        # Solo el tipo de la excepción: el detalle puede traer datos internos.
-        "error": f"Error inesperado al ejecutar la herramienta ({tipo.group(1)})"
-        if tipo
-        else "La llamada a la herramienta falló",
-        "truncado": False,
-        "columnas": [],
-        "filas": [],
-    }
-
-
 async def ejecutar_tools(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
-    """Corre las herramientas y pasa lo que cada una dejó como artefacto a `pasos` (la traza).
+    """Corre las herramientas y deja en `pasos` lo que el auditor puede ver de cada una, en lenguaje natural.
 
-    El artefacto no viaja al modelo: el LLM solo ve el contenido del ToolMessage.
+    El artefacto de la herramienta (estado, cantidad, tiempo) no viaja al modelo: el LLM solo ve el contenido
+    del ToolMessage. Si la llamada explotó, ToolNode no deja artefacto: se reconstruye el paso sin detalles.
     """
     salida = await _tool_node.ainvoke(state, config)
     mensajes: list[BaseMessage] = salida["messages"]
@@ -130,10 +103,12 @@ async def ejecutar_tools(state: AgentState, config: RunnableConfig) -> dict[str,
     for mensaje in mensajes:
         if not isinstance(mensaje, ToolMessage):
             continue
+        llamada: dict[str, Any] = llamadas.get(mensaje.tool_call_id) or {}
+        argumentos: dict[str, Any] = llamada.get("args") or {}
         if isinstance(mensaje.artifact, dict):
-            pasos.append(mensaje.artifact)
+            pasos.append(paso_publico(mensaje.tool_call_id, argumentos, mensaje.artifact))
         elif mensaje.status == "error":
-            pasos.append(_paso_de_llamada_fallida(mensaje, llamadas))
+            pasos.append(paso_fallido(mensaje.tool_call_id, argumentos))
     return {"messages": mensajes, "pasos": pasos}
 
 
