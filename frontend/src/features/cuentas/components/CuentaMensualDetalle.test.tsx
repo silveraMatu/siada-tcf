@@ -12,6 +12,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { obtenerIngresosEgresos } from '@/features/ingresos-egresos/api/ingresos-egresos.api';
 import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
+import { obtenerRaci } from '@/features/raci/api/raci.api';
+import type { RaciGuardado } from '@/features/raci/types';
 import { obtenerLibrosBanco } from '@/features/libro-banco/api/libro-banco.api';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
 import { presentarCuentaMensual } from '../api/cuentas.api';
@@ -29,6 +31,10 @@ vi.mock('@/features/libro-banco/api/libro-banco.api', () => ({
 vi.mock('@/features/ingresos-egresos/api/ingresos-egresos.api', () => ({
   obtenerIngresosEgresos: vi.fn(),
   ingestarIngresosEgresos: vi.fn(),
+}));
+vi.mock('@/features/raci/api/raci.api', () => ({
+  obtenerRaci: vi.fn(),
+  ingestarRaci: vi.fn(),
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -109,6 +115,35 @@ const ingresosEgresos = (cantidad = 2): IngresosEgresosGuardado => ({
   })),
 });
 
+/** Libro RACI guardado con `cantidad` asientos. */
+const raciGuardado = (cantidad = 2): RaciGuardado => ({
+  id: 7,
+  cuentaMensualId: 5,
+  fechaCreacion: '2026-10-15T12:00:00.000Z',
+  subidoPorId: 1,
+  subidoPor: null,
+  hashContenido: 'b'.repeat(64),
+  transacciones: Array.from({ length: cantidad }, (_, i) => ({
+    id: 700 + i,
+    asiento: i + 1,
+    fecha: `2026-03-0${i + 2}`,
+    expediente: null,
+    concepto: `Concepto RACI ${i + 1}`,
+    compromisoInstrumentoLegal: null,
+    compromisoDelMes: 100,
+    compromisoAcumulado: 100,
+    compromisoOrdenProvision: null,
+    devengadoDelMes: 0,
+    devengadoAcumulado: 0,
+    devengadoSaldo: 100,
+    devengadoOrdenPago: null,
+    pagoNumeroCheque: null,
+    pagoDelMes: 0,
+    pagoAcumulado: 0,
+    pagoSaldoAPagar: 0,
+  })),
+});
+
 function renderDetalle(estado: string, onActualizada = vi.fn()) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -136,6 +171,11 @@ afterEach(() => {
 });
 
 describe('CuentaMensualDetalle', () => {
+  beforeEach(() => {
+    // el RACI es opcional: por defecto la rendición no lo tiene
+    vi.mocked(obtenerRaci).mockResolvedValue(null);
+  });
+
   describe('en borrador', () => {
     beforeEach(() => {
       vi.mocked(obtenerLibrosBanco).mockResolvedValue([
@@ -389,6 +429,82 @@ describe('CuentaMensualDetalle', () => {
       expect(
         await screen.findByRole('button', { name: 'Ver filas' }),
       ).toBeTruthy();
+    });
+  });
+
+  describe('RACI (opcional)', () => {
+    beforeEach(() => {
+      vi.mocked(obtenerLibrosBanco).mockResolvedValue([
+        libro(1, '100234/1', 2),
+      ]);
+      vi.mocked(obtenerIngresosEgresos).mockResolvedValue(ingresosEgresos());
+    });
+
+    it('sin RACI lo ofrece como opcional: no cuenta entre los documentos ni impide presentar', async () => {
+      renderDetalle('EN_BORRADOR');
+
+      expect(await screen.findByText('2 de 2 listos')).toBeTruthy();
+      expect(
+        screen.getByRole('heading', { name: 'RACI (opcional)' }),
+      ).toBeTruthy();
+      expect(screen.getByText('Opcional')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Cargar RACI' })).toBeTruthy();
+      expect(screen.getByText(/Documentos completos/)).toBeTruthy();
+      await waitFor(() => expect(botonPresentar().disabled).toBe(false));
+    });
+
+    it('«Cargar RACI» abre su diálogo', async () => {
+      const { user } = renderDetalle('EN_BORRADOR');
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Cargar RACI' }),
+      );
+      expect(
+        await screen.findByRole('heading', { name: 'Cargar el RACI' }),
+      ).toBeTruthy();
+    });
+
+    it('con RACI cargado se resume, sus asientos se ven a pedido y el diálogo pasa a ser un reemplazo', async () => {
+      vi.mocked(obtenerRaci).mockResolvedValue(raciGuardado());
+      const { user } = renderDetalle('EN_BORRADOR');
+
+      expect(
+        await screen.findByText(/2 asientos · 02\/03\/2026 al 03\/03\/2026/),
+      ).toBeTruthy();
+      // sigue sin contar como documento obligatorio
+      expect(screen.getByText('2 de 2 listos')).toBeTruthy();
+      expect(screen.queryByText('Concepto RACI 1')).toBeNull();
+
+      await user.click(screen.getByRole('button', { name: 'Ver asientos' }));
+      expect(await screen.findByText('Concepto RACI 1')).toBeTruthy();
+
+      const reemplazos = screen.getAllByRole('button', { name: 'Reemplazar' });
+      await user.click(reemplazos[reemplazos.length - 1]);
+      expect(
+        await screen.findByRole('heading', { name: 'Reemplazar el RACI' }),
+      ).toBeTruthy();
+    });
+
+    it('al presentar, el resumen nombra el RACI si está cargado', async () => {
+      vi.mocked(obtenerRaci).mockResolvedValue(raciGuardado(3));
+      const { user } = renderDetalle('EN_BORRADOR');
+
+      await screen.findByText(/3 asientos/);
+      await waitFor(() => expect(botonPresentar().disabled).toBe(false));
+      await user.click(botonPresentar());
+
+      expect((await screen.findByRole('alertdialog')).textContent).toMatch(
+        /el RACI\s+con\s*3 asientos/,
+      );
+    });
+
+    it('en una presentada se ve en solo lectura, sin ofrecer cargarlo', async () => {
+      vi.mocked(obtenerRaci).mockResolvedValue(raciGuardado());
+      renderDetalle('LISTO_PARA_AUDITAR');
+
+      expect(await screen.findByText(/2 asientos/)).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Cargar RACI' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Reemplazar' })).toBeNull();
     });
   });
 

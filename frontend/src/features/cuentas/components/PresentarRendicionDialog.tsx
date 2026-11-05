@@ -29,6 +29,8 @@ interface PresentarRendicionDialogProps {
     transacciones: number;
     /** Filas del libro de Ingresos y Egresos, si ya está cargado. */
     ingresosEgresos?: number;
+    /** Asientos del libro RACI, que es opcional, si se cargó. */
+    raci?: number;
   };
   /** Sin todos los documentos cargados no hay nada que presentar. */
   deshabilitado?: boolean;
@@ -101,6 +103,16 @@ export function PresentarRendicionDialog({
                     <strong>
                       {resumen.ingresosEgresos}{' '}
                       {resumen.ingresosEgresos === 1 ? 'fila' : 'filas'}
+                    </strong>
+                  </>
+                )}
+                {resumen.raci !== undefined && (
+                  <>
+                    {resumen.ingresosEgresos !== undefined ? ' y' : ','} el RACI
+                    con{' '}
+                    <strong>
+                      {resumen.raci}{' '}
+                      {resumen.raci === 1 ? 'asiento' : 'asientos'}
                     </strong>
                   </>
                 )}

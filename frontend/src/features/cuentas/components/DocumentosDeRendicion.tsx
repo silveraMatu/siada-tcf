@@ -15,6 +15,10 @@ import {
   formatearMomento,
 } from '@/features/libro-banco/lib/formato-libro';
 import { resumirLibro } from '@/features/libro-banco/lib/resumir-libro';
+import { PreviewRaciTable } from '@/features/raci/components/PreviewRaciTable';
+import { guardadoAFilas as guardadoRaciAFilas } from '@/features/raci/lib/guardado-a-filas';
+import { resumirRaci } from '@/features/raci/lib/resumir-raci';
+import type { RaciGuardado } from '@/features/raci/types';
 import { nombreCompleto } from '@/lib/persona';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
 import { TOTAL_DOCUMENTOS } from '../lib/documentos-faltantes';
@@ -36,8 +40,11 @@ interface DocumentosDeRendicionProps {
   enBorrador: boolean;
   librosBanco: Consulta<LibroBancoGuardado[]>;
   ingresosEgresos: Consulta<IngresosEgresosGuardado | null>;
+  /** Opcional: no cuenta entre los documentos que exige la rendición. */
+  raci: Consulta<RaciGuardado | null>;
   onCargarLibroBanco: () => void;
   onCargarIngresosEgresos: () => void;
+  onCargarRaci: () => void;
 }
 
 function describirCuentas(cantidad: number): string {
@@ -53,16 +60,21 @@ export function DocumentosDeRendicion({
   enBorrador,
   librosBanco,
   ingresosEgresos,
+  raci,
   onCargarLibroBanco,
   onCargarIngresosEgresos,
+  onCargarRaci,
 }: DocumentosDeRendicionProps) {
   const [verFilas, setVerFilas] = useState(false);
+  const [verAsientos, setVerAsientos] = useState(false);
 
   const cantidadBancos = librosBanco.data?.length ?? 0;
   const libroIE = ingresosEgresos.data ?? null;
   const listos = (cantidadBancos > 0 ? 1 : 0) + (libroIE !== null ? 1 : 0);
   const sinDatos = librosBanco.isPending || ingresosEgresos.isPending;
   const resumenIE = libroIE ? resumirIngresosEgresos(libroIE) : null;
+  const libroRaci = raci.data ?? null;
+  const resumenRaci = libroRaci ? resumirRaci(libroRaci) : null;
 
   return (
     <section aria-labelledby="documentos-titulo" className="space-y-3">
@@ -191,6 +203,66 @@ export function DocumentosDeRendicion({
                 <div id="filas-ingresos-egresos">
                   <PreviewIngresosEgresosTable
                     filas={guardadoAFilas(libroIE)}
+                    className="max-h-[420px]"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </FilaDocumento>
+        <FilaDocumento
+          titulo="RACI (opcional)"
+          descripcion={
+            resumenRaci
+              ? `${resumenRaci.asientos === 1 ? '1 asiento' : `${resumenRaci.asientos} asientos`} · ${describirRangoFechas(resumenRaci.fechaDesde, resumenRaci.fechaHasta)} · cargado el ${formatearMomento(resumenRaci.cargadoEl)}${resumenRaci.subidoPor ? ` por ${nombreCompleto(resumenRaci.subidoPor)}` : ''}`
+              : 'Registro Analítico de Compromisos e Imputaciones, con los asientos del mes. No es obligatorio para presentar.'
+          }
+          estado={libroRaci ? 'cargado' : 'no-cargado'}
+          etiquetaEstado={
+            raci.isPending ? 'Cargando…' : libroRaci ? 'Cargado' : 'Opcional'
+          }
+          accion={
+            enBorrador &&
+            !raci.isPending &&
+            !raci.isError && (
+              <Button variant="outline" onClick={onCargarRaci}>
+                {libroRaci ? <RefreshCw /> : <Upload />}
+                {libroRaci ? 'Reemplazar' : 'Cargar RACI'}
+              </Button>
+            )
+          }
+        >
+          {raci.isError && (
+            <ErrorAlert
+              error={raci.error}
+              onRetry={() => void raci.refetch()}
+              retrying={raci.isFetching}
+            />
+          )}
+          {libroRaci && (
+            <div className="space-y-3">
+              <HuellaDocumento hash={libroRaci.hashContenido} />
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-expanded={verAsientos}
+                aria-controls="asientos-raci"
+                onClick={() => setVerAsientos((abierto) => !abierto)}
+                className="-ml-2.5"
+              >
+                <ChevronDown
+                  className={
+                    verAsientos
+                      ? 'rotate-180 motion-safe:transition-transform'
+                      : 'motion-safe:transition-transform'
+                  }
+                />
+                {verAsientos ? 'Ocultar asientos' : 'Ver asientos'}
+              </Button>
+              {verAsientos && (
+                <div id="asientos-raci">
+                  <PreviewRaciTable
+                    filas={guardadoRaciAFilas(libroRaci)}
                     className="max-h-[420px]"
                   />
                 </div>
