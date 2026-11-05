@@ -23,6 +23,7 @@ import {
 import {
   AsistenteIAPort,
   type ConsultaIA,
+  type PasoIA,
   type RespuestaIA,
 } from '../ports/out/asistente-ia.port.js';
 import { ConsultarAsistenteUseCase } from './consultar-asistente.use-case.js';
@@ -34,11 +35,15 @@ const OTRO_ORGANISMO = 2;
 class IAFalsa extends AsistenteIAPort {
   consultas: ConsultaIA[] = [];
   falla: Error | null = null;
+  pasos: PasoIA[] = [];
 
   consultar(consulta: ConsultaIA): Promise<RespuestaIA> {
     this.consultas.push(consulta);
     if (this.falla) return Promise.reject(this.falla);
-    return Promise.resolve({ respuesta: 'Respuesta de prueba' });
+    return Promise.resolve({
+      respuesta: 'Respuesta de prueba',
+      pasos: this.pasos,
+    });
   }
 }
 
@@ -186,6 +191,7 @@ describe('ConsultarAsistenteUseCase', () => {
     });
 
     expect(resultado).toEqual({
+      pasos: [],
       respuesta: 'Respuesta de prueba',
       organismoId: ORGANISMO,
     });
@@ -385,5 +391,78 @@ describe('ConsultarAsistenteUseCase', () => {
     expect(typeof detalle.duracionMs).toBe('number');
     expect(JSON.stringify(detalle)).not.toContain('sensibles');
     expect(JSON.stringify(detalle)).not.toContain('Respuesta de prueba');
+  });
+});
+
+const pasoOk: PasoIA = {
+  accion: 'consulta_sql',
+  querySql: 'SELECT SUM(depositos) FROM transacciones_libro_banco LIMIT 51',
+  cantidadFilas: 1,
+  duracionMs: 12,
+  error: null,
+  truncado: false,
+  columnas: ['sum'],
+  filas: [['1231900.10']],
+};
+const pasoRechazado: PasoIA = {
+  accion: 'consulta_sql',
+  querySql: 'SELECT * FROM usuarios',
+  cantidadFilas: 0,
+  duracionMs: null,
+  error: 'Tabla no permitida: usuarios',
+  truncado: false,
+  columnas: [],
+  filas: [],
+};
+
+describe('ConsultarAsistenteUseCase: traza de la IA', () => {
+  it('devuelve al auditor los pasos de la IA tal cual, incluidos los intentos fallidos', async () => {
+    const { ia, useCase } = armar();
+    ia.pasos = [pasoRechazado, pasoOk];
+
+    const resultado = await useCase.execute({
+      actor: auditor,
+      pregunta: 'x',
+      organismoId: ORGANISMO,
+    });
+
+    expect(resultado.pasos).toEqual([pasoRechazado, pasoOk]);
+  });
+
+  it('la bitácora recibe solo cantidades: ni el SQL ni las filas de los pasos', async () => {
+    const { ia, actividad, useCase } = armar();
+    ia.pasos = [pasoRechazado, pasoOk];
+
+    await useCase.execute({
+      actor: auditor,
+      pregunta: 'x',
+      organismoId: ORGANISMO,
+    });
+
+    const detalle = Object.assign({}, ...actividad.detalles) as Record<
+      string,
+      unknown
+    >;
+    expect(detalle).toMatchObject({ consultasSql: 2, consultasConError: 1 });
+    const crudo = JSON.stringify(detalle);
+    expect(crudo).not.toContain('usuarios');
+    expect(crudo).not.toContain('transacciones_libro_banco');
+    expect(crudo).not.toContain('1231900.10');
+  });
+
+  it('sin pasos la bitácora cuenta cero y el auditor recibe una lista vacía', async () => {
+    const { actividad, useCase } = armar();
+
+    const resultado = await useCase.execute({
+      actor: auditor,
+      pregunta: 'x',
+      organismoId: ORGANISMO,
+    });
+
+    expect(resultado.pasos).toEqual([]);
+    expect(Object.assign({}, ...actividad.detalles)).toMatchObject({
+      consultasSql: 0,
+      consultasConError: 0,
+    });
   });
 });

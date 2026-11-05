@@ -83,7 +83,7 @@ describe('HttpAsistenteIAAdapter', () => {
   it('manda la API key y el cuerpo en snake_case a la ruta del chat y devuelve la respuesta', async () => {
     const respuesta = await adaptador().consultar(consulta);
 
-    expect(respuesta).toEqual({ respuesta: 'Listo' });
+    expect(respuesta).toEqual({ respuesta: 'Listo', pasos: [] });
     expect(recibido?.metodo).toBe('POST');
     expect(recibido?.ruta).toBe('/api/v1/agent/chat');
     expect(recibido?.headers['x-api-key']).toBe(CLAVE);
@@ -149,5 +149,110 @@ describe('HttpAsistenteIAAdapter', () => {
     await expect(
       adaptador({ url: 'http://127.0.0.1:1' }).consultar(consulta),
     ).rejects.toBeInstanceOf(AsistenteNoDisponibleError);
+  });
+});
+
+describe('HttpAsistenteIAAdapter: traza de pasos', () => {
+  let servidor: Server;
+  let url: string;
+  let cuerpoRespuesta: unknown;
+
+  beforeAll(async () => {
+    servidor = createServer((req, res) => {
+      req.resume();
+      req.on('end', () => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(cuerpoRespuesta));
+      });
+    });
+    await new Promise<void>((ok) => servidor.listen(0, '127.0.0.1', ok));
+    url = `http://127.0.0.1:${(servidor.address() as AddressInfo).port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise((ok) => servidor.close(ok));
+  });
+
+  const consultar = () =>
+    new HttpAsistenteIAAdapter({
+      url,
+      apiKey: CLAVE,
+      timeoutMs: 2000,
+    }).consultar(consulta);
+
+  it('traduce los pasos de snake_case a camelCase y conserva las filas como texto', async () => {
+    cuerpoRespuesta = {
+      respuesta: 'Listo',
+      pasos: [
+        {
+          accion: 'consulta_sql',
+          query_sql: 'SELECT 1 LIMIT 51',
+          cantidad_filas: 1,
+          duracion_ms: 7,
+          error: null,
+          truncado: true,
+          columnas: ['dep'],
+          filas: [['1231900.10']],
+        },
+      ],
+    };
+
+    const { pasos } = await consultar();
+
+    expect(pasos).toEqual([
+      {
+        accion: 'consulta_sql',
+        querySql: 'SELECT 1 LIMIT 51',
+        cantidadFilas: 1,
+        duracionMs: 7,
+        error: null,
+        truncado: true,
+        columnas: ['dep'],
+        filas: [['1231900.10']],
+      },
+    ]);
+  });
+
+  it('un paso rechazado por las guardas llega con duración nula y error', async () => {
+    cuerpoRespuesta = {
+      respuesta: 'No puedo',
+      pasos: [
+        {
+          accion: 'consulta_sql',
+          query_sql: 'SELECT * FROM usuarios',
+          cantidad_filas: 0,
+          duracion_ms: null,
+          error: 'Tabla no permitida: usuarios',
+        },
+      ],
+    };
+
+    const { pasos } = await consultar();
+
+    expect(pasos[0]).toMatchObject({
+      duracionMs: null,
+      cantidadFilas: 0,
+      error: 'Tabla no permitida: usuarios',
+      truncado: false,
+      columnas: [],
+      filas: [],
+    });
+  });
+
+  it('un servicio que no manda `pasos` (versión anterior) da una lista vacía', async () => {
+    cuerpoRespuesta = { respuesta: 'Listo' };
+
+    expect((await consultar()).pasos).toEqual([]);
+  });
+
+  it('un paso mal formado es AsistenteNoDisponibleError: la traza no se degrada en silencio', async () => {
+    cuerpoRespuesta = {
+      respuesta: 'Listo',
+      pasos: [{ accion: 'consulta_sql' }],
+    };
+
+    await expect(consultar()).rejects.toBeInstanceOf(
+      AsistenteNoDisponibleError,
+    );
   });
 });

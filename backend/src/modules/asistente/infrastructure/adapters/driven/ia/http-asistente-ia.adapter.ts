@@ -14,7 +14,22 @@ import {
 
 const RUTA_CHAT = '/api/v1/agent/chat';
 
-const RespuestaServicioSchema = z.object({ respuesta: z.string() });
+//el servicio manda snake_case; cada campo opcional cae a un valor neutro para tolerar un servicio más viejo
+const PasoServicioSchema = z.object({
+  accion: z.string(),
+  query_sql: z.string(),
+  cantidad_filas: z.number().int().nullish(),
+  duracion_ms: z.number().int().nullish(),
+  error: z.string().nullish(),
+  truncado: z.boolean().default(false),
+  columnas: z.array(z.string()).default([]),
+  filas: z.array(z.array(z.unknown())).default([]),
+});
+
+const RespuestaServicioSchema = z.object({
+  respuesta: z.string(),
+  pasos: z.array(PasoServicioSchema).default([]),
+});
 
 //llama al servicio ia-agent-service (FastAPI) con su API key; el navegador nunca habla con él
 @Injectable()
@@ -70,6 +85,18 @@ export class HttpAsistenteIAAdapter extends AsistenteIAPort {
       this.logger.error('El servicio de IA devolvió una respuesta inesperada');
       throw new AsistenteNoDisponibleError();
     }
-    return { respuesta: valido.data.respuesta };
+    return {
+      respuesta: valido.data.respuesta,
+      pasos: valido.data.pasos.map((p) => ({
+        accion: p.accion,
+        querySql: p.query_sql,
+        cantidadFilas: p.cantidad_filas ?? null,
+        duracionMs: p.duracion_ms ?? null,
+        error: p.error ?? null,
+        truncado: p.truncado,
+        columnas: p.columnas,
+        filas: p.filas,
+      })),
+    };
   }
 }

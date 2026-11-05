@@ -154,6 +154,7 @@ describe('Asistente de IA (e2e)', () => {
       expect(respuesta.body).toEqual({
         respuesta: 'Respuesta del servicio falso',
         organismoId,
+        pasos: [],
       });
       expect(recibidas).toHaveLength(1);
       expect(recibidas[0]?.headers['x-api-key']).toBe(CLAVE_IA);
@@ -273,6 +274,95 @@ describe('Asistente de IA (e2e)', () => {
     ])('%s → 400', async (_nombre, cuerpo) => {
       await consultar(cuerpo).expect(400);
       expect(recibidas).toEqual([]);
+    });
+  });
+
+  describe('traza de pasos', () => {
+    const pasoOk = {
+      accion: 'consulta_sql',
+      query_sql:
+        'SELECT SUM(depositos) AS dep FROM transacciones_libro_banco LIMIT 51',
+      cantidad_filas: 1,
+      duracion_ms: 15,
+      error: null,
+      truncado: false,
+      columnas: ['dep'],
+      filas: [['1231900.10']],
+    };
+    const pasoFallido = {
+      accion: 'consulta_sql',
+      query_sql: 'SELECT * FROM usuarios',
+      cantidad_filas: 0,
+      duracion_ms: null,
+      error: 'Tabla no permitida: usuarios',
+      truncado: false,
+      columnas: [],
+      filas: [],
+    };
+
+    it('el auditor recibe los pasos de la IA en orden, con los intentos fallidos', async () => {
+      respuestaIA = {
+        status: 200,
+        cuerpo: { respuesta: 'Listo', pasos: [pasoFallido, pasoOk] },
+      };
+
+      const respuesta = await consultar({
+        pregunta: 'hola',
+        organismoId,
+      }).expect(200);
+
+      expect(respuesta.body.pasos).toEqual([
+        {
+          accion: 'consulta_sql',
+          querySql: 'SELECT * FROM usuarios',
+          cantidadFilas: 0,
+          duracionMs: null,
+          error: 'Tabla no permitida: usuarios',
+          truncado: false,
+          columnas: [],
+          filas: [],
+        },
+        {
+          accion: 'consulta_sql',
+          querySql:
+            'SELECT SUM(depositos) AS dep FROM transacciones_libro_banco LIMIT 51',
+          cantidadFilas: 1,
+          duracionMs: 15,
+          error: null,
+          truncado: false,
+          columnas: ['dep'],
+          //el importe llega como texto, sin pasar por número
+          filas: [['1231900.10']],
+        },
+      ]);
+    });
+
+    it('la bitácora guarda solo cuántas consultas hubo y cuántas fallaron, nunca el SQL ni las filas', async () => {
+      respuestaIA = {
+        status: 200,
+        cuerpo: { respuesta: 'Listo', pasos: [pasoFallido, pasoOk] },
+      };
+      await consultar({ pregunta: 'hola', organismoId }).expect(200);
+
+      const evento = await ultimoEvento(auditor.usuarioId);
+
+      expect(evento.detalle).toMatchObject({
+        consultasSql: 2,
+        consultasConError: 1,
+      });
+      const crudo = JSON.stringify(evento);
+      expect(crudo).not.toContain('usuarios');
+      expect(crudo).not.toContain('transacciones_libro_banco');
+      expect(crudo).not.toContain('1231900.10');
+    });
+
+    it('si un paso llega mal formado → 502 (la traza no se pierde en silencio)', async () => {
+      respuestaIA = {
+        status: 200,
+        cuerpo: { respuesta: 'Listo', pasos: [{ accion: 'consulta_sql' }] },
+      };
+
+      await consultar({ pregunta: 'hola', organismoId }).expect(502);
     });
   });
 

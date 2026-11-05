@@ -21,6 +21,7 @@ import {
 import {
   AsistenteIAPort,
   type ConsultaIA,
+  type PasoIA,
   type RespuestaIA,
 } from '../ports/out/asistente-ia.port.js';
 
@@ -37,6 +38,8 @@ export interface RespuestaAsistente {
   respuesta: string;
   //organismo sobre el que se consultó; null si el auditor no tiene ninguno
   organismoId: number | null;
+  //qué hizo el modelo contra la base para llegar a la respuesta (vacío si no consultó nada)
+  pasos: PasoIA[];
 }
 
 //el auditor le pregunta al copiloto de IA sobre un organismo. Este caso de uso es la frontera de confianza: el servicio
@@ -176,13 +179,18 @@ export class ConsultarAsistenteUseCase {
       }
       throw error;
     }
+    //en la bitácora solo cantidades: el SQL y las filas son contenido de rendiciones y no se pueden borrar de ahí
     this.actividad.detalle({
       respuestaLongitud: respuesta.respuesta.length,
       duracionMs: Date.now() - inicio,
+      consultasSql: respuesta.pasos.filter((p) => p.accion === 'consulta_sql')
+        .length,
+      consultasConError: respuesta.pasos.filter((p) => p.error !== null).length,
     });
     return {
       respuesta: respuesta.respuesta,
       organismoId: consulta.organismoId,
+      pasos: respuesta.pasos,
     };
   }
 }
