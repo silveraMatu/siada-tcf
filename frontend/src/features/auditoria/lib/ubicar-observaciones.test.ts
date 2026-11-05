@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
+import type { RaciGuardado } from '@/features/raci/types';
 import { MOCK_RESULTADOS } from '../mocks/resultados.mock';
 import { ubicarObservaciones } from './ubicar-observaciones';
 
@@ -52,6 +53,20 @@ const ingresosEgresos = {
     { id: 58, fila: 9 },
   ],
 } as unknown as IngresosEgresosGuardado;
+
+/** Su id coincide a propósito con el de los otros dos libros: se distinguen por tipo. */
+const raci = {
+  id: 2,
+  cuentaMensualId: 5,
+  fechaCreacion: '2026-10-15T12:00:00.000Z',
+  subidoPorId: 1,
+  subidoPor: null,
+  hashContenido: 'a'.repeat(64),
+  transacciones: [
+    { id: 70, asiento: 3 },
+    { id: 71, asiento: 8 },
+  ],
+} as unknown as RaciGuardado;
 
 const [observacion] = MOCK_RESULTADOS[0].observaciones; // transaccionId 12
 
@@ -141,5 +156,100 @@ describe('ubicarObservaciones', () => {
     expect(ubicada.fila).toBeUndefined();
     expect(ubicada.libroId).toBeUndefined();
     expect(ubicada.libroNombre).toBe('Ingresos y Egresos');
+  });
+
+  describe('libro RACI', () => {
+    const deRaci = {
+      ...observacion,
+      codigoRegla: 'V4',
+      libroOrigen: 'RACI',
+      transaccionId: null,
+      transaccionIngresoEgresoId: null,
+      transaccionRaciId: 71,
+    };
+
+    it('un asiento se cita por su N° de asiento, no por fila, y lleva a ese libro', () => {
+      const [ubicada] = ubicarObservaciones([deRaci], {
+        librosBanco,
+        ingresosEgresos,
+        raci,
+      });
+
+      expect(ubicada).toMatchObject({
+        transaccionId: 71,
+        libroTipo: 'RACI',
+        libroId: 2,
+        libroNombre: 'RACI',
+        asiento: 8,
+      });
+      expect(ubicada.fila).toBeUndefined();
+    });
+
+    it('no confunde el id del asiento con el de una transacción de otro libro', () => {
+      const [ubicada] = ubicarObservaciones(
+        [{ ...deRaci, transaccionRaciId: 58 }],
+        { librosBanco, ingresosEgresos, raci },
+      );
+      // el 58 existe en Ingresos y Egresos pero no en el RACI: queda sin ubicar
+      expect(ubicada.libroTipo).toBeUndefined();
+      expect(ubicada.transaccionId).toBe(58);
+    });
+
+    it('un hallazgo de toda la cuenta (C1, C2) queda con el nombre del libro y sin fila ni asiento', () => {
+      const [ubicada] = ubicarObservaciones(
+        [{ ...deRaci, codigoRegla: 'C1', transaccionRaciId: null }],
+        { librosBanco, ingresosEgresos, raci },
+      );
+      expect(ubicada).toMatchObject({
+        transaccionId: null,
+        libroNombre: 'RACI',
+      });
+      expect(ubicada.libroId).toBeUndefined();
+      expect(ubicada.asiento).toBeUndefined();
+    });
+
+    it('si el libro todavía no se cargó o el asiento ya no existe, queda sin ubicar', () => {
+      expect(ubicarObservaciones([deRaci], {})[0].libroId).toBeUndefined();
+      expect(
+        ubicarObservaciones([{ ...deRaci, transaccionRaciId: 999 }], {
+          raci,
+        })[0].libroId,
+      ).toBeUndefined();
+    });
+
+    it('F1 puede apuntar a un asiento del RACI, a una fila de I/E o a una del banco', () => {
+      const f1 = { ...observacion, codigoRegla: 'F1', tipo: 'FECHAS' };
+      const ubicadas = ubicarObservaciones(
+        [
+          {
+            ...f1,
+            libroOrigen: 'RACI',
+            transaccionId: null,
+            transaccionIngresoEgresoId: null,
+            transaccionRaciId: 70,
+          },
+          {
+            ...f1,
+            libroOrigen: 'INGRESOS_EGRESOS',
+            transaccionId: null,
+            transaccionIngresoEgresoId: 57,
+            transaccionRaciId: null,
+          },
+          {
+            ...f1,
+            libroOrigen: 'LIBRO_BANCO',
+            transaccionId: 10,
+            transaccionIngresoEgresoId: null,
+            transaccionRaciId: null,
+          },
+        ],
+        { librosBanco, ingresosEgresos, raci },
+      );
+      expect(ubicadas.map((u) => u.libroTipo)).toEqual([
+        'RACI',
+        'INGRESOS_EGRESOS',
+        'LIBRO_BANCO',
+      ]);
+    });
   });
 });

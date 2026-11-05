@@ -193,3 +193,41 @@ describe('TablaObservaciones', () => {
     );
   });
 });
+
+describe('observación de un asiento del RACI', () => {
+  const deRaci: ObservacionUbicada = {
+    ...abierta,
+    id: 41,
+    transaccionId: 702,
+    libroTipo: 'RACI',
+    libroId: 7,
+    libroNombre: 'RACI',
+    fila: undefined,
+    asiento: 5,
+  };
+
+  it('muestra el N° de asiento en lugar de la fila y el botón lo nombra', () => {
+    renderTabla([deRaci]);
+
+    expect(screen.getByText('As. 5')).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: 'Ver el asiento 5 de RACI en el libro',
+      }),
+    ).toBeTruthy();
+  });
+
+  it('una observación de toda la cuenta (C1, C2) no tiene a dónde ir', () => {
+    renderTabla([
+      {
+        ...deRaci,
+        transaccionId: null,
+        libroId: undefined,
+        asiento: undefined,
+      },
+    ]);
+
+    expect(screen.queryByRole('button', { name: /en el libro/ })).toBeNull();
+    expect(screen.getByText('RACI')).toBeTruthy();
+  });
+});

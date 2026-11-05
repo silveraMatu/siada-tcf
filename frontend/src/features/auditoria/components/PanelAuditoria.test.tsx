@@ -15,9 +15,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { obtenerIngresosEgresos } from '@/features/ingresos-egresos/api/ingresos-egresos.api';
 import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
 import { obtenerLibrosBanco } from '@/features/libro-banco/api/libro-banco.api';
+import { obtenerRaci } from '@/features/raci/api/raci.api';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
 import { auditarRendicion, obtenerEjecucion } from '../api/auditoria.api';
 import { MOCK_EJECUCION, MOCK_RESULTADOS } from '../mocks/resultados.mock';
+import type { RaciGuardado } from '@/features/raci/types';
 import type { Ejecucion, ResultadoValidacion } from '../types/auditoria.types';
 import { PanelAuditoria } from './PanelAuditoria';
 
@@ -32,6 +34,10 @@ vi.mock('@/features/ingresos-egresos/api/ingresos-egresos.api', () => ({
 vi.mock('@/features/libro-banco/api/libro-banco.api', () => ({
   obtenerLibrosBanco: vi.fn(),
   ingestarLibroBanco: vi.fn(),
+}));
+vi.mock('@/features/raci/api/raci.api', () => ({
+  obtenerRaci: vi.fn(),
+  ingestarRaci: vi.fn(),
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -77,10 +83,11 @@ function renderPanel(
   return { user: userEvent.setup(), onVerEnLibro, client };
 }
 
-const reglas = () => screen.findAllByRole('heading', { level: 3 });
+const reglas = () => screen.findAllByRole('heading', { level: 4 });
 
 beforeEach(() => {
   vi.mocked(obtenerIngresosEgresos).mockResolvedValue(null);
+  vi.mocked(obtenerRaci).mockResolvedValue(null);
   vi.mocked(obtenerLibrosBanco).mockResolvedValue(GUARDADOS);
   vi.mocked(obtenerEjecucion).mockResolvedValue(null);
 });
@@ -357,14 +364,14 @@ describe('PanelAuditoria', () => {
       await user.click(fallidas);
 
       expect(fallidas.getAttribute('aria-pressed')).toBe('true');
-      expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(1);
+      expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(1);
       expect(
         screen.getByText(/Mostrando solo las reglas fallidas/),
       ).toBeTruthy();
 
       await user.click(fallidas);
       expect(fallidas.getAttribute('aria-pressed')).toBe('false');
-      expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(3);
+      expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(3);
     });
 
     it('«Quitar filtro» vuelve a mostrar todas', async () => {
@@ -374,7 +381,7 @@ describe('PanelAuditoria', () => {
 
       await user.click(screen.getByRole('button', { name: 'Quitar filtro' }));
 
-      expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(3);
+      expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(3);
     });
   });
 
@@ -410,5 +417,168 @@ describe('PanelAuditoria', () => {
     await user.click(screen.getByRole('button', { name: 'Reintentar' }));
 
     expect(await reglas()).toHaveLength(3);
+  });
+});
+
+describe('con el libro RACI y las 14 reglas', () => {
+  const base = MOCK_RESULTADOS[0].observaciones[0];
+  const regla = (
+    codigoRegla: string,
+    descripcion: string,
+    parcial: Partial<ResultadoValidacion> = {},
+  ): ResultadoValidacion => ({
+    codigoRegla,
+    descripcion,
+    estado: 'VERIFICADO',
+    observaciones: [],
+    filasEvaluadas: 4,
+    librosFaltantes: [],
+    ...parcial,
+  });
+
+  const resultados: ResultadoValidacion[] = [
+    regla('F1', 'Coherencia de fechas'),
+    regla('P1', 'Existencia de cheques', {
+      estado: 'FALTAN_LIBROS',
+      mensaje: 'Faltan libros requeridos: RACI',
+      filasEvaluadas: null,
+      librosFaltantes: ['RACI'],
+    }),
+    regla('C1', 'Egresos devengados (RACI)', {
+      estado: 'FALLO',
+      filasEvaluadas: 1,
+      observaciones: [
+        {
+          ...base,
+          id: 41,
+          codigoRegla: 'C1',
+          tipo: 'CRUZAMIENTO',
+          descripcion: 'Lo devengado en el RACI no coincide con los egresos.',
+          libroOrigen: 'RACI',
+          transaccionId: null,
+          transaccionIngresoEgresoId: null,
+          transaccionRaciId: null,
+        },
+      ],
+    }),
+    regla('V4', 'Secuencia lógica del gasto', {
+      estado: 'FALLO',
+      filasEvaluadas: 5,
+      observaciones: [
+        {
+          ...base,
+          id: 40,
+          codigoRegla: 'V4',
+          tipo: 'INTERNA',
+          descripcion: 'El asiento 5 tiene un pago sin devengado.',
+          libroOrigen: 'RACI',
+          transaccionId: null,
+          transaccionIngresoEgresoId: null,
+          transaccionRaciId: 702,
+        },
+      ],
+    }),
+    regla('V1', 'Saldo de caja'),
+  ];
+
+  beforeEach(() => {
+    vi.mocked(obtenerEjecucion).mockResolvedValue({
+      ...MOCK_EJECUCION,
+      resultados,
+    } satisfies Ejecucion);
+    vi.mocked(obtenerRaci).mockResolvedValue({
+      id: 7,
+      cuentaMensualId: 5,
+      fechaCreacion: '2026-10-15T12:00:00.000Z',
+      subidoPorId: 1,
+      subidoPor: null,
+      hashContenido: 'b'.repeat(64),
+      transacciones: [
+        { id: 701, asiento: 4 },
+        { id: 702, asiento: 5 },
+      ],
+    } as unknown as RaciGuardado);
+  });
+
+  it('agrupa las reglas por tipo (V, C, P, F) y las ordena por código dentro de cada grupo', async () => {
+    renderPanel('EN_AUDITORIA');
+
+    const titulos = await reglas();
+    expect(titulos.map((h) => h.textContent)).toEqual([
+      expect.stringContaining('Saldo de caja'),
+      expect.stringContaining('Secuencia lógica del gasto'),
+      expect.stringContaining('Egresos devengados (RACI)'),
+      expect.stringContaining('Existencia de cheques'),
+      expect.stringContaining('Coherencia de fechas'),
+    ]);
+    for (const nombre of [
+      'Validaciones internas',
+      'Cruces entre libros',
+      'Integridad de cheques',
+      'Coherencia de fechas',
+    ]) {
+      expect(screen.getByRole('region', { name: nombre })).toBeTruthy();
+    }
+    // cada grupo resume lo suyo
+    expect(
+      within(
+        screen.getByRole('region', { name: 'Integridad de cheques' }),
+      ).getByText('1 no aplica'),
+    ).toBeTruthy();
+  });
+
+  it('una regla que espera el RACI opcional no cuenta como omitida ni como problema', async () => {
+    renderPanel('EN_AUDITORIA');
+    await reglas();
+
+    const filtro = screen.getByRole('group', {
+      name: 'Filtrar las reglas por resultado',
+    });
+    const omitidas = within(filtro).getByRole('button', {
+      name: /Omitidas\s*0/,
+    });
+    expect((omitidas as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      screen.getByText(/1 regla no aplica porque no se cargó el RACI/),
+    ).toBeTruthy();
+  });
+
+  it('un hallazgo de un asiento del RACI se cita por asiento y lleva a ese libro', async () => {
+    const { user, onVerEnLibro } = renderPanel('EN_AUDITORIA');
+
+    await user.click(
+      await screen.findByRole('button', { name: /Secuencia lógica del gasto/ }),
+    );
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Ver el asiento 5 de RACI en el libro',
+      }),
+    );
+
+    expect(onVerEnLibro).toHaveBeenCalledWith(
+      expect.objectContaining({
+        libroTipo: 'RACI',
+        libroId: 7,
+        transaccionId: 702,
+        asiento: 5,
+      }),
+    );
+  });
+
+  it('un cruce del RACI (C1) es de toda la cuenta: nombra el libro y no ofrece ir a una fila', async () => {
+    const { user } = renderPanel('EN_AUDITORIA');
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Egresos devengados \(RACI\)/,
+      }),
+    );
+
+    expect(
+      await screen.findByText(
+        'Lo devengado en el RACI no coincide con los egresos.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /en el libro/ })).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  MinusCircle,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -18,6 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
   contarResultado,
+  esNoAplica,
   nombreDeLibroFaltante,
 } from '../lib/contar-resultado';
 import type {
@@ -55,6 +57,14 @@ const PRESENTACION: Record<EstadoValidacion, Presentacion> = {
     tonoIcono: 'text-muted-foreground',
     tarjeta: 'bg-muted text-muted-foreground',
   },
+};
+
+/** La regla pide el RACI, que es opcional, y no se cargó: no es un problema, solo no se evaluó. */
+const NO_APLICA: Presentacion = {
+  etiqueta: 'No aplica: el RACI es opcional y no se cargó',
+  icono: MinusCircle,
+  tonoIcono: 'text-muted-foreground',
+  tarjeta: 'border-dashed bg-muted/40 text-muted-foreground',
 };
 
 const plural = (n: number, uno: string, varios: string) =>
@@ -111,8 +121,10 @@ export function ReglaValidacionCard({
   onVerEnLibro,
 }: ReglaValidacionCardProps) {
   const [abierta, setAbierta] = useState(false);
-  const presentacion =
-    PRESENTACION[resultado.estado] ?? PRESENTACION.FALTAN_LIBROS;
+  const noAplica = esNoAplica(resultado);
+  const presentacion = noAplica
+    ? NO_APLICA
+    : (PRESENTACION[resultado.estado] ?? PRESENTACION.FALTAN_LIBROS);
   const Icono = presentacion.icono;
   const contadores = contarResultado(resultado);
   const idTitulo = `regla-${resultado.codigoRegla}`;
@@ -123,7 +135,7 @@ export function ReglaValidacionCard({
         <section aria-labelledby={idTitulo}>
           <Collapsible open={abierta} onOpenChange={setAbierta}>
             <header className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 transition-colors hover:bg-foreground/5 sm:px-6">
-              <h3 id={idTitulo} className="min-w-0 text-base font-semibold">
+              <h4 id={idTitulo} className="min-w-0 text-base font-semibold">
                 <CollapsibleTrigger cubreEncabezado>
                   <Icono
                     aria-hidden
@@ -138,46 +150,50 @@ export function ReglaValidacionCard({
                   </Badge>
                   <span className="sr-only">: {presentacion.etiqueta}</span>
                 </CollapsibleTrigger>
-              </h3>
-              <ul
-                aria-label="Resultado de la regla"
-                className="flex items-center gap-1.5 pl-6 sm:pl-0"
-              >
-                <Contador
-                  icono={X}
-                  valor={contadores.falladas}
-                  etiqueta={plural(
-                    contadores.falladas,
-                    'control con observaciones',
-                    'controles con observaciones',
-                  )}
-                  tono="border-danger-border bg-danger-subtle text-danger"
-                />
-                <Contador
-                  icono={Check}
-                  valor={contadores.verificadas}
-                  etiqueta={
-                    contadores.verificadas === null
-                      ? 'Controles verificados: dato no disponible'
-                      : plural(
-                          contadores.verificadas,
-                          'control verificado',
-                          'controles verificados',
-                        )
-                  }
-                  tono="border-success-border bg-success-subtle text-success"
-                />
-                <Contador
-                  icono={Clock}
-                  valor={contadores.librosFaltantes}
-                  etiqueta={plural(
-                    contadores.librosFaltantes,
-                    'libro faltante',
-                    'libros faltantes',
-                  )}
-                  tono="border-border bg-background text-foreground"
-                />
-              </ul>
+              </h4>
+              {noAplica ? (
+                <p className="pl-6 text-sm sm:pl-0">No aplica</p>
+              ) : (
+                <ul
+                  aria-label="Resultado de la regla"
+                  className="flex items-center gap-1.5 pl-6 sm:pl-0"
+                >
+                  <Contador
+                    icono={X}
+                    valor={contadores.falladas}
+                    etiqueta={plural(
+                      contadores.falladas,
+                      'control con observaciones',
+                      'controles con observaciones',
+                    )}
+                    tono="border-danger-border bg-danger-subtle text-danger"
+                  />
+                  <Contador
+                    icono={Check}
+                    valor={contadores.verificadas}
+                    etiqueta={
+                      contadores.verificadas === null
+                        ? 'Controles verificados: dato no disponible'
+                        : plural(
+                            contadores.verificadas,
+                            'control verificado',
+                            'controles verificados',
+                          )
+                    }
+                    tono="border-success-border bg-success-subtle text-success"
+                  />
+                  <Contador
+                    icono={Clock}
+                    valor={contadores.librosFaltantes}
+                    etiqueta={plural(
+                      contadores.librosFaltantes,
+                      'libro faltante',
+                      'libros faltantes',
+                    )}
+                    tono="border-border bg-background text-foreground"
+                  />
+                </ul>
+              )}
             </header>
 
             <CollapsibleContent>
@@ -225,6 +241,15 @@ function DetalleRegla({
           : contadoresVerificadas === 1
             ? 'Se hizo 1 control y no se encontraron diferencias.'
             : `Se hicieron ${contadoresVerificadas} controles y no se encontraron diferencias.`}
+      </p>
+    );
+  }
+
+  if (esNoAplica(resultado)) {
+    return (
+      <p className="text-sm">
+        No aplica: esta regla necesita el libro RACI, que es opcional y no se
+        cargó en esta rendición. No es un problema de la rendición.
       </p>
     );
   }

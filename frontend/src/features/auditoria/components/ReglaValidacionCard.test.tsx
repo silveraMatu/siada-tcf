@@ -95,7 +95,7 @@ describe('ReglaValidacionCard', () => {
     await user.click(screen.getByRole('button', { name: /Saldo de cuenta/ }));
 
     expect(screen.getByRole('table')).toBeTruthy();
-    for (const columna of ['Fila', 'Libro', 'Detalle']) {
+    for (const columna of ['Fila / asiento', 'Libro', 'Detalle']) {
       expect(screen.getByRole('columnheader', { name: columna })).toBeTruthy();
     }
     const fila = screen.getAllByRole('row')[1];
@@ -215,5 +215,52 @@ describe('ReglaValidacionCard', () => {
 
     expect(screen.queryByRole('button', { name: /Ver la fila/ })).toBeNull();
     expect(screen.getByText('Diferencia de 100')).toBeTruthy();
+  });
+});
+
+describe('regla que no aplica por falta del RACI (opcional)', () => {
+  const sinRaci = {
+    ...faltan,
+    codigoRegla: 'P1',
+    descripcion: 'Existencia de cheques',
+    mensaje: 'Faltan libros requeridos: RACI',
+    librosFaltantes: ['RACI'],
+  };
+
+  it('se presenta como «No aplica», sin los contadores de alarma', () => {
+    renderCard(sinRaci, { observaciones: [] });
+
+    expect(
+      screen.getByRole('button', { name: /Existencia de cheques/ }).textContent,
+    ).toMatch(/No aplica: el RACI es opcional y no se cargó/);
+    expect(screen.getByText('No aplica')).toBeTruthy();
+    expect(
+      screen.queryByRole('list', { name: 'Resultado de la regla' }),
+    ).toBeNull();
+  });
+
+  it('al abrirla explica que no es un problema de la rendición', async () => {
+    const { user } = renderCard(sinRaci, { observaciones: [] });
+    await user.click(
+      screen.getByRole('button', { name: /Existencia de cheques/ }),
+    );
+
+    expect(
+      screen.getByText(/necesita el libro RACI, que es opcional y no se cargó/),
+    ).toBeTruthy();
+    expect(screen.queryByText(/No se pudo evaluar/)).toBeNull();
+  });
+
+  it('si además falta un libro obligatorio sigue siendo una omisión', async () => {
+    const { user } = renderCard(
+      { ...sinRaci, librosFaltantes: ['RACI', 'INGRESOS_EGRESOS'] },
+      { observaciones: [] },
+    );
+    await user.click(
+      screen.getByRole('button', { name: /Existencia de cheques/ }),
+    );
+
+    expect(screen.getByText(/No se pudo evaluar esta regla/)).toBeTruthy();
+    expect(screen.queryByText('No aplica')).toBeNull();
   });
 });

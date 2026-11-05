@@ -26,6 +26,12 @@ const formatoMomento = new Intl.DateTimeFormat('es-AR', {
   timeStyle: 'short',
 });
 
+/** Fila del libro; en el RACI no hay fila sino N° de asiento. */
+function referenciaDeFila(observacion: ObservacionUbicada): string | number {
+  if (observacion.asiento !== undefined) return `As. ${observacion.asiento}`;
+  return observacion.fila ?? '—';
+}
+
 interface TablaObservacionesProps {
   codigoRegla: string;
   observaciones: readonly ObservacionUbicada[];
@@ -65,7 +71,7 @@ export function TablaObservaciones({
         </TableCaption>
         <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>
-            <TableHead className="w-16 text-right">Fila</TableHead>
+            <TableHead className="w-16 text-right">Fila / asiento</TableHead>
             <TableHead>Libro</TableHead>
             <TableHead>Detalle</TableHead>
             <TableHead>Estado</TableHead>
@@ -86,7 +92,7 @@ export function TablaObservaciones({
                   {ubicando && observacion.transaccionId !== null ? (
                     <Skeleton className="ml-auto h-4 w-6" />
                   ) : (
-                    (observacion.fila ?? '—')
+                    referenciaDeFila(observacion)
                   )}
                 </TableCell>
                 <TableCell className="max-w-28 break-words sm:max-w-none sm:whitespace-nowrap">
@@ -150,7 +156,11 @@ export function TablaObservaciones({
                         variant="outline"
                         size="sm"
                         onClick={() => onVerEnLibro(observacion)}
-                        aria-label={`Ver la fila ${observacion.fila} de ${observacion.libroNombre} en el libro`}
+                        aria-label={`Ver ${
+                          observacion.asiento !== undefined
+                            ? `el asiento ${observacion.asiento}`
+                            : `la fila ${observacion.fila}`
+                        } de ${observacion.libroNombre} en el libro`}
                       >
                         <Crosshair />
                         <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">

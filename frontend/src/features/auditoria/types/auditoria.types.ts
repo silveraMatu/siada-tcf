@@ -1,6 +1,6 @@
 import type { PersonaResumen } from '@/lib/persona';
 
-/** Resultado de una regla del motor determinístico (lo que devuelve `POST .../libro-banco/ejecutar`). */
+/** Resultado de una regla del motor determinístico (lo que devuelve `POST .../documentos/auditar`). */
 export type EstadoValidacion = 'VERIFICADO' | 'FALLO' | 'FALTAN_LIBROS';
 
 /** Qué decide el auditor sobre un hallazgo. */
@@ -22,10 +22,12 @@ export interface ObservacionApi {
   descripcion: string;
   libroOrigen: string;
   estado: EstadoObservacion;
-  /** Transacción del libro banco donde se detectó (solo V3); null si no es de ese libro. */
+  /** Transacción del libro banco donde se detectó (V3, y F1 si la fecha es de un movimiento del banco); null si no es de ese libro. */
   transaccionId: number | null;
-  /** Transacción del libro de Ingresos y Egresos donde se detectó (V1 y V2); null en los cruces, que son de toda la cuenta. */
+  /** Transacción del libro de Ingresos y Egresos donde se detectó (V1, V2 y F1 sobre sus filas); null en los cruces, que son de toda la cuenta. */
   transaccionIngresoEgresoId: number | null;
+  /** Asiento del libro RACI donde se detectó (V4, V5, V6, P1, P2 y F1 sobre asientos); null si es de otro libro o de toda la cuenta (C1 y C2). */
+  transaccionRaciId: number | null;
   /** Lo que dice el libro auditado, lo esperado y la diferencia absoluta; null si el hallazgo no es de un importe. */
   valorInformado: number | null;
   valorCalculado: number | null;
@@ -43,7 +45,7 @@ export interface ResultadoValidacion {
   /** Nombre legible de la regla, por ejemplo «Saldo de cuenta». */
   descripcion: string;
   estado: EstadoValidacion;
-  /** Solo en FALTAN_LIBROS: «Faltan libros requeridos: LIBRO_BANCO, RACI». */
+  /** Solo en FALTAN_LIBROS: «Faltan libros requeridos: LIBRO_BANCO, RACI». El RACI es opcional: sin él, las reglas que lo piden quedan acá sin que sea un problema. */
   mensaje?: string;
   observaciones: ObservacionApi[];
   /** Controles que hizo la regla (filas validadas, o 1 si compara un total contra otro); null si no corrió. */
@@ -94,13 +96,15 @@ export interface ObservacionUbicada {
   revisadaPor: PersonaResumen | null;
   /** ISO */
   revisadaEn: string | null;
-  /** Id de la transacción hallada dentro de su libro (banco o Ingresos y Egresos); null si es de toda la cuenta. */
+  /** Id de la transacción hallada dentro de su libro (banco, Ingresos y Egresos o RACI); null si es de toda la cuenta. */
   transaccionId: number | null;
   libroTipo?: string;
   libroId?: number;
   libroNombre?: string;
   /** Número de fila tal como lo muestra la tabla del libro: la posición en el libro banco, la fila del archivo en Ingresos y Egresos. */
   fila?: number;
+  /** N° de asiento, si el hallazgo es de una fila del RACI: ahí no se numera por fila sino por asiento. */
+  asiento?: number;
 }
 
 /** Los tres contadores que acompañan a cada regla. `null` = no se puede calcular. */
@@ -116,7 +120,10 @@ export interface ContadoresRegla {
 export interface ResumenResultados {
   verificadas: number;
   fallidas: number;
+  /** Reglas que no corrieron porque falta algún libro obligatorio. */
   omitidas: number;
+  /** Reglas que no corrieron solo porque falta el RACI, que es opcional: no es un problema de la rendición. */
+  noAplican: number;
   /** Total de observaciones de todas las reglas fallidas. */
   observaciones: number;
 }

@@ -6,12 +6,10 @@ import { ErrorAlert } from '@/components/feedback/ErrorAlert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIngresosEgresos } from '@/features/ingresos-egresos/hooks/useIngresosEgresos';
 import { useLibrosBanco } from '@/features/libro-banco/hooks/useLibrosBanco';
+import { useRaci } from '@/features/raci/hooks/useRaci';
 import { useEjecucion } from '../hooks/useEjecucion';
-import {
-  filtrarPorEstado,
-  ordenarPorCodigo,
-  resumirResultados,
-} from '../lib/resumir-resultados';
+import { agruparPorTipo } from '../lib/agrupar-reglas';
+import { filtrarPorEstado, resumirResultados } from '../lib/resumir-resultados';
 import { ubicarObservaciones } from '../lib/ubicar-observaciones';
 import type {
   EstadoValidacion,
@@ -19,6 +17,7 @@ import type {
 } from '../types/auditoria.types';
 import { AuditarDialog } from './AuditarDialog';
 import { CierreAuditoria } from './CierreAuditoria';
+import { GrupoDeReglas } from './GrupoDeReglas';
 import { ReglaValidacionCard } from './ReglaValidacionCard';
 import { ScorecardValidaciones } from './ScorecardValidaciones';
 import { Button } from '@/components/ui/button';
@@ -71,8 +70,10 @@ export function PanelAuditoria({
   const ingresosEgresos = useIngresosEgresos(cuentaMensualId, {
     enabled: hayFallos,
   });
+  const raci = useRaci(cuentaMensualId, { enabled: hayFallos });
   const ubicando =
-    hayFallos && (librosGuardados.isPending || ingresosEgresos.isPending);
+    hayFallos &&
+    (librosGuardados.isPending || ingresosEgresos.isPending || raci.isPending);
 
   const resumen = useMemo(
     () => (resultados ? resumirResultados(resultados) : null),
@@ -81,10 +82,11 @@ export function PanelAuditoria({
   // un filtro sin reglas (p. ej. tras actualizar el resultado) no deja la lista vacía
   const filtroVigente =
     filtro && resumen && resumen[CLAVE_RESUMEN[filtro]] > 0 ? filtro : null;
-  const visibles = useMemo(
+  // por tipo de validación (V, C, P, F); dentro de cada grupo, en orden numérico de código
+  const grupos = useMemo(
     () =>
       resultados
-        ? ordenarPorCodigo(filtrarPorEstado(resultados, filtroVigente))
+        ? agruparPorTipo(filtrarPorEstado(resultados, filtroVigente))
         : [],
     [resultados, filtroVigente],
   );
@@ -142,6 +144,16 @@ export function PanelAuditoria({
         filtro={filtroVigente}
         onFiltrar={setFiltro}
       />
+
+      {resumen && resumen.noAplican > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {resumen.noAplican === 1
+            ? '1 regla no aplica'
+            : `${resumen.noAplican} reglas no aplican`}{' '}
+          porque no se cargó el RACI, que es un libro opcional: no es un
+          problema de la rendición.
+        </p>
+      )}
 
       {ejecucionConsulta.isPending && (
         <div aria-busy="true" className="space-y-3">
@@ -206,22 +218,36 @@ export function PanelAuditoria({
               </Button>
             </p>
           )}
-          <ul className="space-y-3">
-            {visibles.map((resultado) => (
-              <ReglaValidacionCard
-                key={resultado.codigoRegla}
-                resultado={resultado}
-                observaciones={ubicarObservaciones(resultado.observaciones, {
-                  librosBanco: librosGuardados.data,
-                  ingresosEgresos: ingresosEgresos.data,
-                })}
-                ubicando={ubicando}
-                puedeRevisar={enCurso}
-                cuentaMensualId={cuentaMensualId}
-                onVerEnLibro={onVerEnLibro}
-              />
+          <div className="space-y-6">
+            {grupos.map((grupo) => (
+              <GrupoDeReglas
+                key={grupo.clave}
+                titulo={grupo.titulo}
+                resumen={grupo.resumen}
+              >
+                <ul className="space-y-3">
+                  {grupo.resultados.map((resultado) => (
+                    <ReglaValidacionCard
+                      key={resultado.codigoRegla}
+                      resultado={resultado}
+                      observaciones={ubicarObservaciones(
+                        resultado.observaciones,
+                        {
+                          librosBanco: librosGuardados.data,
+                          ingresosEgresos: ingresosEgresos.data,
+                          raci: raci.data,
+                        },
+                      )}
+                      ubicando={ubicando}
+                      puedeRevisar={enCurso}
+                      cuentaMensualId={cuentaMensualId}
+                      onVerEnLibro={onVerEnLibro}
+                    />
+                  ))}
+                </ul>
+              </GrupoDeReglas>
             ))}
-          </ul>
+          </div>
         </div>
       )}
 

@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { MOCK_RESULTADOS } from '../mocks/resultados.mock';
-import { contarResultado, nombreDeLibroFaltante } from './contar-resultado';
+import {
+  contarResultado,
+  esNoAplica,
+  nombreDeLibroFaltante,
+} from './contar-resultado';
 
 const [fallo, verificado, faltan] = MOCK_RESULTADOS;
 
@@ -74,5 +78,26 @@ describe('contarResultado', () => {
     expect(
       contarResultado({ ...faltan, librosFaltantes: [] }).librosFaltantes,
     ).toBe(1);
+  });
+});
+
+describe('esNoAplica', () => {
+  const sinRaci = { ...faltan, librosFaltantes: ['RACI'] };
+
+  it('una regla que solo espera el RACI (opcional) no aplica', () => {
+    expect(esNoAplica(sinRaci)).toBe(true);
+  });
+
+  it('si espera además un libro obligatorio, sí es una omisión', () => {
+    expect(
+      esNoAplica({ ...faltan, librosFaltantes: ['RACI', 'INGRESOS_EGRESOS'] }),
+    ).toBe(false);
+    expect(esNoAplica(faltan)).toBe(false); // espera INGRESOS_EGRESOS
+  });
+
+  it('una regla que corrió o no informa libros faltantes no es «no aplica»', () => {
+    expect(esNoAplica(fallo)).toBe(false);
+    expect(esNoAplica(verificado)).toBe(false);
+    expect(esNoAplica({ ...faltan, librosFaltantes: [] })).toBe(false);
   });
 });

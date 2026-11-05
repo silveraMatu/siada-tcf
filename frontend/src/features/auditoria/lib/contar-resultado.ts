@@ -10,6 +10,18 @@ export function nombreDeLibroFaltante(codigo: string): string {
 }
 
 /**
+ * La regla no corrió solo porque falta el RACI, que es un libro opcional: no es un problema de la
+ * rendición ni la deja «incompleta», así que se muestra aparte de las omitidas por faltar un libro obligatorio.
+ */
+export function esNoAplica(resultado: ResultadoValidacion): boolean {
+  return (
+    resultado.estado === 'FALTAN_LIBROS' &&
+    resultado.librosFaltantes.length > 0 &&
+    resultado.librosFaltantes.every((libro) => libro === 'RACI')
+  );
+}
+
+/**
  * ✗ controles con observación · ✓ controles sin diferencias · ⏱ libros que faltan. Los totales los
  * informa el motor: una regla que no corrió no tiene filas evaluadas, y una que corrió no tiene libros faltantes.
  */

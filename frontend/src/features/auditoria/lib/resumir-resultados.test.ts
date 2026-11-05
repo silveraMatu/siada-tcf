@@ -13,6 +13,7 @@ describe('resumirResultados', () => {
       verificadas: 1,
       fallidas: 1,
       omitidas: 1,
+      noAplican: 0,
       observaciones: 1,
     });
   });
@@ -22,8 +23,29 @@ describe('resumirResultados', () => {
       verificadas: 0,
       fallidas: 0,
       omitidas: 0,
+      noAplican: 0,
       observaciones: 0,
     });
+  });
+});
+
+describe('reglas que no aplican por falta del RACI (opcional)', () => {
+  const [, , faltan] = MOCK_RESULTADOS;
+  const noAplica = { ...faltan, codigoRegla: 'P1', librosFaltantes: ['RACI'] };
+
+  it('no se cuentan como omitidas: se cuentan aparte', () => {
+    expect(resumirResultados([...MOCK_RESULTADOS, noAplica])).toMatchObject({
+      omitidas: 1,
+      noAplican: 1,
+    });
+  });
+
+  it('el filtro de omitidas no las incluye, igual que su tarjeta', () => {
+    const todas = [...MOCK_RESULTADOS, noAplica];
+    expect(
+      filtrarPorEstado(todas, 'FALTAN_LIBROS').map((r) => r.codigoRegla),
+    ).toEqual([faltan.codigoRegla]);
+    expect(filtrarPorEstado(todas, null)).toHaveLength(4);
   });
 });
 
