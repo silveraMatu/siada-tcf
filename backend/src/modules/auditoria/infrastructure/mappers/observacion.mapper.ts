@@ -19,6 +19,7 @@ export class ObservacionMapper {
       transaccionId: entity.transaccionId ?? undefined,
       transaccionIngresoEgresoId:
         entity.transaccionIngresoEgresoId ?? undefined,
+      transaccionRaciId: entity.transaccionRaciId ?? undefined,
       valorInformado: entity.valorInformado ?? undefined,
       valorCalculado: entity.valorCalculado ?? undefined,
       diferencia: entity.diferencia ?? undefined,
@@ -46,6 +47,7 @@ export class ObservacionMapper {
     entity.transaccionId = domain.transaccionId ?? null;
     entity.transaccionIngresoEgresoId =
       domain.transaccionIngresoEgresoId ?? null;
+    entity.transaccionRaciId = domain.transaccionRaciId ?? null;
     entity.valorInformado = domain.valorInformado ?? null;
     entity.valorCalculado = domain.valorCalculado ?? null;
     entity.diferencia = domain.diferencia ?? null;

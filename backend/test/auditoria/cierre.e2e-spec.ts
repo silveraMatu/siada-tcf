@@ -109,7 +109,7 @@ describe('Revisión de observaciones y cierre de la auditoría (e2e)', () => {
     const { bearer } = await crearResponsableConSesion(app, organismoId);
     const fila = (n: number, extra: Record<string, unknown>) => ({
       fila: n,
-      fecha: '2026-03-01',
+      fecha: '2026-02-10',
       concepto: `Fila ${n}`,
       cajaDebe: 0,
       cajaHaber: 0,

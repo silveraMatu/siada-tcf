@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { IngresosEgresosRepositoryPort } from '../../../../../ingresos-egresos/application/ports/out/ingresos-egresos-repository.port.js';
 import { LibroBancoRepositoryPort } from '../../../../../libro-banco/application/ports/out/libro-banco-repository.port.js';
+import { RaciRepositoryPort } from '../../../../../raci/application/ports/out/raci-repository.port.js';
 import {
   DocumentosAuditablesPort,
   type DocumentosAuditables,
@@ -12,13 +13,19 @@ export class RepositoriosDocumentosAuditablesAdapter implements DocumentosAudita
   constructor(
     private readonly libroBancoRepository: LibroBancoRepositoryPort,
     private readonly ingresosEgresosRepository: IngresosEgresosRepositoryPort,
+    private readonly raciRepository: RaciRepositoryPort,
   ) {}
 
   async cargar(cuentaMensualId: number): Promise<DocumentosAuditables> {
-    const [librosBanco, ingresosEgresos] = await Promise.all([
+    const [librosBanco, ingresosEgresos, raci] = await Promise.all([
       this.libroBancoRepository.buscarPorCuentaMensualId(cuentaMensualId),
       this.ingresosEgresosRepository.buscarPorCuentaMensualId(cuentaMensualId),
+      this.raciRepository.buscarPorCuentaMensualId(cuentaMensualId),
     ]);
-    return { librosBanco, ingresosEgresos: ingresosEgresos ?? undefined };
+    return {
+      librosBanco,
+      ingresosEgresos: ingresosEgresos ?? undefined,
+      raci: raci ?? undefined,
+    };
   }
 }

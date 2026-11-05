@@ -96,12 +96,22 @@ export class EjecutarAuditoriaUseCase {
       );
     }
 
-    const { librosBanco, ingresosEgresos } =
+    const { librosBanco, ingresosEgresos, raci } =
       await this.documentos.cargar(cuentaMensualId);
+    //el período de la rendición, para las reglas de fechas
+    const ejercicioFiscal =
+      await this.cuentaMensualRepository.obtenerEjercicioFiscal(
+        cuentaMensualId,
+      );
     const resultados = this.motor.ejecutarAuditoriaCompleta({
       cuentaMensualId,
       librosBanco,
       ingresosEgresos,
+      raci,
+      periodo:
+        ejercicioFiscal === null
+          ? undefined
+          : { ejercicioFiscal, mes: cuenta.mes },
     });
 
     const guardada = await this.ejecucionRepository.guardar(

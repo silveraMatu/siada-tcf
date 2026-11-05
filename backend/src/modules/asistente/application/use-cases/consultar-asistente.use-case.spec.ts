@@ -144,6 +144,9 @@ class CuentasFalso extends CuentaMensualRepositoryPort {
   obtenerOrganismoId(): Promise<number | null> {
     throw new Error('no usado');
   }
+  obtenerEjercicioFiscal(): Promise<number | null> {
+    return Promise.resolve(2026);
+  }
   documentosFaltantes(): Promise<string[]> {
     throw new Error('no usado');
   }

@@ -1,3 +1,4 @@
+import { VERSION_REGLAS } from '../../src/modules/auditoria/domain/engine/version-reglas.js';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
@@ -57,6 +58,39 @@ describe('Auditoría (e2e)', () => {
     cuerpo.find((r) => r.codigoRegla === codigo);
   const estados = (cuerpo: Resultado[]) =>
     cuerpo.map((r) => [r.codigoRegla, r.estado]);
+  //las reglas del motor, en el orden de la respuesta
+  const CODIGOS_REGLAS = [
+    'V1',
+    'V2',
+    'V3',
+    'V4',
+    'V5',
+    'V6',
+    'C1',
+    'C2',
+    'C4',
+    'C5',
+    'C6',
+    'P1',
+    'P2',
+    'F1',
+  ];
+  //estado de cada regla; las que no se nombran esperan un libro que la rendición no tiene
+  const estadosEsperados = (estadosPorRegla: Record<string, string>) =>
+    CODIGOS_REGLAS.map((codigo) => [
+      codigo,
+      estadosPorRegla[codigo] ?? 'FALTAN_LIBROS',
+    ]);
+  //rendición con banco e I/E pero sin RACI (opcional): las reglas del RACI esperan ese libro
+  const ESTADOS_CRUCE = {
+    V1: 'FALLO',
+    V2: 'FALLO',
+    V3: 'VERIFICADO',
+    C4: 'VERIFICADO',
+    C5: 'FALLO',
+    C6: 'FALLO',
+    F1: 'VERIFICADO',
+  };
   const faltanLibros = (
     codigo: string,
     descripcion: string,
@@ -246,14 +280,7 @@ describe('Auditoría (e2e)', () => {
         .set('Authorization', auditor.bearer)
         .expect(200);
 
-      expect(estados(res.body)).toEqual([
-        ['V1', 'FALTAN_LIBROS'],
-        ['V2', 'FALTAN_LIBROS'],
-        ['V3', 'FALLO'],
-        ['C4', 'FALTAN_LIBROS'],
-        ['C5', 'FALTAN_LIBROS'],
-        ['C6', 'FALTAN_LIBROS'],
-      ]);
+      expect(estados(res.body)).toEqual(estadosEsperados({ V3: 'FALLO' }));
       expect(deRegla(res.body, 'V3')).toEqual({
         codigoRegla: 'V3',
         descripcion: 'Saldo de cuenta',
@@ -274,6 +301,7 @@ describe('Auditoría (e2e)', () => {
             estado: 'ABIERTA',
             transaccionId: transaccionIncorrectaId,
             transaccionIngresoEgresoId: null,
+            transaccionRaciId: null,
             valorInformado: 1400,
             valorCalculado: 1300,
             diferencia: 100,
@@ -303,10 +331,10 @@ describe('Auditoría (e2e)', () => {
       );
       expect(fila).toMatchObject({
         ejecutada_por_id: auditor.usuarioId,
-        version_reglas: '1',
+        version_reglas: VERSION_REGLAS,
         cerrada_en: null,
       });
-      expect(fila.resultados).toHaveLength(6);
+      expect(fila.resultados).toHaveLength(CODIGOS_REGLAS.length);
     });
 
     it('queda en la bitácora a nombre del auditor', async () => {
@@ -321,7 +349,11 @@ describe('Auditoría (e2e)', () => {
         entidad_tipo: 'CUENTA_MENSUAL',
         entidad_id: cuentaMensualId,
         roles: ['AUDITOR'],
-        detalle: { ejecucionNueva: true, versionReglas: '1', observaciones: 1 },
+        detalle: {
+          ejecucionNueva: true,
+          versionReglas: VERSION_REGLAS,
+          observaciones: 1,
+        },
       });
     });
 
@@ -387,7 +419,7 @@ describe('Auditoría (e2e)', () => {
       expect(res.body).toMatchObject({
         id: expect.any(Number),
         cuentaMensualId,
-        versionReglas: '1',
+        versionReglas: VERSION_REGLAS,
         ejecutadaPorId: auditor.usuarioId,
         ejecutadaPor: {
           id: auditor.usuarioId,
@@ -402,14 +434,9 @@ describe('Auditoría (e2e)', () => {
         estadoFinal: null,
         observaciones: { abiertas: 1, confirmadas: 0, descartadas: 0 },
       });
-      expect(estados(res.body.resultados)).toEqual([
-        ['V1', 'FALTAN_LIBROS'],
-        ['V2', 'FALTAN_LIBROS'],
-        ['V3', 'FALLO'],
-        ['C4', 'FALTAN_LIBROS'],
-        ['C5', 'FALTAN_LIBROS'],
-        ['C6', 'FALTAN_LIBROS'],
-      ]);
+      expect(estados(res.body.resultados)).toEqual(
+        estadosEsperados({ V3: 'FALLO' }),
+      );
       expect(deRegla(res.body.resultados, 'V3')!.observaciones).toHaveLength(1);
     });
 
@@ -441,7 +468,7 @@ describe('Auditoría (e2e)', () => {
       );
       expect(
         versiones.map((v: { version_reglas: string }) => v.version_reglas),
-      ).toEqual(['0', '1']);
+      ).toEqual(['0', VERSION_REGLAS]);
       //la rendición ya estaba tomada, sigue en EN_AUDITORIA
       expect(await estadoEnBase(cuentaMensualId)).toBe('EN_AUDITORIA');
       //las observaciones y el detalle son los de la ejecución más reciente
@@ -449,7 +476,7 @@ describe('Auditoría (e2e)', () => {
       expect(
         (await ejecucion(cuentaMensualId).set('Authorization', auditor.bearer))
           .body.versionReglas,
-      ).toBe('1');
+      ).toBe(VERSION_REGLAS);
       expect(
         await contar(
           `SELECT count(*)::int AS total FROM observaciones WHERE cuenta_mensual_id = $1`,
@@ -473,6 +500,17 @@ describe('Auditoría (e2e)', () => {
           'INGRESOS_EGRESOS',
         ]),
         faltanLibros('V3', 'Saldo de cuenta', ['LIBRO_BANCO']),
+        faltanLibros('V4', 'Secuencia lógica del gasto', ['RACI']),
+        faltanLibros('V5', 'Límite presupuestario', ['RACI']),
+        faltanLibros('V6', 'Límite de pago', ['RACI']),
+        faltanLibros('C1', 'Egresos devengados (RACI)', [
+          'RACI',
+          'INGRESOS_EGRESOS',
+        ]),
+        faltanLibros('C2', 'Egresos pagados (RACI)', [
+          'RACI',
+          'INGRESOS_EGRESOS',
+        ]),
         faltanLibros('C4', 'Depósitos bancarios', [
           'LIBRO_BANCO',
           'INGRESOS_EGRESOS',
@@ -482,6 +520,12 @@ describe('Auditoría (e2e)', () => {
           'INGRESOS_EGRESOS',
         ]),
         faltanLibros('C6', 'Saldo final bancario', [
+          'LIBRO_BANCO',
+          'INGRESOS_EGRESOS',
+        ]),
+        faltanLibros('P1', 'Existencia de cheques', ['RACI', 'LIBRO_BANCO']),
+        faltanLibros('P2', 'Monto de cheques', ['RACI', 'LIBRO_BANCO']),
+        faltanLibros('F1', 'Coherencia de fechas', [
           'LIBRO_BANCO',
           'INGRESOS_EGRESOS',
         ]),
@@ -504,7 +548,8 @@ describe('Auditoría (e2e)', () => {
 
     const filaIE = (fila: number, extra: Record<string, unknown>) => ({
       fila,
-      fecha: '2026-03-01',
+      //dentro del mes de la rendición (agosto): F1 revisa las fechas
+      fecha: '2026-08-10',
       concepto: `Fila ${fila}`,
       cajaDebe: 0,
       cajaHaber: 0,
@@ -597,15 +642,9 @@ describe('Auditoría (e2e)', () => {
         .set('Authorization', auditor.bearer)
         .expect(200);
 
-      expect(estados(res.body)).toEqual([
-        ['V1', 'FALLO'],
-        ['V2', 'FALLO'],
-        ['V3', 'VERIFICADO'],
-        ['C4', 'VERIFICADO'],
-        ['C5', 'FALLO'],
-        ['C6', 'FALLO'],
-      ]);
-      //cobertura: V1 y V2 validan 3 de las 4 filas, V3 2 de las 3 y los cruces hacen una comparación
+      expect(estados(res.body)).toEqual(estadosEsperados(ESTADOS_CRUCE));
+      //cobertura: V1 y V2 validan 3 de las 4 filas, V3 2 de las 3, los cruces hacen una comparación y las reglas del
+      //RACI esperan ese libro (opcional: esta rendición no lo cargó)
       expect(
         res.body.map((r: Resultado) => [
           r.codigoRegla,
@@ -616,9 +655,18 @@ describe('Auditoría (e2e)', () => {
         ['V1', 3, []],
         ['V2', 3, []],
         ['V3', 2, []],
+        ['V4', null, ['RACI']],
+        ['V5', null, ['RACI']],
+        ['V6', null, ['RACI']],
+        ['C1', null, ['RACI']],
+        ['C2', null, ['RACI']],
         ['C4', 1, []],
         ['C5', 1, []],
         ['C6', 1, []],
+        ['P1', null, ['RACI']],
+        ['P2', null, ['RACI']],
+        //el banco no trae fechas en este spec: solo se revisan las 3 filas de I/E que no son la base
+        ['F1', 3, []],
       ]);
 
       const observacion = (
@@ -638,6 +686,7 @@ describe('Auditoría (e2e)', () => {
         estado: 'ABIERTA',
         transaccionId: null,
         transaccionIngresoEgresoId,
+        transaccionRaciId: null,
         valorInformado: importes[0],
         valorCalculado: importes[1],
         diferencia: importes[2],
@@ -732,14 +781,7 @@ describe('Auditoría (e2e)', () => {
       });
       expect(
         res.body.resultados.map((r: Resultado) => [r.codigoRegla, r.estado]),
-      ).toEqual([
-        ['V1', 'FALLO'],
-        ['V2', 'FALLO'],
-        ['V3', 'VERIFICADO'],
-        ['C4', 'VERIFICADO'],
-        ['C5', 'FALLO'],
-        ['C6', 'FALLO'],
-      ]);
+      ).toEqual(estadosEsperados(ESTADOS_CRUCE));
     });
 
     it('GET observaciones lista las cinco, todas del libro de ingresos y egresos', async () => {

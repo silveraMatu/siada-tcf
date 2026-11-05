@@ -1,5 +1,6 @@
 import { IngresosEgresos } from '../../../ingresos-egresos/domain/entities/ingresos-egresos.domain.js';
 import { LibroBanco } from '../../../libro-banco/domain/entities/libro-banco.domain.js';
+import { Raci } from '../../../raci/domain/entities/raci.domain.js';
 import type { AuditoriaContext } from '../rules/auditoria-context.js';
 import type { ReglaAuditoria } from '../rules/regla-auditoria.interface.js';
 import { validationsCode } from '../rules/validations.js';
@@ -105,6 +106,23 @@ describe('MotorAuditoriaService', () => {
     );
     expect(resultado.librosFaltantes).toEqual(['INGRESOS_EGRESOS', 'RACI']);
     expect(resultado.filasEvaluadas).toBeNull();
+  });
+
+  it('el RACI cuenta como presente cuando el contexto lo trae', () => {
+    const regla = new ReglaFalsa(validationsCode.V3, ['RACI']);
+    const motor = new MotorAuditoriaService([regla]);
+
+    const [sinRaci] = motor.ejecutarAuditoriaCompleta(conLibroBanco);
+    const [conRaci] = motor.ejecutarAuditoriaCompleta({
+      ...conLibroBanco,
+      raci: new Raci(7, [], 1),
+    });
+
+    expect(sinRaci.estado).toBe(EstadoValidacion.FALTAN_LIBROS);
+    expect(sinRaci.librosFaltantes).toEqual(['RACI']);
+    expect(conRaci.estado).toBe(EstadoValidacion.VERIFICADO);
+    expect(conRaci.librosFaltantes).toEqual([]);
+    expect(regla.ejecuciones).toBe(1);
   });
 
   it('con varias reglas, corre las que pueden y conserva el orden', () => {

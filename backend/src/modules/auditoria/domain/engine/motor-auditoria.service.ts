@@ -10,8 +10,8 @@ import {
 const libroPresente: Record<NombreLibro, (c: AuditoriaContext) => boolean> = {
   LIBRO_BANCO: (c) => (c.librosBanco?.length ?? 0) > 0,
   INGRESOS_EGRESOS: (c) => c.ingresosEgresos !== undefined,
-  //todavía no existen en el contexto
-  RACI: () => false,
+  RACI: (c) => c.raci !== undefined,
+  //todavía no existe en el contexto
   RAI: () => false,
 };
 

@@ -118,6 +118,9 @@ class CuentasFalso extends CuentaMensualRepositoryPort {
   obtenerOrganismoId(): Promise<number | null> {
     return Promise.resolve(ID_ORGANISMO);
   }
+  obtenerEjercicioFiscal(): Promise<number | null> {
+    return Promise.resolve(2026);
+  }
   documentosFaltantes(): Promise<string[]> {
     throw new Error('no usado');
   }

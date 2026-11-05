@@ -10,6 +10,11 @@ export abstract class CuentaMensualRepositoryPort {
   //organismo dueño de la cuenta (vía su cuenta anual); null si la cuenta mensual no existe
   abstract obtenerOrganismoId(cuentaMensualId: number): Promise<number | null>;
 
+  //ejercicio fiscal de la cuenta (vía su cuenta anual); null si la cuenta mensual no existe
+  abstract obtenerEjercicioFiscal(
+    cuentaMensualId: number,
+  ): Promise<number | null>;
+
   //nombres legibles de los documentos obligatorios que la cuenta todavía no tiene cargados
   //(Libro Banco e Ingresos y Egresos); vacío si está completa
   abstract documentosFaltantes(cuentaMensualId: number): Promise<string[]>;

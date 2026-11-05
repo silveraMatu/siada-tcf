@@ -15,7 +15,7 @@ import {
 } from '../../../mappers/cargar-dominio.js';
 import { ObservacionMapper } from '../../../mappers/observacion.mapper.js';
 
-//cada observación usa 17 parámetros y Postgres admite 65535 por consulta
+//cada observación usa 18 parámetros y Postgres admite 65535 por consulta
 const TAMANO_LOTE = 1000;
 
 @Injectable()
