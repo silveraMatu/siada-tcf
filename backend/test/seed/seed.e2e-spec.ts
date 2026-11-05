@@ -68,8 +68,16 @@ describe('Script seed (e2e)', () => {
         `SELECT count(*)::int AS ie FROM ingresos_egresos WHERE cuenta_mensual_id = $1`,
         [cuentaId],
       );
+      const [{ raci }] = await dataSource.query(
+        `SELECT count(*)::int AS raci FROM raci WHERE cuenta_mensual_id = $1`,
+        [cuentaId],
+      );
       expect(banco).toBe(mes === 2 ? 2 : 1);
       expect(ie).toBe(1);
+      //el RACI se carga mientras la rendición está en borrador; una base sembrada antes de que existiera el RACI
+      //tiene presentados los meses 2 y 3 sin él (la evidencia no se toca): con una base nueva los tres lo traen
+      if (estado === 'EN_BORRADOR') expect(raci).toBe(1);
+      else expect(raci).toBeLessThanOrEqual(1);
       if (mes !== 1) expect(estado).not.toBe('EN_BORRADOR');
     }
   });
