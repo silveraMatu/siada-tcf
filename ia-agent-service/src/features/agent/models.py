@@ -5,6 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 MAX_CARACTERES_CONTEXTO: int = 20_000
 
+# Hoy la única acción que registra la traza; `accion` es texto para sumar gráficos o tratamiento de datos.
+ACCION_CONSULTA_SQL: str = "consulta_sql"
+
 
 class ConsultaAuditorInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -25,5 +28,23 @@ class ConsultaAuditorInput(BaseModel):
         return valor
 
 
+class PasoTraza(BaseModel):
+    """Una acción del modelo contra la base, para que el auditor pueda auditar a la IA."""
+
+    accion: str = ACCION_CONSULTA_SQL
+    # El SQL ejecutado (regenerado por sqlglot); si las guardas lo rechazaron, el texto del modelo.
+    query_sql: str
+    cantidad_filas: int | None = None
+    # Tiempo contra la base; None si no hubo consulta (la validación la rechazó antes).
+    duracion_ms: int | None = None
+    error: str | None = None
+    # True si había más filas que las que vio el modelo (tope SQL_MAX_FILAS).
+    truncado: bool = False
+    columnas: list[str] = Field(default_factory=list)
+    # Las mismas filas que se le mandaron al modelo; importes y fechas como texto, sin perder precisión.
+    filas: list[list[Any]] = Field(default_factory=list)
+
+
 class ConsultaAuditorOutput(BaseModel):
     respuesta: str
+    pasos: list[PasoTraza] = Field(default_factory=list)

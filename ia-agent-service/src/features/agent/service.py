@@ -4,7 +4,7 @@ from langchain_core.runnables import RunnableConfig
 
 from core.config import settings
 from features.agent.agent import chat_auditor_graph
-from features.agent.models import ConsultaAuditorInput, ConsultaAuditorOutput
+from features.agent.models import ConsultaAuditorInput, ConsultaAuditorOutput, PasoTraza
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -28,8 +28,10 @@ class ChatAuditorService:
             resultado = await chat_auditor_graph.ainvoke(
                 {"input_data": input_data}, config=self._config(input_data)
             )
+            # La traza es parte del contrato: si un paso no es válido falla el pedido (no se pierde en silencio).
+            pasos = [PasoTraza.model_validate(p) for p in resultado.get("pasos", [])]
         except Exception as exc:
             # Sin pregunta ni contexto en el log: son datos de rendiciones.
             logger.exception("Falló la consulta al agente (%s)", type(exc).__name__)
             raise AgenteNoDisponibleError from exc
-        return ConsultaAuditorOutput(respuesta=resultado["respuesta_llm"])
+        return ConsultaAuditorOutput(respuesta=resultado["respuesta_llm"], pasos=pasos)

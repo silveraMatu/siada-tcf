@@ -1,4 +1,5 @@
-from typing import Annotated, TypedDict
+import operator
+from typing import Annotated, Any, TypedDict
 
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
@@ -11,6 +12,8 @@ class AgentState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     respuesta_llm: str
     iteraciones: int
+    # Traza de la ejecución: cada nodo devuelve solo los pasos nuevos y el reductor los acumula.
+    pasos: Annotated[list[dict[str, Any]], operator.add]
 
 
 class AgentInput(TypedDict):
@@ -19,3 +22,5 @@ class AgentInput(TypedDict):
 
 class AgentOutput(TypedDict):
     respuesta_llm: str
+    # Ausente si el modelo no consultó nada.
+    pasos: list[dict[str, Any]]
