@@ -17,6 +17,7 @@ export const ACCIONES: Record<AccionActividad, string> = {
   CUENTA_RESUELTA: 'Rendición abierta',
   LIBRO_BANCO_CARGADO: 'Libro Banco cargado',
   INGRESOS_EGRESOS_CARGADO: 'Ingresos y Egresos cargado',
+  RACI_CARGADO: 'RACI cargado',
   CUENTA_PRESENTADA: 'Rendición presentada',
   AUDITORIA_EJECUTADA: 'Auditoría ejecutada',
   OBSERVACION_REVISADA: 'Observación revisada',
