@@ -43,6 +43,11 @@ export function describirTransacciones(cantidad: number): string {
   return cantidad === 1 ? '1 transacción' : `${cantidad} transacciones`;
 }
 
+/** Los libros RACI no tienen transacciones sino asientos. */
+export function describirAsientos(cantidad: number): string {
+  return cantidad === 1 ? '1 asiento' : `${cantidad} asientos`;
+}
+
 export function describirLibrosCargados(cantidad: number): string {
   return cantidad === 1 ? '1 libro cargado' : `${cantidad} libros cargados`;
 }

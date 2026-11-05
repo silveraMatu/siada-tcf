@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ResumenLibro } from '@/features/cuentas/types';
 import { obtenerIngresosEgresos } from '@/features/ingresos-egresos/api/ingresos-egresos.api';
 import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
+import { obtenerRaci } from '@/features/raci/api/raci.api';
+import type { RaciGuardado } from '@/features/raci/types';
 import { obtenerLibrosBanco } from '../api/libro-banco.api';
 import type { LibroBancoGuardado } from '../types';
 import { LibrosDeRendicion, type FocoLibro } from './LibrosDeRendicion';
@@ -14,6 +16,10 @@ import { LibrosDeRendicion, type FocoLibro } from './LibrosDeRendicion';
 vi.mock('@/features/ingresos-egresos/api/ingresos-egresos.api', () => ({
   obtenerIngresosEgresos: vi.fn(),
   ingestarIngresosEgresos: vi.fn(),
+}));
+vi.mock('@/features/raci/api/raci.api', () => ({
+  obtenerRaci: vi.fn(),
+  ingestarRaci: vi.fn(),
 }));
 vi.mock('../api/libro-banco.api', () => ({
   obtenerLibrosBanco: vi.fn(),
@@ -362,6 +368,83 @@ describe('LibrosDeRendicion', () => {
         screen
           .getByRole('tab', { name: 'Ingresos y Egresos' })
           .getAttribute('aria-selected'),
+      ).toBe('true');
+    });
+  });
+
+  describe('libro RACI', () => {
+    // comparte el id 2 con el segundo libro banco: las pestañas se distinguen por tipo
+    const raci: ResumenLibro = {
+      id: 2,
+      tipo: 'RACI',
+      numeroCuentaCte: null,
+      cantidadTransacciones: 2,
+      fechaDesde: '2026-03-02',
+      fechaHasta: '2026-03-03',
+    };
+    const guardadoRaci = {
+      id: 2,
+      cuentaMensualId: 5,
+      fechaCreacion: '2026-10-15T12:00:00.000Z',
+      subidoPorId: 1,
+      subidoPor: null,
+      hashContenido: 'a'.repeat(64),
+      transacciones: [
+        {
+          id: 77,
+          asiento: 1,
+          fecha: '2026-03-02',
+          concepto: 'Compra de insumos',
+        },
+        {
+          id: 78,
+          asiento: 2,
+          fecha: '2026-03-03',
+          concepto: 'Pago a proveedor',
+        },
+      ],
+    } as unknown as RaciGuardado;
+
+    beforeEach(() => {
+      datosDeLosLibros();
+      vi.mocked(obtenerRaci).mockResolvedValue(guardadoRaci);
+    });
+
+    it('en el resumen cuenta asientos, no transacciones', () => {
+      renderLibros([...LIBROS, raci]);
+
+      const fila = screen.getByRole('button', { name: 'RACI' }).closest('li');
+      expect(fila?.textContent).toMatch(/2 asientos/);
+      expect(fila?.textContent).not.toMatch(/transacciones/);
+    });
+
+    it('se lista como «RACI» y su nombre abre sus asientos, no las filas del libro banco con el mismo id', async () => {
+      const { user } = renderLibros([...LIBROS, raci]);
+
+      await user.click(screen.getByRole('button', { name: 'RACI' }));
+
+      expect(
+        screen.getByRole('tab', { name: 'RACI' }).getAttribute('aria-selected'),
+      ).toBe('true');
+      expect(await screen.findByText('Compra de insumos')).toBeTruthy();
+      expect(screen.getByText(/2 asientos/)).toBeTruthy();
+      expect(screen.queryByText('Proveedor Dos')).toBeNull();
+    });
+
+    it('el foco abre su pestaña y marca el asiento pedido', async () => {
+      const { pedirFoco } = renderLibros([...LIBROS, raci]);
+
+      pedirFoco({
+        libroTipo: 'RACI',
+        libroId: 2,
+        transaccionId: 78,
+        clave: 1,
+      });
+
+      const fila = (await screen.findByText('Pago a proveedor')).closest('tr');
+      expect(fila?.getAttribute('aria-current')).toBe('true');
+      expect(
+        screen.getByRole('tab', { name: 'RACI' }).getAttribute('aria-selected'),
       ).toBe('true');
     });
   });

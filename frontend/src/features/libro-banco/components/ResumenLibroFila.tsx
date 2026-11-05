@@ -1,6 +1,7 @@
 import type { ResumenLibro } from '@/features/cuentas/types';
 import {
   describirRangoFechas,
+  describirAsientos,
   describirTransacciones,
   etiquetaDeTipo,
   nombreDeLibro,
@@ -28,15 +29,21 @@ export function ResumenLibroFila({ libro, onAbrir }: ResumenLibroFilaProps) {
         <button
           type="button"
           onClick={onAbrir}
-          title="Ver las transacciones de este libro"
+          title={
+            libro.tipo === 'RACI'
+              ? 'Ver los asientos de este libro'
+              : 'Ver las transacciones de este libro'
+          }
           className="rounded-sm text-left font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {nombreDeLibro(libro)}
         </button>
       </div>
       <p className="text-muted-foreground">
-        {describirTransacciones(libro.cantidadTransacciones)} ·{' '}
-        {describirRangoFechas(libro.fechaDesde, libro.fechaHasta)}
+        {libro.tipo === 'RACI'
+          ? describirAsientos(libro.cantidadTransacciones)
+          : describirTransacciones(libro.cantidadTransacciones)}{' '}
+        · {describirRangoFechas(libro.fechaDesde, libro.fechaHasta)}
       </p>
     </li>
   );

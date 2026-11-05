@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { ResumenLibro } from '@/features/cuentas/types';
 import { DetalleIngresosEgresos } from '@/features/ingresos-egresos/components/DetalleIngresosEgresos';
+import { DetalleRaci } from '@/features/raci/components/DetalleRaci';
 import { nombreDeLibro } from '../lib/formato-libro';
 import { DetalleLibro } from './DetalleLibro';
 import { ResumenLibroFila } from './ResumenLibroFila';
@@ -146,6 +147,13 @@ export function LibrosDeRendicion({
           >
             {libro.tipo === 'INGRESOS_EGRESOS' ? (
               <DetalleIngresosEgresos
+                cuentaMensualId={cuentaMensualId}
+                nombre={nombreDeLibro(libro)}
+                onCerrar={() => cerrar(libro)}
+                resaltar={resaltar}
+              />
+            ) : libro.tipo === 'RACI' ? (
+              <DetalleRaci
                 cuentaMensualId={cuentaMensualId}
                 nombre={nombreDeLibro(libro)}
                 onCerrar={() => cerrar(libro)}
