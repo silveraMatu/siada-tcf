@@ -8,12 +8,18 @@ interface DropZoneProps {
   cargando?: boolean;
   /** Para el lector de pantalla: qué archivo se espera. */
   etiqueta?: string;
+  /** Extensiones que ofrece el selector de archivos. */
+  accept?: string;
+  /** Cómo se nombran los formatos admitidos en el texto de ayuda. */
+  formatos?: string;
 }
 
 export function DropZone({
   onArchivo,
   cargando = false,
   etiqueta = 'Zona para soltar el archivo del Libro Banco',
+  accept = '.xlsx,.csv',
+  formatos = '.xlsx y .csv',
 }: DropZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [arrastrando, setArrastrando] = useState(false);
@@ -67,13 +73,13 @@ export function DropZone({
             : 'Arrastre el archivo aquí o haga clic para seleccionarlo'}
         </p>
         <p className="text-xs text-muted-foreground">
-          Formatos admitidos: .xlsx y .csv (hasta 5 MB)
+          Formatos admitidos: {formatos} (hasta 5 MB)
         </p>
       </div>
       <input
         ref={inputRef}
         type="file"
-        accept=".xlsx,.csv"
+        accept={accept}
         className="hidden"
         onChange={(e) => {
           const archivo = e.target.files?.[0];
