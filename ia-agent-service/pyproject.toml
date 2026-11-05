@@ -14,6 +14,7 @@ dependencies = [
     "langchain-openai>=1.7.3",
     "langgraph>=1.2.18",
     "pydantic-settings>=2.16.2",
-    "sqlalchemy>=2.1.6",
+    "sqlalchemy[asyncio]>=2.1.6",
+    "sqlglot>=30.29.0",
     "uvicorn>=0.54.0",
 ]
