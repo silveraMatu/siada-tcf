@@ -46,6 +46,7 @@ describe('Sidebar según el rol', () => {
       'Asignación de auditores',
       'Responsables',
       'Auditoría',
+      'Copiloto de IA',
       'Solicitudes de Acceso',
     ]);
   });

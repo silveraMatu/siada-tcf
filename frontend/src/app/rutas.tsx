@@ -2,6 +2,7 @@ import { Navigate, type RouteObject } from 'react-router-dom';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { rolesPermitidos } from '@/components/layout/navigation';
+import { AsistentePage } from '@/features/asistente/components/AsistentePage';
 import { AuditarCuentaPage } from '@/features/auditoria/components/AuditarCuentaPage';
 import { DashboardAuditorPage } from '@/features/auditoria/components/DashboardAuditorPage';
 import { LoginPage } from '@/features/auth/components/LoginPage';
@@ -56,6 +57,9 @@ export const rutas: RouteObject[] = [
       seccion('/auditoria', [
         { path: 'auditoria', element: <DashboardAuditorPage /> },
         { path: 'auditoria/cuenta/:id', element: <AuditarCuentaPage /> },
+      ]),
+      seccion('/asistente', [
+        { path: 'asistente', element: <AsistentePage /> },
       ]),
       seccion('/admin/usuarios', [
         { path: 'admin/usuarios', element: <AdminUsuariosPage /> },

@@ -1,6 +1,7 @@
 import {
-  Building2,
   Activity,
+  Bot,
+  Building2,
   ClipboardCheck,
   FileSpreadsheet,
   UserCheck,
@@ -56,6 +57,12 @@ export const navigationGroups: readonly NavGroup[] = [
         to: '/auditoria',
         label: 'Auditoría',
         icon: ClipboardCheck,
+        allowedRoles: ['AUDITOR', 'ADMIN'],
+      },
+      {
+        to: '/asistente',
+        label: 'Copiloto de IA',
+        icon: Bot,
         allowedRoles: ['AUDITOR', 'ADMIN'],
       },
     ],

@@ -5,7 +5,13 @@ import { Link, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorAlert } from '@/components/feedback/ErrorAlert';
 import { PageHeader } from '@/components/layout/PageHeader';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ChatCopiloto } from '@/features/asistente/components/ChatCopiloto';
 import { MESES } from '@/features/cuentas/constants';
 import { EstadoBadge } from '@/features/cuentas/components/EstadoBadge';
 import { useCuentasMensuales } from '@/features/cuentas/hooks/useCuentasMensuales';
@@ -131,6 +137,23 @@ export function AuditarCuentaPage() {
         estadoCuenta={cuenta.estado}
         onVerEnLibro={verEnLibro}
       />
+
+      <Collapsible asChild>
+        <section aria-labelledby="copiloto-titulo" className="space-y-3">
+          <h2
+            id="copiloto-titulo"
+            className="text-lg font-semibold tracking-tight"
+          >
+            <CollapsibleTrigger>Consultar al copiloto de IA</CollapsibleTrigger>
+          </h2>
+          <CollapsibleContent className="p-0.5">
+            <ChatCopiloto
+              organismoId={cuenta.organismoId}
+              cuentaMensualId={cuenta.id}
+            />
+          </CollapsibleContent>
+        </section>
+      </Collapsible>
 
       <section aria-labelledby="libros-titulo" className="space-y-3">
         <h2 id="libros-titulo" className="text-lg font-semibold tracking-tight">

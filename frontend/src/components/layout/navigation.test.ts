@@ -16,6 +16,7 @@ describe('rolesPermitidos', () => {
     ['/responsables', ['ADMIN']],
     ['/libro-banco', ['RESPONSABLE']],
     ['/auditoria', ['AUDITOR', 'ADMIN']],
+    ['/asistente', ['AUDITOR', 'ADMIN']],
     ['/admin/usuarios', ['ADMIN']],
     ['/actividad', ['SUPERVISOR']],
   ])('%s admite %j', (ruta, roles) => {
@@ -64,6 +65,7 @@ describe('filtrarNavegacion', () => {
       '/asignacion-auditores',
       '/responsables',
       '/auditoria',
+      '/asistente',
       '/admin/usuarios',
     ]);
   });
@@ -80,8 +82,8 @@ describe('filtrarNavegacion', () => {
     expect(rutasVisibles(['ADMIN'])).not.toContain('/actividad');
   });
 
-  it('AUDITOR solo ve auditoría', () => {
-    expect(rutasVisibles(['AUDITOR'])).toEqual(['/auditoria']);
+  it('AUDITOR ve auditoría y el copiloto', () => {
+    expect(rutasVisibles(['AUDITOR'])).toEqual(['/auditoria', '/asistente']);
   });
 
   it('RESPONSABLE solo ve la ingesta de libro banco', () => {
@@ -92,6 +94,7 @@ describe('filtrarNavegacion', () => {
     expect(rutasVisibles(['RESPONSABLE', 'AUDITOR'])).toEqual([
       '/libro-banco',
       '/auditoria',
+      '/asistente',
     ]);
   });
 

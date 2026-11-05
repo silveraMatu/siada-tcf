@@ -25,6 +25,11 @@ export function registrarManejadorSesionExpirada(
   alExpirarSesion = manejador;
 }
 
+/** Para quien llama sin axios (p. ej. un stream con `fetch`) y recibe un 401 con token: igual que el interceptor. */
+export function notificarSesionExpirada() {
+  alExpirarSesion?.();
+}
+
 // El 401 de /auth/* es de las credenciales (login fallido), no de una sesión vencida.
 api.interceptors.response.use(undefined, (error: unknown) => {
   if (

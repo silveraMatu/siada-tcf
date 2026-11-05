@@ -39,6 +39,9 @@ vi.mock('@/features/auditoria/components/DashboardAuditorPage', () => ({
 vi.mock('@/features/auditoria/components/AuditarCuentaPage', () => ({
   AuditarCuentaPage: () => <p>pantalla auditar cuenta</p>,
 }));
+vi.mock('@/features/asistente/components/AsistentePage', () => ({
+  AsistentePage: () => <p>pantalla copiloto</p>,
+}));
 vi.mock('@/features/actividad/components/ActividadPage', () => ({
   ActividadPage: () => <p>pantalla bitácora</p>,
 }));
@@ -80,6 +83,7 @@ describe('rutas del panel', () => {
       '/libro-banco',
       '/auditoria',
       '/auditoria/cuenta/3',
+      '/asistente',
       '/admin/usuarios',
       '/actividad',
     ])('%s lleva al login', (ruta) => {
@@ -107,6 +111,8 @@ describe('rutas del panel', () => {
       ['/auditoria', 'AUDITOR', 'pantalla panel auditor'],
       ['/auditoria', 'ADMIN', 'pantalla panel auditor'],
       ['/auditoria/cuenta/3', 'AUDITOR', 'pantalla auditar cuenta'],
+      ['/asistente', 'AUDITOR', 'pantalla copiloto'],
+      ['/asistente', 'ADMIN', 'pantalla copiloto'],
       ['/admin/usuarios', 'ADMIN', 'pantalla usuarios'],
       ['/actividad', 'SUPERVISOR', 'pantalla bitácora'],
     ] as const)('%s lo ve un %s', (ruta, rol, pantalla) => {
@@ -124,6 +130,7 @@ describe('rutas del panel', () => {
       ['/asignacion-auditores', 'RESPONSABLE', '/libro-banco'],
       ['/libro-banco', 'ADMIN', '/organismos'],
       ['/auditoria', 'RESPONSABLE', '/libro-banco'],
+      ['/asistente', 'RESPONSABLE', '/libro-banco'],
       ['/auditoria/cuenta/3', 'JUEZ_TRAMITE', '/organismos'],
       ['/admin/usuarios', 'RESPONSABLE', '/libro-banco'],
       ['/admin/usuarios', 'AUDITOR', '/auditoria'],
