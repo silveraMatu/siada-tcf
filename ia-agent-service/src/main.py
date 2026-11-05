@@ -1,11 +1,22 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import settings
+from core.database import dispose_engine
 from features.agent.router import router as agent_router
 from features.health.router import router as health_router
 
-app: FastAPI = FastAPI(title="SIADA AI AGENT API")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    yield
+    await dispose_engine()
+
+
+app: FastAPI = FastAPI(title="SIADA AI AGENT API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

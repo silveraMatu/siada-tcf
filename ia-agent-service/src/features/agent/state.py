@@ -10,6 +10,7 @@ class AgentState(TypedDict):
     input_data: ConsultaAuditorInput
     messages: Annotated[list[AnyMessage], add_messages]
     respuesta_llm: str
+    iteraciones: int
 
 
 class AgentInput(TypedDict):

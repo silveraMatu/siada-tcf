@@ -12,6 +12,8 @@ class ConsultaAuditorInput(BaseModel):
     pregunta: str = Field(min_length=1, max_length=4000)
     contexto_rendicion: dict[str, Any] | None = None
     metadatos_organismo: dict[str, Any] | None = None
+    # Organismo al que está asignado el auditor; lo envía el backend. Sin él no se consulta nada.
+    organismo_id: int | None = Field(default=None, ge=1)
 
     @field_validator("contexto_rendicion", "metadatos_organismo")
     @classmethod
