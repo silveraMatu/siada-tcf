@@ -10,6 +10,7 @@ import { EstadoCuentaMensual } from '../../../../domain/enums/estado-cuenta-mens
 import { TipoLibro } from '../../../../domain/enums/tipo-libro.enum.js';
 import { IngresosEgresosEntity } from '../../../../../ingresos-egresos/infrastructure/entities/ingresos-egresos.entity.js';
 import { LibroBancoEntity } from '../../../../../libro-banco/infrastructure/entities/libro-banco.entity.js';
+import { RaciEntity } from '../../../../../raci/infrastructure/entities/raci.entity.js';
 import { CuentaMensualEntity } from '../../../entities/cuenta-mensual.entity.js';
 import { CuentaMensualMapper } from '../../../mappers/cuenta-mensual.mapper.js';
 
@@ -44,6 +45,16 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
       .where('cm.id = :id', { id })
       .getRawOne<{ organismoId: number }>();
     return fila ? fila.organismoId : null;
+  }
+
+  async obtenerEjercicioFiscal(id: number): Promise<number | null> {
+    const fila = await this.repository
+      .createQueryBuilder('cm')
+      .innerJoin('cm.cuentaAnual', 'ca')
+      .select('ca.ejercicioFiscal', 'ejercicioFiscal')
+      .where('cm.id = :id', { id })
+      .getRawOne<{ ejercicioFiscal: number }>();
+    return fila ? fila.ejercicioFiscal : null;
   }
 
   async documentosFaltantes(id: number): Promise<string[]> {
@@ -156,7 +167,7 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
     const porCuenta = new Map<number, ResumenLibro[]>();
     if (cuentaMensualIds.length === 0) return porCuenta;
 
-    const [librosBanco, ingresosEgresos] = await Promise.all([
+    const [librosBanco, ingresosEgresos, raci] = await Promise.all([
       this.resumirLibrosDe(
         LibroBancoEntity,
         TipoLibro.LIBRO_BANCO,
@@ -167,12 +178,14 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
         TipoLibro.INGRESOS_EGRESOS,
         cuentaMensualIds,
       ),
+      this.resumirLibrosDe(RaciEntity, TipoLibro.RACI, cuentaMensualIds, false),
     ]);
 
-    //por cuenta: primero los libros banco y después el de ingresos y egresos, cada grupo por id
+    //por cuenta: primero los libros banco, después el de ingresos y egresos y al final el RACI, cada grupo por id
     for (const { cuentaMensualId, resumen } of [
       ...librosBanco,
       ...ingresosEgresos,
+      ...raci,
     ]) {
       porCuenta.set(cuentaMensualId, [
         ...(porCuenta.get(cuentaMensualId) ?? []),
@@ -182,18 +195,25 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
     return porCuenta;
   }
 
-  //ambos libros comparten forma (id, cuenta mensual, N° de cuenta y transacciones con fecha)
+  //los libros comparten forma (id, cuenta mensual y transacciones con fecha); el RACI no tiene N° de cuenta
   private async resumirLibrosDe(
-    entidad: typeof LibroBancoEntity | typeof IngresosEgresosEntity,
+    entidad:
+      | typeof LibroBancoEntity
+      | typeof IngresosEgresosEntity
+      | typeof RaciEntity,
     tipo: TipoLibro,
     cuentaMensualIds: number[],
+    conNumeroCuentaCte = true,
   ): Promise<{ cuentaMensualId: number; resumen: ResumenLibro }[]> {
-    const filas = await this.repository.manager
+    const consulta = this.repository.manager
       .createQueryBuilder(entidad, 'l')
       .leftJoin('l.transacciones', 't')
       .select('l.id', 'id')
       .addSelect('l.cuentaMensualId', 'cuentaMensualId')
-      .addSelect('l.numeroCuentaCte', 'numeroCuentaCte')
+      .addSelect(
+        conNumeroCuentaCte ? 'l.numeroCuentaCte' : 'NULL',
+        'numeroCuentaCte',
+      )
       .addSelect('COUNT(t.id)', 'cantidadTransacciones')
       .addSelect('MIN(t.fecha)', 'fechaDesde')
       .addSelect('MAX(t.fecha)', 'fechaHasta')
@@ -201,15 +221,15 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
         cuentaMensualIds,
       })
       .groupBy('l.id')
-      .orderBy('l.id', 'ASC')
-      .getRawMany<{
-        id: number;
-        cuentaMensualId: number;
-        numeroCuentaCte: string | null;
-        cantidadTransacciones: string;
-        fechaDesde: string | null;
-        fechaHasta: string | null;
-      }>();
+      .orderBy('l.id', 'ASC');
+    const filas = await consulta.getRawMany<{
+      id: number;
+      cuentaMensualId: number;
+      numeroCuentaCte: string | null;
+      cantidadTransacciones: string;
+      fechaDesde: string | null;
+      fechaHasta: string | null;
+    }>();
 
     return filas.map((fila) => ({
       cuentaMensualId: fila.cuentaMensualId,

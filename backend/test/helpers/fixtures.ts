@@ -19,6 +19,7 @@ export const MES_BITACORA = 5; //reservado para el e2e de la bitacora: carga dos
 export const MES_AUDITORIA_VACIA = 4; //reservado para auditoria: presentada por SQL y sin ningun libro
 export const MES_AUDITORIA_BORRADOR = 6; //reservado para auditoria: los rechazos por estado (borrador y cerrada)
 export const MES_AUDITORIA_CICLO = 2; //reservado para el e2e de revision y cierre de la auditoria: banco e ingresos y egresos con dos hallazgos
+export const MES_RACI = 1; //reservado para el e2e del libro RACI: se vuelve a EN_BORRADOR al empezar
 
 //organismo inicial que usan los e2e de cuentas, libro-banco y responsables
 export async function obtenerOrganismoBaseId(
@@ -183,6 +184,24 @@ export async function obtenerOrganismoAjenoId(
   return creado.id;
 }
 
+//organismo propio del e2e de las reglas del RACI: sus meses no los usa ningún otro spec
+export async function obtenerOrganismoReglasRaciId(
+  dataSource: DataSource,
+): Promise<number> {
+  const nombre = '__E2E__ Organismo Reglas RACI';
+  const existente = await dataSource.query(
+    `SELECT id FROM organismos WHERE nombre = $1 LIMIT 1`,
+    [nombre],
+  );
+  if (existente.length) return existente[0].id;
+
+  const [creado] = await dataSource.query(
+    `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'E2E', true) RETURNING id`,
+    [nombre],
+  );
+  return creado.id;
+}
+
 //responsable nuevo (usuario RESPONSABLE activo) vinculado al organismo, ya con sesion iniciada
 export async function crearResponsableConSesion(
   app: INestApplication,
@@ -298,6 +317,36 @@ export async function cargarIngresosEgresos(
           ingresoOtras: 0,
           cuentasVariasDebe: 0,
           cuentasVariasHaber: 0,
+        },
+      ],
+    })
+    .expect(201);
+}
+
+//carga el libro RACI de la rendición (reemplaza el que haya) como responsable del organismo
+export async function cargarRaci(
+  app: INestApplication,
+  bearerResponsable: string,
+  cuentaMensualId: number,
+): Promise<void> {
+  await request(app.getHttpServer())
+    .post(`/api/v1/cuentas-mensuales/${cuentaMensualId}/raci/ingestar`)
+    .set('Authorization', bearerResponsable)
+    .send({
+      reemplazar: true,
+      transacciones: [
+        {
+          asiento: 1,
+          fecha: '2026-03-02',
+          concepto: 'Compra E2E',
+          compromisoDelMes: 10,
+          compromisoAcumulado: 10,
+          devengadoDelMes: 10,
+          devengadoAcumulado: 10,
+          devengadoSaldo: 0,
+          pagoDelMes: 10,
+          pagoAcumulado: 10,
+          pagoSaldoAPagar: 0,
         },
       ],
     })

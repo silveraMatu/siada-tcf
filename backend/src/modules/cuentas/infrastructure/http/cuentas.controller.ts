@@ -121,7 +121,7 @@ export class CuentasController {
   @ApiOperation({
     summary: 'Listar cuentas mensuales, opcionalmente filtradas por estado',
     description:
-      'Pensado para el Auditor: ?estado=LISTO_PARA_AUDITAR trae solo las cuentas ya presentadas, y un AUDITOR solo ve las de los organismos que tiene asignados (un ADMIN ve todas). Ordenadas por id. Cada cuenta incluye un resumen de sus libros (tipo LIBRO_BANCO o INGRESOS_EGRESOS, N° de cuenta corriente, cantidad de transacciones y fechas extremas), sin las transacciones: primero los libros banco y después el de ingresos y egresos.',
+      'Pensado para el Auditor: ?estado=LISTO_PARA_AUDITAR trae solo las cuentas ya presentadas, y un AUDITOR solo ve las de los organismos que tiene asignados (un ADMIN ve todas). Ordenadas por id. Cada cuenta incluye un resumen de sus libros (tipo LIBRO_BANCO, INGRESOS_EGRESOS o RACI, N° de cuenta corriente —null en ingresos y egresos y en RACI—, cantidad de transacciones y fechas extremas), sin las transacciones: primero los libros banco, después el de ingresos y egresos y al final el RACI.',
   })
   @ApiResponse({
     status: 200,
