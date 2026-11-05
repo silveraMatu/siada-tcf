@@ -4,7 +4,10 @@ import {
   AsistenteNoConfiguradoError,
   AsistenteNoDisponibleError,
 } from '../../../../domain/errors/asistente.errors.js';
-import type { ConsultaIA } from '../../../../application/ports/out/asistente-ia.port.js';
+import type {
+  ConsultaIA,
+  EventoIA,
+} from '../../../../application/ports/out/asistente-ia.port.js';
 import { HttpAsistenteIAAdapter } from './http-asistente-ia.adapter.js';
 
 const CLAVE = 'clave-secreta-del-servicio-de-ia-0123456789';
@@ -152,7 +155,22 @@ describe('HttpAsistenteIAAdapter', () => {
   });
 });
 
-describe('HttpAsistenteIAAdapter: traza de pasos', () => {
+const pasoServicio = {
+  id: 'c1',
+  accion: 'consulta_datos',
+  descripcion: 'Total de depósitos del libro banco de febrero',
+  fuentes: ['libro banco', 'rendiciones'],
+  estado: 'completado',
+  resultado: 'Encontré 1 registro',
+  cantidad_registros: 1,
+  duracion_ms: 7,
+  parcial: false,
+};
+
+const sse = (evento: string, datos: unknown) =>
+  `event: ${evento}\ndata: ${JSON.stringify(datos)}\n\n`;
+
+describe('HttpAsistenteIAAdapter: razonamiento en la respuesta completa', () => {
   let servidor: Server;
   let url: string;
   let cuerpoRespuesta: unknown;
@@ -180,62 +198,44 @@ describe('HttpAsistenteIAAdapter: traza de pasos', () => {
       timeoutMs: 2000,
     }).consultar(consulta);
 
-  it('traduce los pasos de snake_case a camelCase y conserva las filas como texto', async () => {
-    cuerpoRespuesta = {
-      respuesta: 'Listo',
-      pasos: [
-        {
-          accion: 'consulta_sql',
-          query_sql: 'SELECT 1 LIMIT 51',
-          cantidad_filas: 1,
-          duracion_ms: 7,
-          error: null,
-          truncado: true,
-          columnas: ['dep'],
-          filas: [['1231900.10']],
-        },
-      ],
-    };
+  it('traduce los pasos de snake_case a camelCase', async () => {
+    cuerpoRespuesta = { respuesta: 'Listo', pasos: [pasoServicio] };
 
-    const { pasos } = await consultar();
-
-    expect(pasos).toEqual([
+    expect((await consultar()).pasos).toEqual([
       {
-        accion: 'consulta_sql',
-        querySql: 'SELECT 1 LIMIT 51',
-        cantidadFilas: 1,
+        id: 'c1',
+        accion: 'consulta_datos',
+        descripcion: 'Total de depósitos del libro banco de febrero',
+        fuentes: ['libro banco', 'rendiciones'],
+        estado: 'completado',
+        resultado: 'Encontré 1 registro',
+        cantidadRegistros: 1,
         duracionMs: 7,
-        error: null,
-        truncado: true,
-        columnas: ['dep'],
-        filas: [['1231900.10']],
+        parcial: false,
       },
     ]);
   });
 
-  it('un paso rechazado por las guardas llega con duración nula y error', async () => {
+  it('un paso fallido llega con duración y cantidad nulas', async () => {
     cuerpoRespuesta = {
       respuesta: 'No puedo',
       pasos: [
         {
-          accion: 'consulta_sql',
-          query_sql: 'SELECT * FROM usuarios',
-          cantidad_filas: 0,
-          duracion_ms: null,
-          error: 'Tabla no permitida: usuarios',
+          id: 'c2',
+          accion: 'consulta_datos',
+          descripcion: 'Consultando los datos del organismo',
+          estado: 'error',
+          resultado: 'No pude completar este paso',
         },
       ],
     };
 
-    const { pasos } = await consultar();
-
-    expect(pasos[0]).toMatchObject({
+    expect((await consultar()).pasos[0]).toMatchObject({
+      estado: 'error',
+      fuentes: [],
+      cantidadRegistros: null,
       duracionMs: null,
-      cantidadFilas: 0,
-      error: 'Tabla no permitida: usuarios',
-      truncado: false,
-      columnas: [],
-      filas: [],
+      parcial: false,
     });
   });
 
@@ -248,11 +248,280 @@ describe('HttpAsistenteIAAdapter: traza de pasos', () => {
   it('un paso mal formado es AsistenteNoDisponibleError: la traza no se degrada en silencio', async () => {
     cuerpoRespuesta = {
       respuesta: 'Listo',
-      pasos: [{ accion: 'consulta_sql' }],
+      pasos: [{ accion: 'consulta_datos' }],
     };
 
     await expect(consultar()).rejects.toBeInstanceOf(
       AsistenteNoDisponibleError,
     );
+  });
+});
+
+type Guion = (string | { esperarMs: number })[];
+
+describe('HttpAsistenteIAAdapter: consulta en vivo (SSE)', () => {
+  let servidor: Server;
+  let url: string;
+  let guion: Guion;
+  let status: number;
+  let cerrarAlTerminar: boolean;
+  let ruta: string | undefined;
+  let claveRecibida: string | string[] | undefined;
+  let conexionCerrada: Promise<void>;
+  let marcarCerrada: () => void;
+
+  beforeAll(async () => {
+    servidor = createServer((req, res) => {
+      ruta = req.url;
+      claveRecibida = req.headers['x-api-key'];
+      res.on('close', () => marcarCerrada());
+      req.resume();
+      req.on('end', () => {
+        void (async () => {
+          if (status !== 200) {
+            res.writeHead(status, { 'Content-Type': 'application/json' });
+            res.end('{"detail":"x"}');
+            return;
+          }
+          res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+          res.flushHeaders();
+          for (const parte of guion) {
+            if (typeof parte === 'string') res.write(parte);
+            else await new Promise((ok) => setTimeout(ok, parte.esperarMs));
+          }
+          if (cerrarAlTerminar) res.end();
+        })();
+      });
+    });
+    await new Promise<void>((ok) => servidor.listen(0, '127.0.0.1', ok));
+    url = `http://127.0.0.1:${(servidor.address() as AddressInfo).port}`;
+  });
+
+  afterAll(async () => {
+    servidor.closeAllConnections();
+    await new Promise((ok) => servidor.close(ok));
+  });
+
+  beforeEach(() => {
+    guion = [];
+    status = 200;
+    cerrarAlTerminar = true;
+    ruta = undefined;
+    claveRecibida = undefined;
+    conexionCerrada = new Promise<void>((ok) => (marcarCerrada = ok));
+  });
+
+  const adaptador = (
+    config: Partial<{
+      url: string | null;
+      apiKey: string | null;
+      timeoutMs: number;
+    }> = {},
+  ) =>
+    new HttpAsistenteIAAdapter({
+      url,
+      apiKey: CLAVE,
+      timeoutMs: 2000,
+      ...config,
+    });
+
+  async function leer(
+    flujo: AsyncIterable<EventoIA>,
+  ): Promise<{ eventos: EventoIA[]; error: unknown }> {
+    const eventos: EventoIA[] = [];
+    try {
+      for await (const evento of flujo) eventos.push(evento);
+      return { eventos, error: null };
+    } catch (error) {
+      return { eventos, error };
+    }
+  }
+
+  it('pide la ruta del stream con la API key y entrega los eventos hasta `fin`', async () => {
+    guion = [
+      sse('pensando', { mensaje: 'Analizando tu pregunta' }),
+      sse('paso', { ...pasoServicio, estado: 'en_curso', resultado: null }),
+      sse('paso', pasoServicio),
+      sse('respuesta', { respuesta: 'Listo' }),
+      sse('fin', {}),
+    ];
+
+    const { eventos, error } = await leer(
+      await adaptador().iniciarConsultaEnVivo(consulta),
+    );
+
+    expect(error).toBeNull();
+    expect(ruta).toBe('/api/v1/agent/chat/stream');
+    expect(claveRecibida).toBe(CLAVE);
+    expect(eventos.map((e) => e.tipo)).toEqual([
+      'pensando',
+      'paso',
+      'paso',
+      'respuesta',
+    ]);
+    expect(eventos[2]).toMatchObject({
+      tipo: 'paso',
+      paso: { id: 'c1', cantidadRegistros: 1, duracionMs: 7 },
+    });
+  });
+
+  it('arma los eventos aunque lleguen partidos en cualquier punto, con comentarios y saltos \\r\\n', async () => {
+    const completo =
+      sse('pensando', { mensaje: 'Hola' }) +
+      ': keepalive\n\n' +
+      sse('respuesta', { respuesta: 'ñandú' }).replace(/\n/g, '\r\n') +
+      sse('fin', {});
+    //trozos de 7 caracteres: corta nombres de evento, JSON y hasta el carácter «ñ»
+    const bytes = Buffer.from(completo);
+    guion = [];
+    for (let i = 0; i < bytes.length; i += 7) {
+      guion.push(bytes.subarray(i, i + 7).toString('latin1'));
+      guion.push({ esperarMs: 1 });
+    }
+    //se manda por latin1 para poder cortar en medio de un carácter UTF-8: se reconstruye como bytes
+    const servidorRaw = createServer((req, res) => {
+      req.resume();
+      req.on('end', () => {
+        void (async () => {
+          res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+          for (let i = 0; i < bytes.length; i += 7) {
+            res.write(bytes.subarray(i, i + 7));
+            await new Promise((ok) => setTimeout(ok, 1));
+          }
+          res.end();
+        })();
+      });
+    });
+    await new Promise<void>((ok) => servidorRaw.listen(0, '127.0.0.1', ok));
+    const urlRaw = `http://127.0.0.1:${(servidorRaw.address() as AddressInfo).port}`;
+
+    try {
+      const { eventos, error } = await leer(
+        await adaptador({ url: urlRaw }).iniciarConsultaEnVivo(consulta),
+      );
+
+      expect(error).toBeNull();
+      expect(eventos).toEqual([
+        { tipo: 'pensando', mensaje: 'Hola' },
+        { tipo: 'respuesta', respuesta: 'ñandú' },
+      ]);
+    } finally {
+      servidorRaw.closeAllConnections();
+      await new Promise((ok) => servidorRaw.close(ok));
+    }
+  });
+
+  it('un evento desconocido se ignora', async () => {
+    guion = [
+      sse('algo_nuevo', { x: 1 }),
+      sse('respuesta', { respuesta: 'Listo' }),
+      sse('fin', {}),
+    ];
+
+    const { eventos } = await leer(
+      await adaptador().iniciarConsultaEnVivo(consulta),
+    );
+
+    expect(eventos).toEqual([{ tipo: 'respuesta', respuesta: 'Listo' }]);
+  });
+
+  it('un evento `error` entrega lo anterior y corta con AsistenteNoDisponibleError', async () => {
+    guion = [
+      sse('pensando', { mensaje: 'Hola' }),
+      sse('error', { mensaje: 'El asistente no está disponible' }),
+    ];
+
+    const { eventos, error } = await leer(
+      await adaptador().iniciarConsultaEnVivo(consulta),
+    );
+
+    expect(eventos).toHaveLength(1);
+    expect(error).toBeInstanceOf(AsistenteNoDisponibleError);
+  });
+
+  it('si el servicio cierra sin mandar `fin` es AsistenteNoDisponibleError (flujo cortado)', async () => {
+    guion = [sse('pensando', { mensaje: 'Hola' })];
+
+    const { eventos, error } = await leer(
+      await adaptador().iniciarConsultaEnVivo(consulta),
+    );
+
+    expect(eventos).toHaveLength(1);
+    expect(error).toBeInstanceOf(AsistenteNoDisponibleError);
+  });
+
+  it.each([
+    ['JSON inválido', 'event: paso\ndata: {no es json\n\n'],
+    ['paso mal formado', sse('paso', { id: 'c1' })],
+    ['respuesta sin texto', sse('respuesta', {})],
+  ])('%s → AsistenteNoDisponibleError', async (_nombre, bloque) => {
+    guion = [bloque, sse('fin', {})];
+
+    const { error } = await leer(
+      await adaptador().iniciarConsultaEnVivo(consulta),
+    );
+
+    expect(error).toBeInstanceOf(AsistenteNoDisponibleError);
+  });
+
+  it.each([401, 422, 500, 502])(
+    'si el servicio responde %i falla al iniciar, antes de devolver el flujo',
+    async (codigo) => {
+      status = codigo;
+
+      await expect(
+        adaptador().iniciarConsultaEnVivo(consulta),
+      ).rejects.toBeInstanceOf(AsistenteNoDisponibleError);
+    },
+  );
+
+  it('sin URL o sin clave lanza AsistenteNoConfiguradoError al iniciar', async () => {
+    await expect(
+      adaptador({ url: null }).iniciarConsultaEnVivo(consulta),
+    ).rejects.toBeInstanceOf(AsistenteNoConfiguradoError);
+    await expect(
+      adaptador({ apiKey: null }).iniciarConsultaEnVivo(consulta),
+    ).rejects.toBeInstanceOf(AsistenteNoConfiguradoError);
+  });
+
+  it('si no se puede conectar falla al iniciar', async () => {
+    await expect(
+      adaptador({ url: 'http://127.0.0.1:1' }).iniciarConsultaEnVivo(consulta),
+    ).rejects.toBeInstanceOf(AsistenteNoDisponibleError);
+  });
+
+  it('la señal de cancelación corta el flujo y cierra la conexión con el servicio', async () => {
+    cerrarAlTerminar = false;
+    guion = [sse('pensando', { mensaje: 'Hola' })];
+    const cancelacion = new AbortController();
+    const flujo = await adaptador({ timeoutMs: 10_000 }).iniciarConsultaEnVivo(
+      consulta,
+      cancelacion.signal,
+    );
+
+    const recibidos: EventoIA[] = [];
+    const lectura = (async () => {
+      for await (const evento of flujo) {
+        recibidos.push(evento);
+        cancelacion.abort(); //el cliente se fue después del primer evento
+      }
+    })();
+
+    await expect(lectura).rejects.toBeInstanceOf(AsistenteNoDisponibleError);
+    await conexionCerrada; //el servidor vio cerrarse la conexión: el agente deja de trabajar
+    expect(recibidos).toHaveLength(1);
+  });
+
+  it('un flujo que no termina se corta por el tiempo máximo', async () => {
+    cerrarAlTerminar = false;
+    guion = [sse('pensando', { mensaje: 'Hola' })];
+
+    const { eventos, error } = await leer(
+      await adaptador({ timeoutMs: 150 }).iniciarConsultaEnVivo(consulta),
+    );
+
+    expect(eventos).toHaveLength(1);
+    expect(error).toBeInstanceOf(AsistenteNoDisponibleError);
+    await conexionCerrada;
   });
 });

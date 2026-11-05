@@ -1,4 +1,9 @@
-import { createServer, type IncomingHttpHeaders, type Server } from 'node:http';
+import {
+  createServer,
+  request as peticionHttp,
+  type IncomingHttpHeaders,
+  type Server,
+} from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -19,9 +24,31 @@ import {
 const CLAVE_IA = 'e2e-clave-del-servicio-de-ia-0123456789abcdef';
 
 interface PeticionRecibida {
+  url: string | undefined;
   headers: IncomingHttpHeaders;
   cuerpo: Record<string, unknown>;
 }
+
+//lo que la IA falsa responde en `/chat/stream`: bloques SSE ya armados, que manda con una pausa mínima entre sí
+interface FlujoIA {
+  status: number;
+  partes: string[];
+  //deja la conexión abierta después del último bloque (para probar que el cliente se va)
+  noCerrar?: boolean;
+}
+
+const sse = (evento: string, datos: unknown) =>
+  `event: ${evento}\ndata: ${JSON.stringify(datos)}\n\n`;
+
+const parsearSse = (texto: string) =>
+  texto
+    .split('\n\n')
+    .filter((b) => b.trim().length > 0 && !b.startsWith(':'))
+    .map((bloque) => {
+      const evento = /^event: (.*)$/m.exec(bloque)?.[1] ?? '';
+      const datos = /^data: (.*)$/m.exec(bloque)?.[1];
+      return { evento, datos: datos ? JSON.parse(datos) : null };
+    });
 
 //Corre contra la base real y NO limpia lo que crea. El servicio de IA es un servidor local falso: se prueba la
 //frontera de confianza del backend (quién puede preguntar por qué organismo y qué se le manda a la IA), no el modelo.
@@ -35,6 +62,10 @@ describe('Asistente de IA (e2e)', () => {
   let auditor: { bearer: string; usuarioId: number };
   let recibidas: PeticionRecibida[];
   let respuestaIA: { status: number; cuerpo: unknown };
+  let flujoIA: FlujoIA;
+  //se resuelve cuando la IA falsa ve cerrarse la conexión del stream
+  let conexionDelStreamCerrada: Promise<void>;
+  let marcarConexionCerrada: () => void;
 
   const api = () => request(app.getHttpServer());
   const consultar = (
@@ -45,6 +76,30 @@ describe('Asistente de IA (e2e)', () => {
     return (bearer ? peticion.set('Authorization', bearer) : peticion).send(
       cuerpo as object,
     );
+  };
+  const transmitir = (
+    cuerpo: unknown,
+    bearer: string | null = auditor.bearer,
+  ) => {
+    const peticion = api()
+      .post('/api/v1/asistente/consultas/stream')
+      .buffer(true)
+      .parse((res, cb) => {
+        let texto = '';
+        res.setEncoding('utf8');
+        res.on('data', (c: string) => (texto += c));
+        res.on('end', () => cb(null, texto));
+      });
+    return (bearer ? peticion.set('Authorization', bearer) : peticion).send(
+      cuerpo as object,
+    );
+  };
+  const cantidadEventos = async (usuarioId: number): Promise<number> => {
+    const [fila] = await dataSource.query(
+      `SELECT count(*)::int AS n FROM registro_actividad WHERE accion = 'CONSULTA_IA' AND usuario_id = $1`,
+      [usuarioId],
+    );
+    return fila.n;
   };
   const ultimoEvento = async (usuarioId: number) => {
     const [evento] = await dataSource.query(
@@ -60,9 +115,30 @@ describe('Asistente de IA (e2e)', () => {
       req.on('data', (t: Buffer) => trozos.push(t));
       req.on('end', () => {
         recibidas.push({
+          url: req.url,
           headers: req.headers,
           cuerpo: JSON.parse(Buffer.concat(trozos).toString()),
         });
+        if (req.url?.endsWith('/chat/stream')) {
+          res.on('close', () => marcarConexionCerrada());
+          if (flujoIA.status !== 200) {
+            res.writeHead(flujoIA.status, {
+              'Content-Type': 'application/json',
+            });
+            res.end('{"detail":"error"}');
+            return;
+          }
+          res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+          res.flushHeaders();
+          void (async () => {
+            for (const parte of flujoIA.partes) {
+              res.write(parte);
+              await new Promise((ok) => setTimeout(ok, 5));
+            }
+            if (!flujoIA.noCerrar) res.end();
+          })();
+          return;
+        }
         res.writeHead(respuestaIA.status, {
           'Content-Type': 'application/json',
         });
@@ -95,6 +171,17 @@ describe('Asistente de IA (e2e)', () => {
       status: 200,
       cuerpo: { respuesta: 'Respuesta del servicio falso' },
     };
+    flujoIA = {
+      status: 200,
+      partes: [
+        sse('pensando', { mensaje: 'Analizando tu pregunta' }),
+        sse('respuesta', { respuesta: 'Respuesta del servicio falso' }),
+        sse('fin', {}),
+      ],
+    };
+    conexionDelStreamCerrada = new Promise<void>(
+      (ok) => (marcarConexionCerrada = ok),
+    );
   });
 
   describe('acceso', () => {
@@ -277,33 +364,37 @@ describe('Asistente de IA (e2e)', () => {
     });
   });
 
-  describe('traza de pasos', () => {
-    const pasoOk = {
-      accion: 'consulta_sql',
-      query_sql:
-        'SELECT SUM(depositos) AS dep FROM transacciones_libro_banco LIMIT 51',
-      cantidad_filas: 1,
-      duracion_ms: 15,
-      error: null,
-      truncado: false,
-      columnas: ['dep'],
-      filas: [['1231900.10']],
-    };
-    const pasoFallido = {
-      accion: 'consulta_sql',
-      query_sql: 'SELECT * FROM usuarios',
-      cantidad_filas: 0,
-      duracion_ms: null,
-      error: 'Tabla no permitida: usuarios',
-      truncado: false,
-      columnas: [],
-      filas: [],
-    };
+  const pasoServicio = {
+    id: 'c1',
+    accion: 'consulta_datos',
+    descripcion: 'Total de depósitos del libro banco de febrero',
+    fuentes: ['libro banco', 'rendiciones'],
+    estado: 'completado',
+    resultado: 'Encontré 1 registro',
+    cantidad_registros: 1,
+    duracion_ms: 15,
+    parcial: false,
+  };
+  const pasoFallidoServicio = {
+    id: 'c2',
+    accion: 'consulta_datos',
+    descripcion: 'Mostrar los datos de acceso de las personas',
+    fuentes: [],
+    estado: 'error',
+    resultado: 'No pude completar este paso',
+    cantidad_registros: null,
+    duracion_ms: null,
+    parcial: false,
+  };
 
-    it('el auditor recibe los pasos de la IA en orden, con los intentos fallidos', async () => {
+  describe('razonamiento del agente (respuesta completa)', () => {
+    it('el auditor recibe los pasos en lenguaje natural, en orden y con los intentos fallidos', async () => {
       respuestaIA = {
         status: 200,
-        cuerpo: { respuesta: 'Listo', pasos: [pasoFallido, pasoOk] },
+        cuerpo: {
+          respuesta: 'Listo',
+          pasos: [pasoFallidoServicio, pasoServicio],
+        },
       };
 
       const respuesta = await consultar({
@@ -313,34 +404,41 @@ describe('Asistente de IA (e2e)', () => {
 
       expect(respuesta.body.pasos).toEqual([
         {
-          accion: 'consulta_sql',
-          querySql: 'SELECT * FROM usuarios',
-          cantidadFilas: 0,
+          id: 'c2',
+          accion: 'consulta_datos',
+          descripcion: 'Mostrar los datos de acceso de las personas',
+          fuentes: [],
+          estado: 'error',
+          resultado: 'No pude completar este paso',
+          cantidadRegistros: null,
           duracionMs: null,
-          error: 'Tabla no permitida: usuarios',
-          truncado: false,
-          columnas: [],
-          filas: [],
+          parcial: false,
         },
         {
-          accion: 'consulta_sql',
-          querySql:
-            'SELECT SUM(depositos) AS dep FROM transacciones_libro_banco LIMIT 51',
-          cantidadFilas: 1,
+          id: 'c1',
+          accion: 'consulta_datos',
+          descripcion: 'Total de depósitos del libro banco de febrero',
+          fuentes: ['libro banco', 'rendiciones'],
+          estado: 'completado',
+          resultado: 'Encontré 1 registro',
+          cantidadRegistros: 1,
           duracionMs: 15,
-          error: null,
-          truncado: false,
-          columnas: ['dep'],
-          //el importe llega como texto, sin pasar por número
-          filas: [['1231900.10']],
+          parcial: false,
         },
       ]);
+      //nada técnico en lo que ve el auditor
+      expect(JSON.stringify(respuesta.body)).not.toMatch(
+        /querySql|columnas|filas|SELECT/i,
+      );
     });
 
-    it('la bitácora guarda solo cuántas consultas hubo y cuántas fallaron, nunca el SQL ni las filas', async () => {
+    it('la bitácora guarda solo cuántas consultas hubo y cuántas fallaron, nunca los textos', async () => {
       respuestaIA = {
         status: 200,
-        cuerpo: { respuesta: 'Listo', pasos: [pasoFallido, pasoOk] },
+        cuerpo: {
+          respuesta: 'Listo',
+          pasos: [pasoFallidoServicio, pasoServicio],
+        },
       };
       await consultar({ pregunta: 'hola', organismoId }).expect(200);
 
@@ -351,18 +449,262 @@ describe('Asistente de IA (e2e)', () => {
         consultasConError: 1,
       });
       const crudo = JSON.stringify(evento);
-      expect(crudo).not.toContain('usuarios');
-      expect(crudo).not.toContain('transacciones_libro_banco');
-      expect(crudo).not.toContain('1231900.10');
+      expect(crudo).not.toContain('libro banco');
+      expect(crudo).not.toContain('datos de acceso');
     });
 
     it('si un paso llega mal formado → 502 (la traza no se pierde en silencio)', async () => {
       respuestaIA = {
         status: 200,
-        cuerpo: { respuesta: 'Listo', pasos: [{ accion: 'consulta_sql' }] },
+        cuerpo: { respuesta: 'Listo', pasos: [{ accion: 'consulta_datos' }] },
       };
 
       await consultar({ pregunta: 'hola', organismoId }).expect(502);
+    });
+  });
+
+  describe('consulta en vivo (SSE)', () => {
+    it('responde text/event-stream con los eventos en orden, la respuesta con su organismo y `fin` al final', async () => {
+      flujoIA.partes = [
+        sse('pensando', { mensaje: 'Analizando tu pregunta' }),
+        ': keepalive\n\n',
+        sse('paso', {
+          ...pasoServicio,
+          estado: 'en_curso',
+          resultado: null,
+          cantidad_registros: null,
+          duracion_ms: null,
+        }),
+        sse('paso', pasoServicio),
+        sse('pensando', { mensaje: 'Analizando los resultados' }),
+        sse('respuesta', { respuesta: 'Se depositaron $1.231.900,10' }),
+        sse('fin', {}),
+      ];
+
+      const respuesta = await transmitir({
+        pregunta: '¿Cuánto se depositó?',
+        organismoId,
+      }).expect(200);
+
+      expect(respuesta.headers['content-type']).toMatch(/text\/event-stream/);
+      expect(respuesta.headers['cache-control']).toBe('no-cache');
+      const eventos = parsearSse(respuesta.body as string);
+      expect(eventos.map((e) => e.evento)).toEqual([
+        'pensando',
+        'paso',
+        'paso',
+        'pensando',
+        'respuesta',
+        'fin',
+      ]);
+      expect(eventos[1]?.datos).toMatchObject({
+        id: 'c1',
+        estado: 'en_curso',
+        resultado: null,
+        cantidadRegistros: null,
+      });
+      expect(eventos[2]?.datos).toMatchObject({
+        id: 'c1',
+        estado: 'completado',
+        resultado: 'Encontré 1 registro',
+        cantidadRegistros: 1,
+        duracionMs: 15,
+        fuentes: ['libro banco', 'rendiciones'],
+      });
+      expect(eventos[4]?.datos).toEqual({
+        respuesta: 'Se depositaron $1.231.900,10',
+        organismoId,
+      });
+      //el keepalive del servicio no llega al cliente
+      expect(respuesta.body).not.toContain('keepalive');
+    });
+
+    it('a la IA le llega la ruta del stream, la API key y el contexto del organismo', async () => {
+      await transmitir({ pregunta: 'hola', organismoId }).expect(200);
+
+      expect(recibidas).toHaveLength(1);
+      expect(recibidas[0]?.url).toBe('/api/v1/agent/chat/stream');
+      expect(recibidas[0]?.headers['x-api-key']).toBe(CLAVE_IA);
+      expect(recibidas[0]?.cuerpo).toMatchObject({
+        organismo_id: organismoId,
+        metadatos_organismo: { nombre: '__E2E__ Organismo Base' },
+      });
+    });
+
+    it('la bitácora ya tiene el evento (uno solo) cuando el cliente termina de leer, con cantidades y sin textos', async () => {
+      flujoIA.partes = [
+        sse('paso', pasoServicio),
+        sse('paso', pasoFallidoServicio),
+        sse('respuesta', { respuesta: 'Listo' }),
+        sse('fin', {}),
+      ];
+      const antes = await cantidadEventos(auditor.usuarioId);
+
+      await transmitir({ pregunta: 'hola', organismoId }).expect(200);
+
+      expect(await cantidadEventos(auditor.usuarioId)).toBe(antes + 1);
+      const evento = await ultimoEvento(auditor.usuarioId);
+      expect(evento).toMatchObject({
+        resultado: 'EXITO',
+        codigo_http: 200,
+        organismo_id: organismoId,
+      });
+      expect(evento.detalle).toMatchObject({
+        consultasSql: 2,
+        consultasConError: 1,
+        respuestaLongitud: 'Listo'.length,
+      });
+      expect(JSON.stringify(evento)).not.toContain('libro banco');
+    });
+
+    describe('errores previos al flujo: códigos HTTP normales', () => {
+      it('sin token → 401', async () => {
+        await transmitir({ pregunta: 'hola', organismoId }, null).expect(401);
+        expect(recibidas).toEqual([]);
+      });
+
+      it('un RESPONSABLE → 403', async () => {
+        const responsable = await crearResponsableConSesion(app, organismoId);
+
+        await transmitir(
+          { pregunta: 'hola', organismoId },
+          responsable.bearer,
+        ).expect(403);
+        expect(recibidas).toEqual([]);
+      });
+
+      it('un auditor sin ese organismo → 403 (JSON, no flujo) y queda DENEGADO', async () => {
+        const respuesta = await transmitir({
+          pregunta: 'hola',
+          organismoId: organismoAjenoId,
+        }).expect(403);
+
+        expect(respuesta.headers['content-type']).toMatch(/json/);
+        expect(recibidas).toEqual([]);
+        expect(await ultimoEvento(auditor.usuarioId)).toMatchObject({
+          resultado: 'DENEGADO',
+          codigo_http: 403,
+        });
+      });
+
+      it('organismo inexistente (ADMIN) → 404; pregunta vacía → 400', async () => {
+        const admin = await obtenerBearerAdmin(app);
+
+        await transmitir(
+          { pregunta: 'hola', organismoId: ID_INEXISTENTE },
+          admin,
+        ).expect(404);
+        await transmitir({ pregunta: '   ', organismoId }).expect(400);
+        expect(recibidas).toEqual([]);
+      });
+
+      it('el servicio de IA rechaza el pedido → 502 normal (no se abre el flujo) y FALLO en la bitácora', async () => {
+        flujoIA = { status: 500, partes: [] };
+
+        const respuesta = await transmitir({
+          pregunta: 'hola',
+          organismoId,
+        }).expect(502);
+
+        expect(respuesta.headers['content-type']).toMatch(/json/);
+        expect(await ultimoEvento(auditor.usuarioId)).toMatchObject({
+          resultado: 'FALLO',
+          codigo_http: 502,
+        });
+      });
+    });
+
+    describe('fallas durante el flujo', () => {
+      it('un evento `error` del servicio llega como evento `error` al cliente y queda FALLO 502', async () => {
+        flujoIA.partes = [
+          sse('pensando', { mensaje: 'Analizando tu pregunta' }),
+          sse('error', { mensaje: 'detalle interno del servicio' }),
+        ];
+
+        const respuesta = await transmitir({
+          pregunta: 'hola',
+          organismoId,
+        }).expect(200);
+
+        const eventos = parsearSse(respuesta.body as string);
+        expect(eventos.map((e) => e.evento)).toEqual(['pensando', 'error']);
+        expect(eventos[1]?.datos).toEqual({
+          mensaje:
+            'El asistente no está disponible en este momento. Intente nuevamente.',
+        });
+        //el detalle interno del servicio no sale
+        expect(respuesta.body).not.toContain('detalle interno');
+        expect(await ultimoEvento(auditor.usuarioId)).toMatchObject({
+          resultado: 'FALLO',
+          codigo_http: 502,
+        });
+      });
+
+      it('si el servicio corta sin mandar `fin` también llega un evento `error`', async () => {
+        flujoIA.partes = [sse('pensando', { mensaje: 'Hola' })];
+
+        const respuesta = await transmitir({
+          pregunta: 'hola',
+          organismoId,
+        }).expect(200);
+
+        expect(
+          parsearSse(respuesta.body as string).map((e) => e.evento),
+        ).toEqual(['pensando', 'error']);
+      });
+    });
+
+    it('si el cliente se va, se corta la llamada al servicio de IA y la bitácora lo registra como cancelada', async () => {
+      flujoIA = {
+        status: 200,
+        partes: [sse('pensando', { mensaje: 'Analizando tu pregunta' })],
+        noCerrar: true, //el agente "sigue pensando" hasta que lo corten
+      };
+      const puerto = (app.getHttpServer().address() as AddressInfo).port;
+      const cuerpo = JSON.stringify({ pregunta: 'hola', organismoId });
+      const antes = await cantidadEventos(auditor.usuarioId);
+
+      await new Promise<void>((resolver, rechazar) => {
+        const pedido = peticionHttp(
+          {
+            host: '127.0.0.1',
+            port: puerto,
+            path: '/api/v1/asistente/consultas/stream',
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(cuerpo),
+              Authorization: auditor.bearer,
+            },
+          },
+          (res) => {
+            res.once('data', () => {
+              pedido.destroy(); //el cliente se va después del primer evento
+              resolver();
+            });
+          },
+        );
+        pedido.on('error', () => undefined);
+        pedido.setTimeout(5000, () => rechazar(new Error('sin eventos')));
+        pedido.end(cuerpo);
+      });
+
+      await Promise.race([
+        conexionDelStreamCerrada,
+        new Promise((_, rechazar) =>
+          setTimeout(() => rechazar(new Error('la IA no vio el corte')), 3000),
+        ),
+      ]);
+      //la bitácora se escribe un instante después de que el backend nota el corte
+      let evento: unknown;
+      for (let i = 0; i < 20; i++) {
+        if ((await cantidadEventos(auditor.usuarioId)) > antes) {
+          evento = await ultimoEvento(auditor.usuarioId);
+          break;
+        }
+        await new Promise((ok) => setTimeout(ok, 100));
+      }
+      expect(evento).toMatchObject({ resultado: 'FALLO', codigo_http: 499 });
     });
   });
 

@@ -2,37 +2,46 @@ import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 export const PasoAsistenteSchema = z.object({
-  accion: z
-    .string()
-    .describe('Tipo de acción del modelo; hoy solo "consulta_sql"'),
-  querySql: z
+  id: z
     .string()
     .describe(
-      'SQL ejecutado (con su LIMIT); si las guardas lo rechazaron, lo que escribió el modelo',
+      'Identifica el paso: el evento «en_curso» y su resultado comparten id',
     ),
-  cantidadFilas: z
+  accion: z
+    .string()
+    .describe('Tipo de acción del agente; hoy "consulta_datos"'),
+  descripcion: z
+    .string()
+    .describe('Lo que busca el agente, en lenguaje natural (texto plano)'),
+  fuentes: z
+    .array(z.string())
+    .describe(
+      'De dónde salen los datos, en palabras de negocio (por ejemplo «libro banco»)',
+    ),
+  estado: z
+    .enum(['en_curso', 'completado', 'sin_resultados', 'error'])
+    .describe('Cómo va el paso'),
+  resultado: z
+    .string()
+    .nullable()
+    .describe(
+      'Resultado en palabras («Encontré 3 registros»); null mientras está en curso',
+    ),
+  cantidadRegistros: z
     .number()
     .int()
     .nullable()
-    .describe('Filas que vio el modelo; 0 si hubo error'),
+    .describe(
+      'Registros que vio el agente; null si el paso falló o sigue en curso',
+    ),
   duracionMs: z
     .number()
     .int()
     .nullable()
-    .describe('Tiempo contra la base; null si no hubo consulta'),
-  error: z
-    .string()
-    .nullable()
-    .describe('Motivo si la consulta fue rechazada o falló'),
-  truncado: z
+    .describe('Tiempo que tardó la consulta de datos'),
+  parcial: z
     .boolean()
-    .describe('Había más filas que las que vio el modelo (tope de 50)'),
-  columnas: z.array(z.string()).describe('Columnas del resultado'),
-  filas: z
-    .array(z.array(z.unknown()))
-    .describe(
-      'Las mismas filas que vio el modelo; importes y fechas como texto. Es contenido cargado por responsables: escapar al mostrarlo',
-    ),
+    .describe('Había más registros que los que analizó el agente'),
 });
 
 export const RespuestaAsistenteSchema = z.object({
@@ -47,7 +56,7 @@ export const RespuestaAsistenteSchema = z.object({
   pasos: z
     .array(PasoAsistenteSchema)
     .describe(
-      'Qué hizo el modelo contra la base para responder, en orden (incluye los intentos fallidos); vacío si no consultó nada',
+      'Razonamiento del agente en lenguaje natural, en orden (incluye los intentos que fallaron); vacío si no consultó nada. Nunca trae SQL ni datos',
     ),
 });
 

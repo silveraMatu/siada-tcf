@@ -23,10 +23,14 @@ import {
 import {
   AsistenteIAPort,
   type ConsultaIA,
+  type EventoIA,
   type PasoIA,
   type RespuestaIA,
 } from '../ports/out/asistente-ia.port.js';
-import { ConsultarAsistenteUseCase } from './consultar-asistente.use-case.js';
+import {
+  ConsultarAsistenteUseCase,
+  type EventoAsistente,
+} from './consultar-asistente.use-case.js';
 
 const AUDITOR = 7;
 const ORGANISMO = 1;
@@ -34,8 +38,13 @@ const OTRO_ORGANISMO = 2;
 
 class IAFalsa extends AsistenteIAPort {
   consultas: ConsultaIA[] = [];
+  //falla al pedir la consulta (servicio caído o sin configurar)
   falla: Error | null = null;
   pasos: PasoIA[] = [];
+  //lo que emite la consulta en vivo y, si se indica, el fallo a mitad del flujo (después de emitirlo todo)
+  eventos: EventoIA[] = [];
+  fallaEnFlujo: Error | null = null;
+  cancelaciones: (AbortSignal | undefined)[] = [];
 
   consultar(consulta: ConsultaIA): Promise<RespuestaIA> {
     this.consultas.push(consulta);
@@ -44,6 +53,22 @@ class IAFalsa extends AsistenteIAPort {
       respuesta: 'Respuesta de prueba',
       pasos: this.pasos,
     });
+  }
+
+  iniciarConsultaEnVivo(
+    consulta: ConsultaIA,
+    cancelacion?: AbortSignal,
+  ): Promise<AsyncIterable<EventoIA>> {
+    this.consultas.push(consulta);
+    this.cancelaciones.push(cancelacion);
+    if (this.falla) return Promise.reject(this.falla);
+    const { eventos, fallaEnFlujo } = this;
+    async function* flujo(): AsyncGenerator<EventoIA> {
+      await Promise.resolve();
+      for (const evento of eventos) yield evento;
+      if (fallaEnFlujo) throw fallaEnFlujo;
+    }
+    return Promise.resolve(flujo());
   }
 }
 
@@ -394,31 +419,37 @@ describe('ConsultarAsistenteUseCase', () => {
   });
 });
 
-const pasoOk: PasoIA = {
-  accion: 'consulta_sql',
-  querySql: 'SELECT SUM(depositos) FROM transacciones_libro_banco LIMIT 51',
-  cantidadFilas: 1,
-  duracionMs: 12,
-  error: null,
-  truncado: false,
-  columnas: ['sum'],
-  filas: [['1231900.10']],
-};
-const pasoRechazado: PasoIA = {
-  accion: 'consulta_sql',
-  querySql: 'SELECT * FROM usuarios',
-  cantidadFilas: 0,
+const pasoEnCurso: PasoIA = {
+  id: 'c1',
+  accion: 'consulta_datos',
+  descripcion: 'Total de depósitos del libro banco de febrero',
+  fuentes: ['libro banco'],
+  estado: 'en_curso',
+  resultado: null,
+  cantidadRegistros: null,
   duracionMs: null,
-  error: 'Tabla no permitida: usuarios',
-  truncado: false,
-  columnas: [],
-  filas: [],
+  parcial: false,
+};
+const pasoOk: PasoIA = {
+  ...pasoEnCurso,
+  estado: 'completado',
+  resultado: 'Encontré 1 registro',
+  cantidadRegistros: 1,
+  duracionMs: 12,
+};
+const pasoFallido: PasoIA = {
+  ...pasoEnCurso,
+  id: 'c2',
+  descripcion: 'Mostrar los datos de acceso de las personas',
+  fuentes: [],
+  estado: 'error',
+  resultado: 'No pude completar este paso',
 };
 
-describe('ConsultarAsistenteUseCase: traza de la IA', () => {
+describe('ConsultarAsistenteUseCase: razonamiento de la IA', () => {
   it('devuelve al auditor los pasos de la IA tal cual, incluidos los intentos fallidos', async () => {
     const { ia, useCase } = armar();
-    ia.pasos = [pasoRechazado, pasoOk];
+    ia.pasos = [pasoFallido, pasoOk];
 
     const resultado = await useCase.execute({
       actor: auditor,
@@ -426,12 +457,12 @@ describe('ConsultarAsistenteUseCase: traza de la IA', () => {
       organismoId: ORGANISMO,
     });
 
-    expect(resultado.pasos).toEqual([pasoRechazado, pasoOk]);
+    expect(resultado.pasos).toEqual([pasoFallido, pasoOk]);
   });
 
-  it('la bitácora recibe solo cantidades: ni el SQL ni las filas de los pasos', async () => {
+  it('la bitácora recibe solo cantidades: ni los textos del razonamiento ni de las fuentes', async () => {
     const { ia, actividad, useCase } = armar();
-    ia.pasos = [pasoRechazado, pasoOk];
+    ia.pasos = [pasoFallido, pasoOk];
 
     await useCase.execute({
       actor: auditor,
@@ -445,9 +476,9 @@ describe('ConsultarAsistenteUseCase: traza de la IA', () => {
     >;
     expect(detalle).toMatchObject({ consultasSql: 2, consultasConError: 1 });
     const crudo = JSON.stringify(detalle);
-    expect(crudo).not.toContain('usuarios');
-    expect(crudo).not.toContain('transacciones_libro_banco');
-    expect(crudo).not.toContain('1231900.10');
+    expect(crudo).not.toContain('libro banco');
+    expect(crudo).not.toContain('depósitos');
+    expect(crudo).not.toContain('datos de acceso');
   });
 
   it('sin pasos la bitácora cuenta cero y el auditor recibe una lista vacía', async () => {
@@ -464,5 +495,131 @@ describe('ConsultarAsistenteUseCase: traza de la IA', () => {
       consultasSql: 0,
       consultasConError: 0,
     });
+  });
+});
+
+const flujoCompleto: EventoIA[] = [
+  { tipo: 'pensando', mensaje: 'Analizando tu pregunta' },
+  { tipo: 'paso', paso: pasoEnCurso },
+  { tipo: 'paso', paso: pasoOk },
+  { tipo: 'pensando', mensaje: 'Analizando los resultados' },
+  { tipo: 'respuesta', respuesta: 'Se depositaron $1.231.900,10' },
+];
+
+async function recorrer(
+  flujo: AsyncGenerator<EventoAsistente>,
+): Promise<EventoAsistente[]> {
+  const recibidos: EventoAsistente[] = [];
+  for await (const evento of flujo) recibidos.push(evento);
+  return recibidos;
+}
+
+describe('ConsultarAsistenteUseCase: consulta en vivo', () => {
+  const consultaOk = {
+    actor: auditor,
+    pregunta: 'x',
+    organismoId: ORGANISMO,
+  };
+
+  it('reenvía los eventos en orden y la respuesta final trae el organismo consultado', async () => {
+    const { ia, useCase } = armar();
+    ia.eventos = flujoCompleto;
+
+    const preparada = await useCase.preparar(consultaOk);
+    const recibidos = await recorrer(await useCase.transmitir(preparada));
+
+    expect(recibidos).toEqual([
+      ...flujoCompleto.slice(0, 4),
+      {
+        tipo: 'respuesta',
+        respuesta: 'Se depositaron $1.231.900,10',
+        organismoId: ORGANISMO,
+      },
+    ]);
+  });
+
+  it('al terminar deja en la bitácora solo cantidades, contando los pasos terminados (no los «en curso»)', async () => {
+    const { ia, actividad, useCase } = armar();
+    ia.eventos = [
+      ...flujoCompleto.slice(0, 3),
+      { tipo: 'paso', paso: pasoFallido },
+      flujoCompleto[4]!,
+    ];
+
+    await recorrer(
+      await useCase.transmitir(await useCase.preparar(consultaOk)),
+    );
+
+    const detalle = Object.assign({}, ...actividad.detalles) as Record<
+      string,
+      unknown
+    >;
+    //c1 terminó (en curso → completado) y c2 llegó ya con error
+    expect(detalle).toMatchObject({
+      consultasSql: 2,
+      consultasConError: 1,
+      respuestaLongitud: 'Se depositaron $1.231.900,10'.length,
+    });
+    expect(typeof detalle.duracionMs).toBe('number');
+    expect(JSON.stringify(detalle)).not.toContain('libro banco');
+  });
+
+  it('la validación de acceso ocurre antes de abrir el flujo: un auditor ajeno recibe 403 y la IA no se llama', async () => {
+    const { ia, useCase } = armar();
+
+    await expect(
+      useCase.preparar({ ...consultaOk, organismoId: OTRO_ORGANISMO }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(ia.consultas).toEqual([]);
+  });
+
+  it('un servicio caído o sin configurar falla al abrir el flujo, con su código HTTP normal', async () => {
+    const { ia, useCase } = armar();
+    const preparada = await useCase.preparar(consultaOk);
+
+    ia.falla = new AsistenteNoDisponibleError();
+    await expect(useCase.transmitir(preparada)).rejects.toBeInstanceOf(
+      BadGatewayException,
+    );
+
+    ia.falla = new AsistenteNoConfiguradoError();
+    await expect(useCase.transmitir(preparada)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+  });
+
+  it('si el flujo falla a mitad entrega lo anterior, lanza 502 y la bitácora igual recibe lo contado', async () => {
+    const { ia, actividad, useCase } = armar();
+    ia.eventos = flujoCompleto.slice(0, 3);
+    ia.fallaEnFlujo = new AsistenteNoDisponibleError();
+    const recibidos: EventoAsistente[] = [];
+
+    const flujo = await useCase.transmitir(await useCase.preparar(consultaOk));
+    await expect(
+      (async () => {
+        for await (const evento of flujo) recibidos.push(evento);
+      })(),
+    ).rejects.toBeInstanceOf(BadGatewayException);
+
+    expect(recibidos).toHaveLength(3);
+    expect(Object.assign({}, ...actividad.detalles)).toMatchObject({
+      consultasSql: 1,
+      consultasConError: 0,
+    });
+  });
+
+  it('le pasa la señal de cancelación a la IA', async () => {
+    const { ia, useCase } = armar();
+    ia.eventos = [];
+    const cancelacion = new AbortController();
+
+    await recorrer(
+      await useCase.transmitir(
+        await useCase.preparar(consultaOk),
+        cancelacion.signal,
+      ),
+    );
+
+    expect(ia.cancelaciones[0]).toBe(cancelacion.signal);
   });
 });

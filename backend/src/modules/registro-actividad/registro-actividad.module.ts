@@ -44,6 +44,6 @@ import { ActividadInterceptor } from './infrastructure/http/actividad.intercepto
     { provide: APP_INTERCEPTOR, useClass: ActividadInterceptor },
     { provide: APP_FILTER, useClass: ActividadFilter },
   ],
-  exports: [ContextoActividadPort],
+  exports: [ContextoActividadPort, ActividadRegistrador],
 })
 export class RegistroActividadModule {}
