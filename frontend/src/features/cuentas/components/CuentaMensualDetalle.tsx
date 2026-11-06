@@ -8,6 +8,9 @@ import { resumirIngresosEgresos } from '@/features/ingresos-egresos/lib/resumir-
 import { IngestarRaciDialog } from '@/features/raci/components/IngestarRaciDialog';
 import { useRaci } from '@/features/raci/hooks/useRaci';
 import { resumirRaci } from '@/features/raci/lib/resumir-raci';
+import { IngestarRaiDialog } from '@/features/rai/components/IngestarRaiDialog';
+import { useRai } from '@/features/rai/hooks/useRai';
+import { resumirRai } from '@/features/rai/lib/resumir-rai';
 import { IngestaDialog } from '@/features/libro-banco/components/IngestaDialog';
 import { useLibrosBanco } from '@/features/libro-banco/hooks/useLibrosBanco';
 import { formatearMomento } from '@/features/libro-banco/lib/formato-libro';
@@ -34,6 +37,7 @@ export function CuentaMensualDetalle({
   const [libroBancoAbierto, setLibroBancoAbierto] = useState(false);
   const [ingresosEgresosAbierto, setIngresosEgresosAbierto] = useState(false);
   const [raciAbierto, setRaciAbierto] = useState(false);
+  const [raiAbierto, setRaiAbierto] = useState(false);
   const resolver = useResolverCuentaMensual();
 
   // Solo en borrador se pueden cargar documentos: después la evidencia es inmutable.
@@ -42,8 +46,9 @@ export function CuentaMensualDetalle({
   // Lo ya cargado: se ve en borrador (antes del paso irreversible de presentar) y decide si se puede presentar.
   const librosBanco = useLibrosBanco(cuenta.id);
   const ingresosEgresos = useIngresosEgresos(cuenta.id);
-  // El RACI es opcional: no condiciona si se puede presentar ni cuenta como documento faltante.
+  // El RACI y el RAI son opcionales: no condicionan si se puede presentar ni cuentan como documentos faltantes.
   const raci = useRaci(cuenta.id);
+  const rai = useRai(cuenta.id);
   const cargando = librosBanco.isPending || ingresosEgresos.isPending;
   const faltantes = documentosFaltantes({
     librosBanco: librosBanco.data?.length ?? 0,
@@ -60,6 +65,7 @@ export function CuentaMensualDetalle({
         ? resumirIngresosEgresos(ingresosEgresos.data).filas
         : undefined,
       raci: raci.data ? resumirRaci(raci.data).asientos : undefined,
+      rai: rai.data ? resumirRai(rai.data).asientos : undefined,
     };
   const etiquetaEstado =
     ESTADOS[cuenta.estado as keyof typeof ESTADOS]?.label ?? cuenta.estado;
@@ -138,9 +144,11 @@ export function CuentaMensualDetalle({
           librosBanco={librosBanco}
           ingresosEgresos={ingresosEgresos}
           raci={raci}
+          rai={rai}
           onCargarLibroBanco={() => setLibroBancoAbierto(true)}
           onCargarIngresosEgresos={() => setIngresosEgresosAbierto(true)}
           onCargarRaci={() => setRaciAbierto(true)}
+          onCargarRai={() => setRaiAbierto(true)}
         />
       </div>
 
@@ -169,6 +177,14 @@ export function CuentaMensualDetalle({
             cuentaMensualId={cuenta.id}
             onIngestada={refrescar}
             libroExistente={raci.data ? resumirRaci(raci.data) : null}
+          />
+          <IngestarRaiDialog
+            open={raiAbierto}
+            onOpenChange={setRaiAbierto}
+            cuentaMensualId={cuenta.id}
+            ejercicioFiscal={contexto.ejercicioFiscal}
+            onIngestada={refrescar}
+            libroExistente={rai.data ? resumirRai(rai.data) : null}
           />
         </>
       )}

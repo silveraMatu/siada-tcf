@@ -13,6 +13,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { obtenerIngresosEgresos } from '@/features/ingresos-egresos/api/ingresos-egresos.api';
 import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
 import { obtenerRaci } from '@/features/raci/api/raci.api';
+import { obtenerRai } from '@/features/rai/api/rai.api';
+import type { RaiGuardado } from '@/features/rai/types';
 import type { RaciGuardado } from '@/features/raci/types';
 import { obtenerLibrosBanco } from '@/features/libro-banco/api/libro-banco.api';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
@@ -35,6 +37,10 @@ vi.mock('@/features/ingresos-egresos/api/ingresos-egresos.api', () => ({
 vi.mock('@/features/raci/api/raci.api', () => ({
   obtenerRaci: vi.fn(),
   ingestarRaci: vi.fn(),
+}));
+vi.mock('@/features/rai/api/rai.api', () => ({
+  obtenerRai: vi.fn(),
+  ingestarRai: vi.fn(),
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -144,6 +150,27 @@ const raciGuardado = (cantidad = 2): RaciGuardado => ({
   })),
 });
 
+/** Libro RAI guardado con `cantidad` asientos, sin N° de asiento como las planillas reales. */
+const raiGuardado = (cantidad = 2): RaiGuardado => ({
+  id: 8,
+  cuentaMensualId: 5,
+  fechaCreacion: '2026-10-15T12:00:00.000Z',
+  subidoPorId: 1,
+  subidoPor: null,
+  hashContenido: 'c'.repeat(64),
+  transacciones: Array.from({ length: cantidad }, (_, i) => ({
+    id: 800 + i,
+    asiento: null,
+    fecha: `2026-03-0${i + 2}`,
+    planillaNumero: null,
+    concepto: `Concepto RAI ${i + 1}`,
+    ingresosDiarios: 1000,
+    ingresosMensuales: 1000 * (i + 1),
+    ingresosAcumulados: 5000 + 1000 * (i + 1),
+    saldo: 9000,
+  })),
+});
+
 function renderDetalle(estado: string, onActualizada = vi.fn()) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -174,6 +201,7 @@ describe('CuentaMensualDetalle', () => {
   beforeEach(() => {
     // el RACI es opcional: por defecto la rendición no lo tiene
     vi.mocked(obtenerRaci).mockResolvedValue(null);
+    vi.mocked(obtenerRai).mockResolvedValue(null);
   });
 
   describe('en borrador', () => {
@@ -447,7 +475,8 @@ describe('CuentaMensualDetalle', () => {
       expect(
         screen.getByRole('heading', { name: 'RACI (opcional)' }),
       ).toBeTruthy();
-      expect(screen.getByText('Opcional')).toBeTruthy();
+      // el RACI y el RAI figuran como opcionales
+      expect(screen.getAllByText('Opcional')).toHaveLength(2);
       expect(screen.getByRole('button', { name: 'Cargar RACI' })).toBeTruthy();
       expect(screen.getByText(/Documentos completos/)).toBeTruthy();
       await waitFor(() => expect(botonPresentar().disabled).toBe(false));
@@ -475,11 +504,14 @@ describe('CuentaMensualDetalle', () => {
       expect(screen.getByText('2 de 2 listos')).toBeTruthy();
       expect(screen.queryByText('Concepto RACI 1')).toBeNull();
 
-      await user.click(screen.getByRole('button', { name: 'Ver asientos' }));
+      await user.click(
+        screen.getByRole('button', { name: 'Ver asientos del RACI' }),
+      );
       expect(await screen.findByText('Concepto RACI 1')).toBeTruthy();
 
-      const reemplazos = screen.getAllByRole('button', { name: 'Reemplazar' });
-      await user.click(reemplazos[reemplazos.length - 1]);
+      await user.click(
+        screen.getByRole('button', { name: 'Reemplazar el RACI' }),
+      );
       expect(
         await screen.findByRole('heading', { name: 'Reemplazar el RACI' }),
       ).toBeTruthy();
@@ -505,6 +537,94 @@ describe('CuentaMensualDetalle', () => {
       expect(await screen.findByText(/2 asientos/)).toBeTruthy();
       expect(screen.queryByRole('button', { name: 'Cargar RACI' })).toBeNull();
       expect(screen.queryByRole('button', { name: 'Reemplazar' })).toBeNull();
+    });
+  });
+
+  describe('RAI (opcional)', () => {
+    beforeEach(() => {
+      vi.mocked(obtenerLibrosBanco).mockResolvedValue([
+        libro(1, '100234/1', 2),
+      ]);
+      vi.mocked(obtenerIngresosEgresos).mockResolvedValue(ingresosEgresos());
+    });
+
+    it('sin RAI lo ofrece como opcional: no cuenta entre los documentos ni impide presentar', async () => {
+      renderDetalle('EN_BORRADOR');
+
+      expect(await screen.findByText('2 de 2 listos')).toBeTruthy();
+      expect(
+        screen.getByRole('heading', { name: 'RAI (opcional)' }),
+      ).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Cargar RAI' })).toBeTruthy();
+      expect(screen.getByText(/Documentos completos/)).toBeTruthy();
+      await waitFor(() => expect(botonPresentar().disabled).toBe(false));
+    });
+
+    it('«Cargar RAI» abre su diálogo y le dice el ejercicio de la rendición', async () => {
+      const { user } = renderDetalle('EN_BORRADOR');
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Cargar RAI' }),
+      );
+
+      expect(
+        await screen.findByRole('heading', { name: 'Cargar el RAI' }),
+      ).toBeTruthy();
+      expect(screen.getByText(/ejercicio 2026 de la rendición/)).toBeTruthy();
+    });
+
+    it('con RAI cargado se resume, sus asientos se ven a pedido y el diálogo pasa a ser un reemplazo', async () => {
+      vi.mocked(obtenerRai).mockResolvedValue(raiGuardado());
+      const { user } = renderDetalle('EN_BORRADOR');
+
+      expect(
+        await screen.findByText(/2 asientos · 02\/03\/2026 al 03\/03\/2026/),
+      ).toBeTruthy();
+      expect(screen.getByText('2 de 2 listos')).toBeTruthy();
+      expect(screen.queryByText('Concepto RAI 1')).toBeNull();
+
+      await user.click(
+        screen.getByRole('button', { name: 'Ver asientos del RAI' }),
+      );
+      expect(await screen.findByText('Concepto RAI 1')).toBeTruthy();
+
+      await user.click(
+        screen.getByRole('button', { name: 'Reemplazar el RAI' }),
+      );
+      expect(
+        await screen.findByRole('heading', { name: 'Reemplazar el RAI' }),
+      ).toBeTruthy();
+    });
+
+    it('con RACI y RAI cargados, los dos se distinguen y el resumen de presentar nombra a ambos', async () => {
+      vi.mocked(obtenerRaci).mockResolvedValue(raciGuardado(3));
+      vi.mocked(obtenerRai).mockResolvedValue(raiGuardado(4));
+      const { user } = renderDetalle('EN_BORRADOR');
+
+      await screen.findByText(/4 asientos/);
+      expect(
+        screen.getByRole('button', { name: 'Ver asientos del RACI' }),
+      ).toBeTruthy();
+      expect(
+        screen.getByRole('button', { name: 'Ver asientos del RAI' }),
+      ).toBeTruthy();
+
+      await waitFor(() => expect(botonPresentar().disabled).toBe(false));
+      await user.click(botonPresentar());
+      const texto = (await screen.findByRole('alertdialog')).textContent;
+      expect(texto).toMatch(/el RACI\s+con\s*3 asientos/);
+      expect(texto).toMatch(/el RAI\s+con\s*4 asientos/);
+    });
+
+    it('en una presentada se ve en solo lectura, sin ofrecer cargarlo', async () => {
+      vi.mocked(obtenerRai).mockResolvedValue(raiGuardado());
+      renderDetalle('LISTO_PARA_AUDITAR');
+
+      expect(await screen.findByText(/2 asientos/)).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Cargar RAI' })).toBeNull();
+      expect(
+        screen.queryByRole('button', { name: 'Reemplazar el RAI' }),
+      ).toBeNull();
     });
   });
 

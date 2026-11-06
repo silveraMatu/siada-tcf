@@ -31,6 +31,8 @@ interface PresentarRendicionDialogProps {
     ingresosEgresos?: number;
     /** Asientos del libro RACI, que es opcional, si se cargó. */
     raci?: number;
+    /** Asientos del libro RAI, que también es opcional, si se cargó. */
+    rai?: number;
   };
   /** Sin todos los documentos cargados no hay nada que presentar. */
   deshabilitado?: boolean;
@@ -108,11 +110,27 @@ export function PresentarRendicionDialog({
                 )}
                 {resumen.raci !== undefined && (
                   <>
-                    {resumen.ingresosEgresos !== undefined ? ' y' : ','} el RACI
-                    con{' '}
+                    {resumen.ingresosEgresos === undefined
+                      ? ','
+                      : resumen.rai === undefined
+                        ? ' y'
+                        : ','}{' '}
+                    el RACI con{' '}
                     <strong>
                       {resumen.raci}{' '}
                       {resumen.raci === 1 ? 'asiento' : 'asientos'}
+                    </strong>
+                  </>
+                )}
+                {resumen.rai !== undefined && (
+                  <>
+                    {resumen.ingresosEgresos === undefined &&
+                    resumen.raci === undefined
+                      ? ','
+                      : ' y'}{' '}
+                    el RAI con{' '}
+                    <strong>
+                      {resumen.rai} {resumen.rai === 1 ? 'asiento' : 'asientos'}
                     </strong>
                   </>
                 )}

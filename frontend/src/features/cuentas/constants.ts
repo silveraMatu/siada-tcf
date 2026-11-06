@@ -24,6 +24,7 @@ export const TIPOS_LIBRO: Record<TipoLibro, string> = {
   LIBRO_BANCO: 'Libro Banco',
   INGRESOS_EGRESOS: 'Ingresos y Egresos',
   RACI: 'RACI',
+  RAI: 'RAI',
 };
 
 export const ESTADOS: Record<

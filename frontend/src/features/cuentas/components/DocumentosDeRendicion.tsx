@@ -19,6 +19,10 @@ import { PreviewRaciTable } from '@/features/raci/components/PreviewRaciTable';
 import { guardadoAFilas as guardadoRaciAFilas } from '@/features/raci/lib/guardado-a-filas';
 import { resumirRaci } from '@/features/raci/lib/resumir-raci';
 import type { RaciGuardado } from '@/features/raci/types';
+import { PreviewRaiTable } from '@/features/rai/components/PreviewRaiTable';
+import { guardadoAFilas as guardadoRaiAFilas } from '@/features/rai/lib/guardado-a-filas';
+import { resumirRai } from '@/features/rai/lib/resumir-rai';
+import type { RaiGuardado } from '@/features/rai/types';
 import { nombreCompleto } from '@/lib/persona';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
 import { TOTAL_DOCUMENTOS } from '../lib/documentos-faltantes';
@@ -42,9 +46,12 @@ interface DocumentosDeRendicionProps {
   ingresosEgresos: Consulta<IngresosEgresosGuardado | null>;
   /** Opcional: no cuenta entre los documentos que exige la rendición. */
   raci: Consulta<RaciGuardado | null>;
+  /** Opcional, igual que el RACI. */
+  rai: Consulta<RaiGuardado | null>;
   onCargarLibroBanco: () => void;
   onCargarIngresosEgresos: () => void;
   onCargarRaci: () => void;
+  onCargarRai: () => void;
 }
 
 function describirCuentas(cantidad: number): string {
@@ -61,12 +68,15 @@ export function DocumentosDeRendicion({
   librosBanco,
   ingresosEgresos,
   raci,
+  rai,
   onCargarLibroBanco,
   onCargarIngresosEgresos,
   onCargarRaci,
+  onCargarRai,
 }: DocumentosDeRendicionProps) {
   const [verFilas, setVerFilas] = useState(false);
   const [verAsientos, setVerAsientos] = useState(false);
+  const [verAsientosRai, setVerAsientosRai] = useState(false);
 
   const cantidadBancos = librosBanco.data?.length ?? 0;
   const libroIE = ingresosEgresos.data ?? null;
@@ -75,6 +85,8 @@ export function DocumentosDeRendicion({
   const resumenIE = libroIE ? resumirIngresosEgresos(libroIE) : null;
   const libroRaci = raci.data ?? null;
   const resumenRaci = libroRaci ? resumirRaci(libroRaci) : null;
+  const libroRai = rai.data ?? null;
+  const resumenRai = libroRai ? resumirRai(libroRai) : null;
 
   return (
     <section aria-labelledby="documentos-titulo" className="space-y-3">
@@ -225,7 +237,11 @@ export function DocumentosDeRendicion({
             enBorrador &&
             !raci.isPending &&
             !raci.isError && (
-              <Button variant="outline" onClick={onCargarRaci}>
+              <Button
+                variant="outline"
+                onClick={onCargarRaci}
+                aria-label={libroRaci ? 'Reemplazar el RACI' : undefined}
+              >
                 {libroRaci ? <RefreshCw /> : <Upload />}
                 {libroRaci ? 'Reemplazar' : 'Cargar RACI'}
               </Button>
@@ -246,6 +262,11 @@ export function DocumentosDeRendicion({
                 variant="ghost"
                 size="sm"
                 aria-expanded={verAsientos}
+                aria-label={
+                  verAsientos
+                    ? 'Ocultar asientos del RACI'
+                    : 'Ver asientos del RACI'
+                }
                 aria-controls="asientos-raci"
                 onClick={() => setVerAsientos((abierto) => !abierto)}
                 className="-ml-2.5"
@@ -263,6 +284,75 @@ export function DocumentosDeRendicion({
                 <div id="asientos-raci">
                   <PreviewRaciTable
                     filas={guardadoRaciAFilas(libroRaci)}
+                    className="max-h-[420px]"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </FilaDocumento>
+        <FilaDocumento
+          titulo="RAI (opcional)"
+          descripcion={
+            resumenRai
+              ? `${resumenRai.asientos === 1 ? '1 asiento' : `${resumenRai.asientos} asientos`} · ${describirRangoFechas(resumenRai.fechaDesde, resumenRai.fechaHasta)} · cargado el ${formatearMomento(resumenRai.cargadoEl)}${resumenRai.subidoPor ? ` por ${nombreCompleto(resumenRai.subidoPor)}` : ''}`
+              : 'Registro Analítico de Ingresos, con los asientos del mes. No es obligatorio para presentar.'
+          }
+          estado={libroRai ? 'cargado' : 'no-cargado'}
+          etiquetaEstado={
+            rai.isPending ? 'Cargando…' : libroRai ? 'Cargado' : 'Opcional'
+          }
+          accion={
+            enBorrador &&
+            !rai.isPending &&
+            !rai.isError && (
+              <Button
+                variant="outline"
+                onClick={onCargarRai}
+                aria-label={libroRai ? 'Reemplazar el RAI' : undefined}
+              >
+                {libroRai ? <RefreshCw /> : <Upload />}
+                {libroRai ? 'Reemplazar' : 'Cargar RAI'}
+              </Button>
+            )
+          }
+        >
+          {rai.isError && (
+            <ErrorAlert
+              error={rai.error}
+              onRetry={() => void rai.refetch()}
+              retrying={rai.isFetching}
+            />
+          )}
+          {libroRai && (
+            <div className="space-y-3">
+              <HuellaDocumento hash={libroRai.hashContenido} />
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-expanded={verAsientosRai}
+                aria-label={
+                  verAsientosRai
+                    ? 'Ocultar asientos del RAI'
+                    : 'Ver asientos del RAI'
+                }
+                aria-controls="asientos-rai"
+                onClick={() => setVerAsientosRai((abierto) => !abierto)}
+                className="-ml-2.5"
+              >
+                <ChevronDown
+                  className={
+                    verAsientosRai
+                      ? 'rotate-180 motion-safe:transition-transform'
+                      : 'motion-safe:transition-transform'
+                  }
+                />
+                {verAsientosRai ? 'Ocultar asientos' : 'Ver asientos'}
+              </Button>
+              {verAsientosRai && (
+                <div id="asientos-rai">
+                  <PreviewRaiTable
+                    filas={guardadoRaiAFilas(libroRai)}
                     className="max-h-[420px]"
                   />
                 </div>

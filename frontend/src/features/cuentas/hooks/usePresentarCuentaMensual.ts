@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { ingresosEgresosKeys } from '@/features/ingresos-egresos/hooks/ingresos-egresos.keys';
 import { libroBancoKeys } from '@/features/libro-banco/hooks/libro-banco.keys';
 import { raciKeys } from '@/features/raci/hooks/raci.keys';
+import { raiKeys } from '@/features/rai/hooks/rai.keys';
 import { getErrorMessage } from '@/lib/api';
 import { presentarCuentaMensual } from '../api/cuentas.api';
 import { cuentasKeys } from './cuentas.keys';
@@ -31,6 +32,9 @@ export function usePresentarCuentaMensual() {
       });
       void queryClient.invalidateQueries({
         queryKey: raciKeys.porCuenta(cuenta.id),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: raiKeys.porCuenta(cuenta.id),
       });
     },
     onError: (error) => toast.error(getErrorMessage(error)),

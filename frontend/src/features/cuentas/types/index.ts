@@ -21,7 +21,7 @@ export interface CuentaMensual {
 }
 
 /** Tipos de libro contable que puede traer una rendición. */
-export type TipoLibro = 'LIBRO_BANCO' | 'INGRESOS_EGRESOS' | 'RACI';
+export type TipoLibro = 'LIBRO_BANCO' | 'INGRESOS_EGRESOS' | 'RACI' | 'RAI';
 
 /** Qué trae un libro cargado en una rendición, sin sus transacciones. */
 export interface ResumenLibro {
