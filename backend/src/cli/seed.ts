@@ -12,6 +12,7 @@ import { EstadoCuentaMensual } from '../modules/cuentas/domain/enums/estado-cuen
 import { IngestarIngresosEgresosUseCase } from '../modules/ingresos-egresos/application/use-cases/ingestar-ingresos-egresos.use-case.js';
 import { IngestarLibroBancoUseCase } from '../modules/libro-banco/application/use-cases/ingestar-libro-banco.use-case.js';
 import { IngestarRaciUseCase } from '../modules/raci/application/use-cases/ingestar-raci.use-case.js';
+import { IngestarRaiUseCase } from '../modules/rai/application/use-cases/ingestar-rai.use-case.js';
 import { OrganismoRepositoryPort } from '../modules/organismos/application/ports/out/organismo-repository.port.js';
 import { AsignarAuditorUseCase } from '../modules/organismos/application/use-cases/asignar-auditor.use-case.js';
 import { CrearOrganismoUseCase } from '../modules/organismos/application/use-cases/crear-organismo.use-case.js';
@@ -135,6 +136,7 @@ export async function sembrar(
   const ingestarBanco = get(IngestarLibroBancoUseCase);
   const ingestarIE = get(IngestarIngresosEgresosUseCase);
   const ingestarRaci = get(IngestarRaciUseCase);
+  const ingestarRai = get(IngestarRaiUseCase);
   const presentar = get(PresentarCuentaMensualUseCase);
   const responsableUsuarioId = idDe(Rol.RESPONSABLE);
 
@@ -174,10 +176,15 @@ export async function sembrar(
       { ...rendicion.ingresosEgresos, reemplazar: true },
       responsableUsuarioId,
     );
-    //el RACI es opcional para presentar, pero se carga igual para probar el libro
+    //el RACI y el RAI son opcionales para presentar, pero se cargan igual para probar los libros
     await ingestarRaci.execute(
       cuentaId,
       { ...rendicion.raci, reemplazar: true },
+      responsableUsuarioId,
+    );
+    await ingestarRai.execute(
+      cuentaId,
+      { ...rendicion.rai, reemplazar: true },
       responsableUsuarioId,
     );
     if (objetivo === 'PRESENTADA') {

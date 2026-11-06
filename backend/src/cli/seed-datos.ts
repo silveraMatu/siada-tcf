@@ -1,6 +1,7 @@
 import type { IngestarIngresosEgresosComando } from '../modules/ingresos-egresos/application/use-cases/ingestar-ingresos-egresos.use-case.js';
 import type { IngestarLibroBancoComando } from '../modules/libro-banco/application/use-cases/ingestar-libro-banco.use-case.js';
 import type { IngestarRaciComando } from '../modules/raci/application/use-cases/ingestar-raci.use-case.js';
+import type { IngestarRaiComando } from '../modules/rai/application/use-cases/ingestar-rai.use-case.js';
 
 //datos de ejemplo de las rendiciones del seed; puro (sin Nest ni base) para poder probarlo con el motor de auditoría
 
@@ -28,6 +29,8 @@ export interface ErroresSeed {
   chequeRaci?: number;
   //el asiento de compromiso del n-ésimo egreso del mes (desde 0) lleva la fecha del mes anterior: F1 lo marca
   fechaRaciMesAnterior?: number;
+  //suma `diferencia` a los ingresos mensuales de la última fila del RAI: V7 marca esa fila
+  sumaMensualRai?: { diferencia: number };
 }
 
 export interface RendicionSeedEntrada {
@@ -40,12 +43,15 @@ export interface RendicionSeedEntrada {
   errores?: ErroresSeed;
   //egresos en centavos de los meses anteriores del ejercicio: el acumulado con el que abre el RACI del mes
   egresosPrevios?: number;
+  //ingresos en centavos de los meses anteriores del ejercicio: el acumulado con el que abre el RAI del mes
+  ingresosPrevios?: number;
 }
 
 export interface RendicionSeed {
   librosBanco: IngestarLibroBancoComando[];
   ingresosEgresos: IngestarIngresosEgresosComando;
   raci: IngestarRaciComando;
+  rai: IngestarRaiComando;
 }
 
 //los importes del seed se piensan en pesos y se calculan en centavos enteros
@@ -55,6 +61,13 @@ const aImporte = (centavos: number): number => centavos / 100;
 //lo que el banco pagó en el mes: es lo que el RACI debe reflejar como egresos
 export const totalEgresos = (movimientos: MovimientoSeed[]): number =>
   movimientos.reduce((suma, mov) => suma + (mov.retiro ?? 0), 0);
+
+//lo que el banco recibió en el mes: es lo que el RAI debe reflejar como ingresos
+export const totalIngresos = (movimientos: MovimientoSeed[]): number =>
+  movimientos.reduce((suma, mov) => suma + (mov.deposito ?? 0), 0);
+
+//total autorizado de la partida de ejemplo del RAI (en centavos): deja saldos positivos durante todo el ejercicio
+export const TOTAL_AUTORIZADO_RAI = pesos(50_000_000);
 
 const fechaDe = (ejercicio: number, mes: number, dia: number): string =>
   `${ejercicio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
@@ -69,7 +82,7 @@ export const chequeSeed = (mes: number, egreso: number): string =>
 //arma los libros de una rendición coherente: la primera fila de cada libro es el saldo anterior (la base que las
 //reglas no validan), el I/E refleja cada movimiento bancario con el mismo debe/haber y su saldo corrido es la suma
 //de los libros, y cada egreso del banco pasa por el RACI como tres asientos (compromiso, devengado y pago, una
-//etapa por fila, con el mismo cheque que el banco), así que las 14 reglas dan VERIFICADO salvo los errores que
+//etapa por fila, con el mismo cheque que el banco), así que las 17 reglas dan VERIFICADO salvo los errores que
 //se pidan
 export function armarRendicion(entrada: RendicionSeedEntrada): RendicionSeed {
   const {
@@ -79,6 +92,7 @@ export function armarRendicion(entrada: RendicionSeedEntrada): RendicionSeed {
     cajaInicial,
     movimientos,
     egresosPrevios = 0,
+    ingresosPrevios = 0,
     errores = {},
   } = entrada;
   const fecha = (dia: number) => fechaDe(ejercicio, mes, dia);
@@ -115,6 +129,13 @@ export function armarRendicion(entrada: RendicionSeedEntrada): RendicionSeed {
     asientoRaci(1, fecha(1), 'Saldo anterior', acumulado, {}),
   ];
   let egresoActual = 0;
+
+  //RAI: cada depósito del banco es un ingreso del día; el mensual corre dentro del mes, el acumulado desde los
+  //ingresos de los meses anteriores y el saldo es el total autorizado menos lo acumulado. El asiento va vacío,
+  //como en las planillas reales
+  let ingresosMes = 0;
+  let ingresosAcumulados = ingresosPrevios;
+  const asientosRai: IngestarRaiComando['transacciones'] = [];
 
   movimientos.forEach((mov, posicion) => {
     const deposito = mov.deposito ?? 0;
@@ -189,6 +210,20 @@ export function armarRendicion(entrada: RendicionSeedEntrada): RendicionSeed {
       egresoActual++;
     }
 
+    if (deposito > 0) {
+      ingresosMes += deposito;
+      ingresosAcumulados += deposito;
+      asientosRai.push({
+        fecha: fecha(mov.dia),
+        planillaNumero: `PL-${mes}${String(asientosRai.length + 1).padStart(3, '0')}`,
+        concepto: mov.concepto,
+        ingresosDiarios: aImporte(deposito),
+        ingresosMensuales: aImporte(ingresosMes),
+        ingresosAcumulados: aImporte(ingresosAcumulados),
+        saldo: aImporte(TOTAL_AUTORIZADO_RAI - ingresosAcumulados),
+      });
+    }
+
     bancoSaldo += deposito - retiro;
     cajaSaldo += cajaDebe - cajaHaber;
     filasIE.push(
@@ -208,6 +243,12 @@ export function armarRendicion(entrada: RendicionSeedEntrada): RendicionSeed {
   });
 
   const { bancoSaldo: errorBanco, cajaSaldo: errorCaja } = errores;
+  if (errores.sumaMensualRai && asientosRai.length > 0) {
+    const ultima = asientosRai[asientosRai.length - 1];
+    ultima.ingresosMensuales = aImporte(
+      pesos(ultima.ingresosMensuales) + errores.sumaMensualRai.diferencia,
+    );
+  }
   if (errorBanco) {
     const fila = librosBanco[errorBanco.libro].transacciones[errorBanco.indice];
     fila.saldo = aImporte(pesos(fila.saldo) + errorBanco.diferencia);
@@ -225,6 +266,7 @@ export function armarRendicion(entrada: RendicionSeedEntrada): RendicionSeed {
       transacciones: filasIE,
     },
     raci: { transacciones: asientosRaci },
+    rai: { transacciones: asientosRai },
   };
 }
 
@@ -460,12 +502,13 @@ export function mesesDelSeed(ejercicio = EJERCICIO_SEED): MesSeed[] {
         cajaInicial: pesos(50_500),
         movimientos: MOVIMIENTOS_MES_2,
         egresosPrevios: totalEgresos(MOVIMIENTOS_MES_1),
+        ingresosPrevios: totalIngresos(MOVIMIENTOS_MES_1),
       }),
     },
     {
       mes: 3,
       descripcion:
-        'presentada con errores: saldo del banco mal (V3), saldo de caja mal (V1), un cheque mal escrito en el RACI (P1) y un asiento del RACI con fecha del mes anterior (F1)',
+        'presentada con errores: saldo del banco mal (V3), saldo de caja mal (V1), un cheque mal escrito en el RACI (P1), un asiento del RACI con fecha del mes anterior (F1) y el ingreso mensual del RAI mal sumado (V7)',
       objetivo: 'PRESENTADA',
       rendicion: armarRendicion({
         ejercicio,
@@ -475,11 +518,14 @@ export function mesesDelSeed(ejercicio = EJERCICIO_SEED): MesSeed[] {
         movimientos: MOVIMIENTOS_MES_3,
         egresosPrevios:
           totalEgresos(MOVIMIENTOS_MES_1) + totalEgresos(MOVIMIENTOS_MES_2),
+        ingresosPrevios:
+          totalIngresos(MOVIMIENTOS_MES_1) + totalIngresos(MOVIMIENTOS_MES_2),
         errores: {
           bancoSaldo: { libro: 0, indice: 3, diferencia: pesos(10_000) },
           cajaSaldo: { indice: 4, diferencia: pesos(-1_500) },
           chequeRaci: 1,
           fechaRaciMesAnterior: 2,
+          sumaMensualRai: { diferencia: pesos(500) },
         },
       }),
     },

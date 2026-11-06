@@ -7,8 +7,11 @@ import { crearReglasAuditoria } from '../modules/auditoria/domain/engine/reglas-
 import { EstadoValidacion } from '../modules/auditoria/domain/types/auditoria.types.js';
 import { Raci } from '../modules/raci/domain/entities/raci.domain.js';
 import { TransaccionRaci } from '../modules/raci/domain/entities/transaccion-raci.domain.js';
+import { Rai } from '../modules/rai/domain/entities/rai.domain.js';
+import { TransaccionRai } from '../modules/rai/domain/entities/transaccion-rai.domain.js';
 import {
   EJERCICIO_SEED,
+  TOTAL_AUTORIZADO_RAI,
   mesesDelSeed,
   type RendicionSeed,
 } from './seed-datos.js';
@@ -70,11 +73,25 @@ function auditar(rendicion: RendicionSeed, mes: number) {
     ),
     1,
   );
+  const rai = new Rai(
+    1,
+    rendicion.rai.transacciones.map(
+      (t) =>
+        new TransaccionRai({
+          ...t,
+          asiento: t.asiento ?? null,
+          planillaNumero: t.planillaNumero ?? null,
+          id: id++,
+        }),
+    ),
+    1,
+  );
   const resultados = motor.ejecutarAuditoriaCompleta({
     cuentaMensualId: 1,
     librosBanco,
     ingresosEgresos,
     raci,
+    rai,
     periodo: { ejercicioFiscal: EJERCICIO_SEED, mes },
   });
   return Object.fromEntries(resultados.map((r) => [r.codigoRegla, r]));
@@ -86,7 +103,7 @@ describe('datos del seed', () => {
   it.each([
     ['en borrador', borrador],
     ['presentada y cuadrada', cuadrado],
-  ])('el mes %s pasa las 14 reglas', (_nombre, mes) => {
+  ])('el mes %s pasa las 17 reglas', (_nombre, mes) => {
     const resultados = auditar(mes.rendicion, mes.mes);
     expect(Object.keys(resultados)).toEqual([
       'V1',
@@ -95,13 +112,16 @@ describe('datos del seed', () => {
       'V4',
       'V5',
       'V6',
+      'V7',
       'C1',
       'C2',
+      'C3',
       'C4',
       'C5',
       'C6',
       'P1',
       'P2',
+      'P3',
       'F1',
     ]);
     for (const resultado of Object.values(resultados)) {
@@ -116,12 +136,14 @@ describe('datos del seed', () => {
       .filter((x) => x.estado === EstadoValidacion.FALLO)
       .map((x) => x.codigoRegla);
 
-    expect(fallan).toEqual(['V1', 'V3', 'P1', 'F1']);
+    expect(fallan).toEqual(['V1', 'V3', 'V7', 'P1', 'F1']);
     //V3 marca la fila alterada y la siguiente (parte del saldo informado); el resto, una sola fila
     expect(r.V1.observaciones).toHaveLength(1);
     expect(r.V3.observaciones).toHaveLength(2);
+    expect(r.V7.observaciones).toHaveLength(1);
     expect(r.P1.observaciones).toHaveLength(1);
     expect(r.F1.observaciones).toHaveLength(1);
+    expect(r.V7.observaciones[0].transaccionRaiId).toBeDefined();
     expect(r.P1.observaciones[0].transaccionRaciId).toBeDefined();
     expect(r.F1.observaciones[0].transaccionRaciId).toBeDefined();
   });
@@ -226,6 +248,70 @@ describe('datos del seed', () => {
       );
       expect(centavos(mes3.rendicion.raci.transacciones[0].pagoAcumulado)).toBe(
         pagado(mes1.rendicion) + pagado(mes2.rendicion),
+      );
+    });
+  });
+
+  describe('RAI', () => {
+    const centavos = (importe: number) => Math.round(importe * 100);
+    const meses = mesesDelSeed();
+
+    it('cada ingreso del banco entra al RAI y el total del mes coincide con el del I/E', () => {
+      for (const mes of meses) {
+        const depositos = mes.rendicion.librosBanco
+          .flatMap((libro) => libro.transacciones)
+          .reduce((suma, t) => suma + centavos(t.depositos), 0);
+        const ingresosRai = mes.rendicion.rai.transacciones.reduce(
+          (suma, t) => suma + centavos(t.ingresosDiarios),
+          0,
+        );
+        const ingresosIE = mes.rendicion.ingresosEgresos.transacciones.reduce(
+          (suma, t) => suma + centavos(t.ingresoMunicipal),
+          0,
+        );
+
+        expect(ingresosRai).toBe(depositos);
+        expect(ingresosRai).toBe(ingresosIE);
+      }
+    });
+
+    it.each(
+      meses
+        .filter((mes) => mes.mes !== 3)
+        .map((mes) => [`mes ${mes.mes}`, mes] as const),
+    )('el RAI del %s cumple las fórmulas de la planilla', (_nombre, mes) => {
+      let mensual = 0;
+      let acumulado = centavos(
+        mes.rendicion.rai.transacciones[0].ingresosAcumulados -
+          mes.rendicion.rai.transacciones[0].ingresosDiarios,
+      );
+      for (const t of mes.rendicion.rai.transacciones) {
+        //mensual = mensual anterior + diario; acumulado = acumulado anterior + diario; saldo = autorizado − acumulado
+        mensual += centavos(t.ingresosDiarios);
+        acumulado += centavos(t.ingresosDiarios);
+        expect(centavos(t.ingresosMensuales)).toBe(mensual);
+        expect(centavos(t.ingresosAcumulados)).toBe(acumulado);
+        expect(centavos(t.saldo)).toBe(TOTAL_AUTORIZADO_RAI - acumulado);
+      }
+    });
+
+    it('el acumulado con el que abre cada mes es el total de ingresos de los meses anteriores', () => {
+      const [mes1, mes2, mes3] = meses;
+      const abre = (m: (typeof mes1)['rendicion']) =>
+        centavos(
+          m.rai.transacciones[0].ingresosAcumulados -
+            m.rai.transacciones[0].ingresosDiarios,
+        );
+      const total = (m: (typeof mes1)['rendicion']) =>
+        m.rai.transacciones.reduce(
+          (suma, t) => suma + centavos(t.ingresosDiarios),
+          0,
+        );
+
+      expect(abre(mes1.rendicion)).toBe(0);
+      expect(abre(mes2.rendicion)).toBe(total(mes1.rendicion));
+      expect(abre(mes3.rendicion)).toBe(
+        total(mes1.rendicion) + total(mes2.rendicion),
       );
     });
   });

@@ -72,6 +72,11 @@ describe('Script seed (e2e)', () => {
         `SELECT count(*)::int AS raci FROM raci WHERE cuenta_mensual_id = $1`,
         [cuentaId],
       );
+      const [{ rai }] = await dataSource.query(
+        `SELECT count(*)::int AS rai FROM rai WHERE cuenta_mensual_id = $1`,
+        [cuentaId],
+      );
+      expect(rai).toBe(1);
       expect(banco).toBe(mes === 2 ? 2 : 1);
       expect(ie).toBe(1);
       //el RACI se carga mientras la rendición está en borrador; una base sembrada antes de que existiera el RACI
