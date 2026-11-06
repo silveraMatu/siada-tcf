@@ -66,13 +66,16 @@ describe('Auditoría (e2e)', () => {
     'V4',
     'V5',
     'V6',
+    'V7',
     'C1',
     'C2',
+    'C3',
     'C4',
     'C5',
     'C6',
     'P1',
     'P2',
+    'P3',
     'F1',
   ];
   //estado de cada regla; las que no se nombran esperan un libro que la rendición no tiene
@@ -302,6 +305,7 @@ describe('Auditoría (e2e)', () => {
             transaccionId: transaccionIncorrectaId,
             transaccionIngresoEgresoId: null,
             transaccionRaciId: null,
+            transaccionRaiId: null,
             valorInformado: 1400,
             valorCalculado: 1300,
             diferencia: 100,
@@ -503,12 +507,17 @@ describe('Auditoría (e2e)', () => {
         faltanLibros('V4', 'Secuencia lógica del gasto', ['RACI']),
         faltanLibros('V5', 'Límite presupuestario', ['RACI']),
         faltanLibros('V6', 'Límite de pago', ['RACI']),
+        faltanLibros('V7', 'Coherencia de suma mensual', ['RAI']),
         faltanLibros('C1', 'Egresos devengados (RACI)', [
           'RACI',
           'INGRESOS_EGRESOS',
         ]),
         faltanLibros('C2', 'Egresos pagados (RACI)', [
           'RACI',
+          'INGRESOS_EGRESOS',
+        ]),
+        faltanLibros('C3', 'Ingresos del mes (RAI)', [
+          'RAI',
           'INGRESOS_EGRESOS',
         ]),
         faltanLibros('C4', 'Depósitos bancarios', [
@@ -525,6 +534,10 @@ describe('Auditoría (e2e)', () => {
         ]),
         faltanLibros('P1', 'Existencia de cheques', ['RACI', 'LIBRO_BANCO']),
         faltanLibros('P2', 'Monto de cheques', ['RACI', 'LIBRO_BANCO']),
+        faltanLibros('P3', 'Existencia de ingresos', [
+          'RAI',
+          'INGRESOS_EGRESOS',
+        ]),
         faltanLibros('F1', 'Coherencia de fechas', [
           'LIBRO_BANCO',
           'INGRESOS_EGRESOS',
@@ -658,13 +671,16 @@ describe('Auditoría (e2e)', () => {
         ['V4', null, ['RACI']],
         ['V5', null, ['RACI']],
         ['V6', null, ['RACI']],
+        ['V7', null, ['RAI']],
         ['C1', null, ['RACI']],
         ['C2', null, ['RACI']],
+        ['C3', null, ['RAI']],
         ['C4', 1, []],
         ['C5', 1, []],
         ['C6', 1, []],
         ['P1', null, ['RACI']],
         ['P2', null, ['RACI']],
+        ['P3', null, ['RAI']],
         //el banco no trae fechas en este spec: solo se revisan las 3 filas de I/E que no son la base
         ['F1', 3, []],
       ]);
@@ -687,6 +703,7 @@ describe('Auditoría (e2e)', () => {
         transaccionId: null,
         transaccionIngresoEgresoId,
         transaccionRaciId: null,
+        transaccionRaiId: null,
         valorInformado: importes[0],
         valorCalculado: importes[1],
         diferencia: importes[2],

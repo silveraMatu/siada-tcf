@@ -57,6 +57,13 @@ export const ObservacionResponseSchema = z.object({
     .describe(
       'Id del asiento del RACI (GET .../raci, transacciones[].id, que también trae su N° de asiento); null si el hallazgo es de otro libro o de toda la cuenta',
     ),
+  transaccionRaiId: z
+    .number()
+    .int()
+    .nullable()
+    .describe(
+      'Id del asiento del RAI (GET .../rai, transacciones[].id, que también trae su fecha y concepto); null si el hallazgo es de otro libro o de toda la cuenta',
+    ),
 });
 
 export class ObservacionResponseDto extends createZodDto(

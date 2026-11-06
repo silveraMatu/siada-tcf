@@ -20,6 +20,7 @@ import { MotorAuditoriaService } from './domain/engine/motor-auditoria.service.j
 import { IngresosEgresosModule } from '../ingresos-egresos/ingresos-egresos.module.js';
 import { LibroBancoModule } from '../libro-banco/libro-banco.module.js';
 import { RaciModule } from '../raci/raci.module.js';
+import { RaiModule } from '../rai/rai.module.js';
 import { CuentasModule } from '../cuentas/cuentas.module.js';
 
 @Module({
@@ -28,6 +29,7 @@ import { CuentasModule } from '../cuentas/cuentas.module.js';
     LibroBancoModule,
     IngresosEgresosModule,
     RaciModule,
+    RaiModule,
     CuentasModule,
   ],
   controllers: [AuditoriaController, ObservacionesController],

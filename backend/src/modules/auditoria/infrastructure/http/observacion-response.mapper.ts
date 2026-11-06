@@ -16,6 +16,7 @@ export function aObservacionResponse(
     transaccionId: observacion.transaccionId ?? null,
     transaccionIngresoEgresoId: observacion.transaccionIngresoEgresoId ?? null,
     transaccionRaciId: observacion.transaccionRaciId ?? null,
+    transaccionRaiId: observacion.transaccionRaiId ?? null,
     valorInformado: observacion.valorInformado ?? null,
     valorCalculado: observacion.valorCalculado ?? null,
     diferencia: observacion.diferencia ?? null,

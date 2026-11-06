@@ -1,6 +1,7 @@
 import { IngresosEgresos } from '../../../ingresos-egresos/domain/entities/ingresos-egresos.domain.js';
 import { LibroBanco } from '../../../libro-banco/domain/entities/libro-banco.domain.js';
 import { Raci } from '../../../raci/domain/entities/raci.domain.js';
+import { Rai } from '../../../rai/domain/entities/rai.domain.js';
 import type { AuditoriaContext } from '../rules/auditoria-context.js';
 import type { ReglaAuditoria } from '../rules/regla-auditoria.interface.js';
 import { validationsCode } from '../rules/validations.js';
@@ -122,6 +123,22 @@ describe('MotorAuditoriaService', () => {
     expect(sinRaci.librosFaltantes).toEqual(['RACI']);
     expect(conRaci.estado).toBe(EstadoValidacion.VERIFICADO);
     expect(conRaci.librosFaltantes).toEqual([]);
+    expect(regla.ejecuciones).toBe(1);
+  });
+
+  it('el RAI cuenta como presente cuando el contexto lo trae', () => {
+    const regla = new ReglaFalsa(validationsCode.V3, ['RAI']);
+    const motor = new MotorAuditoriaService([regla]);
+
+    const [sinRai] = motor.ejecutarAuditoriaCompleta(conLibroBanco);
+    const [conRai] = motor.ejecutarAuditoriaCompleta({
+      ...conLibroBanco,
+      rai: new Rai(7, [], 1),
+    });
+
+    expect(sinRai.estado).toBe(EstadoValidacion.FALTAN_LIBROS);
+    expect(sinRai.librosFaltantes).toEqual(['RAI']);
+    expect(conRai.estado).toBe(EstadoValidacion.VERIFICADO);
     expect(regla.ejecuciones).toBe(1);
   });
 

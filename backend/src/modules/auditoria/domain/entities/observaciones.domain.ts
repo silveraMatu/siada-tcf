@@ -19,6 +19,7 @@ export interface DatosObservacion {
   transaccionId?: number; //fila exacta del libro banco en la que falló
   transaccionIngresoEgresoId?: number; //ídem para una fila del libro de ingresos y egresos
   transaccionRaciId?: number; //ídem para un asiento del RACI
+  transaccionRaiId?: number; //ídem para un asiento del RAI
   //los importes del hallazgo, para sumarlos y compararlos sin leer el texto: lo que informa el libro auditado,
   //lo que debería ser y la diferencia (siempre positiva)
   valorInformado?: number;
@@ -45,6 +46,7 @@ export class Observaciones implements DatosObservacion {
   readonly transaccionId?: number;
   readonly transaccionIngresoEgresoId?: number;
   readonly transaccionRaciId?: number;
+  readonly transaccionRaiId?: number;
   readonly valorInformado?: number;
   readonly valorCalculado?: number;
   readonly diferencia?: number;
@@ -65,6 +67,7 @@ export class Observaciones implements DatosObservacion {
     this.transaccionId = datos.transaccionId;
     this.transaccionIngresoEgresoId = datos.transaccionIngresoEgresoId;
     this.transaccionRaciId = datos.transaccionRaciId;
+    this.transaccionRaiId = datos.transaccionRaiId;
     this.valorInformado = datos.valorInformado;
     this.valorCalculado = datos.valorCalculado;
     this.diferencia = datos.diferencia;

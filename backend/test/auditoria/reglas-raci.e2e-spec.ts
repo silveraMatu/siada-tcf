@@ -40,13 +40,16 @@ const CODIGOS = [
   'V4',
   'V5',
   'V6',
+  'V7',
   'C1',
   'C2',
+  'C3',
   'C4',
   'C5',
   'C6',
   'P1',
   'P2',
+  'P3',
   'F1',
 ];
 
@@ -283,14 +286,23 @@ describe('Reglas del RACI y de fechas (e2e)', () => {
     await app.close();
   });
 
-  it('una rendición que cumple todo da las 14 reglas VERIFICADO, con su cobertura', async () => {
+  it('una rendición que cumple todo da VERIFICADO en las reglas del RACI y espera el RAI (opcional) en las suyas', async () => {
     const res = await auditar(cuentaLimpiaId).expect(200);
     const resultados: Resultado[] = res.body;
 
+    //esta rendición no cargó el RAI: V7, C3 y P3 esperan ese libro
+    const delRai = ['V7', 'C3', 'P3'];
     expect(resultados.map((r) => [r.codigoRegla, r.estado])).toEqual(
-      CODIGOS.map((codigo) => [codigo, 'VERIFICADO']),
+      CODIGOS.map((codigo) => [
+        codigo,
+        delRai.includes(codigo) ? 'FALTAN_LIBROS' : 'VERIFICADO',
+      ]),
     );
-    expect(resultados.every((r) => r.librosFaltantes.length === 0)).toBe(true);
+    expect(
+      resultados
+        .filter((r) => delRai.includes(r.codigoRegla))
+        .every((r) => r.librosFaltantes.includes('RAI')),
+    ).toBe(true);
     //V4–V6 miran los 7 asientos; P1 y P2 los 2 con cheque; F1 2 filas de banco, 2 de I/E y 6 asientos con movimiento
     const filas = Object.fromEntries(
       resultados.map((r) => [r.codigoRegla, r.filasEvaluadas]),
@@ -313,13 +325,16 @@ describe('Reglas del RACI y de fechas (e2e)', () => {
         ['V4', 'FALLO'],
         ['V5', 'FALLO'],
         ['V6', 'FALLO'],
+        ['V7', 'FALTAN_LIBROS'],
         ['C1', 'FALLO'],
         ['C2', 'FALLO'],
+        ['C3', 'FALTAN_LIBROS'],
         ['C4', 'VERIFICADO'],
         ['C5', 'VERIFICADO'],
         ['C6', 'VERIFICADO'],
         ['P1', 'FALLO'],
         ['P2', 'FALLO'],
+        ['P3', 'FALTAN_LIBROS'],
         ['F1', 'FALLO'],
       ]);
     });

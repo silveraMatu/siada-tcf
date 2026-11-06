@@ -7,6 +7,7 @@ import {
 import type { AuditoriaContext } from './auditoria-context.js';
 import { ordenarPorFila } from './ingresos-egresos-saldos.js';
 import { aCentavos } from './montos.js';
+import { asientosRaiEnOrden } from './rai-suma-mensual.rule.js';
 import { asientosEnOrden } from './raci-gasto-acumulado.js';
 import type { ReglaAuditoria } from './regla-auditoria.interface.js';
 import {
@@ -34,7 +35,7 @@ const MESES = [
 
 //F1: las fechas de las filas deben estar dentro del mes y el ejercicio de la rendición. Se omite la primera fila
 //del banco y del libro de ingresos y egresos (la base, el saldo anterior, que puede traer la fecha del mes previo)
-//y los asientos del RACI sin movimiento en el mes (son bases de bloque). Una fecha ausente en el banco, que es
+//y los asientos del RACI y del RAI sin movimiento en el mes (son bases de bloque). Una fecha ausente en el banco, que es
 //opcional, no se marca; un texto que no es YYYY-MM-DD sí, porque el período no se puede comprobar
 export class FechasPeriodoF1Rule implements ReglaAuditoria {
   readonly codigo = validationsCode.F1;
@@ -76,6 +77,7 @@ export class FechasPeriodoF1Rule implements ReglaAuditoria {
         transaccionId: number;
         transaccionIngresoEgresoId: number;
         transaccionRaciId: number;
+        transaccionRaiId: number;
       }>,
       donde: string,
       motivo: string,
@@ -137,6 +139,22 @@ export class FechasPeriodoF1Rule implements ReglaAuditoria {
           LibroOrigen.RACI,
           { transaccionRaciId: tx.id },
           `el asiento ${tx.asiento} del RACI`,
+          motivo,
+        );
+    }
+
+    //los ingresos del RAI con movimiento: sin importe en el día no hay fecha que controlar
+    for (const tx of asientosRaiEnOrden(context)) {
+      if (aCentavos(tx.ingresosDiarios) === 0) continue;
+      filasEvaluadas++;
+      const motivo = revisar(tx.fecha);
+      if (motivo)
+        marcar(
+          LibroOrigen.RAI,
+          { transaccionRaiId: tx.id },
+          tx.asiento !== null
+            ? `el asiento ${tx.asiento} del RAI`
+            : `el ingreso "${tx.concepto}" del RAI`,
           motivo,
         );
     }

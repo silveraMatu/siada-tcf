@@ -22,40 +22,46 @@ import { CuentaMensualEntity } from '../../../cuentas/infrastructure/entities/cu
 import { TransaccionLibroBancoEntity } from '../../../libro-banco/infrastructure/entities/transaccion-libro-banco.entity.js';
 import { TransaccionIngresoEgresoEntity } from '../../../ingresos-egresos/infrastructure/entities/transaccion-ingreso-egreso.entity.js';
 import { TransaccionRaciEntity } from '../../../raci/infrastructure/entities/transaccion-raci.entity.js';
+import { TransaccionRaiEntity } from '../../../rai/infrastructure/entities/transaccion-rai.entity.js';
 
-//un hallazgo no se repite dentro de una ejecución. Son cuatro índices parciales porque en un UNIQUE común los
-//NULL nunca chocan entre sí: uno por cada tipo de fila (banco, ingresos y egresos o RACI) y uno para los
+//un hallazgo no se repite dentro de una ejecución. Son cinco índices parciales porque en un UNIQUE común los
+//NULL nunca chocan entre sí: uno por cada tipo de fila (banco, ingresos y egresos, RACI o RAI) y uno para los
 //hallazgos de toda la cuenta (los cruces). Los nombres llevan sufijo de versión a propósito: synchronize no
 //reconstruye un índice ni un CHECK existente cuando cambian sus columnas o su condición, pero sí descarta los
 //de nombre viejo
 @Index(
-  'UQ_observaciones_ejecucion_fila_banco_v2',
+  'UQ_observaciones_ejecucion_fila_banco_v3',
   ['ejecucionId', 'codigoRegla', 'transaccionId'],
   { unique: true, where: '"transaccion_libro_banco_id" IS NOT NULL' },
 )
 @Index(
-  'UQ_observaciones_ejecucion_fila_ie_v2',
+  'UQ_observaciones_ejecucion_fila_ie_v3',
   ['ejecucionId', 'codigoRegla', 'transaccionIngresoEgresoId'],
   { unique: true, where: '"transaccion_ingreso_egreso_id" IS NOT NULL' },
 )
 @Index(
-  'UQ_observaciones_ejecucion_fila_raci_v2',
+  'UQ_observaciones_ejecucion_fila_raci_v3',
   ['ejecucionId', 'codigoRegla', 'transaccionRaciId'],
   { unique: true, where: '"transaccion_raci_id" IS NOT NULL' },
 )
 @Index(
-  'UQ_observaciones_ejecucion_sin_fila_v2',
+  'UQ_observaciones_ejecucion_fila_rai_v3',
+  ['ejecucionId', 'codigoRegla', 'transaccionRaiId'],
+  { unique: true, where: '"transaccion_rai_id" IS NOT NULL' },
+)
+@Index(
+  'UQ_observaciones_ejecucion_sin_fila_v3',
   ['ejecucionId', 'codigoRegla'],
   {
     unique: true,
     where:
-      '"transaccion_libro_banco_id" IS NULL AND "transaccion_ingreso_egreso_id" IS NULL AND "transaccion_raci_id" IS NULL',
+      '"transaccion_libro_banco_id" IS NULL AND "transaccion_ingreso_egreso_id" IS NULL AND "transaccion_raci_id" IS NULL AND "transaccion_rai_id" IS NULL',
   },
 )
-//una observación apunta a lo sumo a una fila: del banco, de ingresos y egresos o del RACI
+//una observación apunta a lo sumo a una fila: del banco, de ingresos y egresos, del RACI o del RAI
 @Check(
-  'CHK_observaciones_una_sola_fila_v2',
-  'num_nonnulls("transaccion_libro_banco_id", "transaccion_ingreso_egreso_id", "transaccion_raci_id") <= 1',
+  'CHK_observaciones_una_sola_fila_v3',
+  'num_nonnulls("transaccion_libro_banco_id", "transaccion_ingreso_egreso_id", "transaccion_raci_id", "transaccion_rai_id") <= 1',
 )
 @Index('IDX_observaciones_cuenta_estado', ['cuentaMensualId', 'estado'])
 @Index('IDX_observaciones_ejecucion_estado', ['ejecucionId', 'estado'])
@@ -105,6 +111,10 @@ export class ObservacionEntity {
   //asiento exacto del RACI que falló
   @Column({ type: 'int', name: 'transaccion_raci_id', nullable: true })
   transaccionRaciId: number | null;
+
+  //asiento exacto del RAI que falló
+  @Column({ type: 'int', name: 'transaccion_rai_id', nullable: true })
+  transaccionRaiId: number | null;
 
   //importes del hallazgo, para sumarlos sin leer el texto
   @Column({
@@ -181,4 +191,11 @@ export class ObservacionEntity {
   })
   @JoinColumn({ name: 'transaccion_raci_id' })
   transaccionRaci: Relation<TransaccionRaciEntity> | null;
+
+  @ManyToOne(() => TransaccionRaiEntity, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'transaccion_rai_id' })
+  transaccionRai: Relation<TransaccionRaiEntity> | null;
 }

@@ -96,7 +96,7 @@ export class EjecutarAuditoriaUseCase {
       );
     }
 
-    const { librosBanco, ingresosEgresos, raci } =
+    const { librosBanco, ingresosEgresos, raci, rai } =
       await this.documentos.cargar(cuentaMensualId);
     //el período de la rendición, para las reglas de fechas
     const ejercicioFiscal =
@@ -108,6 +108,7 @@ export class EjecutarAuditoriaUseCase {
       librosBanco,
       ingresosEgresos,
       raci,
+      rai,
       periodo:
         ejercicioFiscal === null
           ? undefined

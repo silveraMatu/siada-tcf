@@ -11,8 +11,7 @@ const libroPresente: Record<NombreLibro, (c: AuditoriaContext) => boolean> = {
   LIBRO_BANCO: (c) => (c.librosBanco?.length ?? 0) > 0,
   INGRESOS_EGRESOS: (c) => c.ingresosEgresos !== undefined,
   RACI: (c) => c.raci !== undefined,
-  //todavía no existe en el contexto
-  RAI: () => false,
+  RAI: (c) => c.rai !== undefined,
 };
 
 //validación progresiva: corre cada regla con lo que haya y informa las que no pudo correr

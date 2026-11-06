@@ -3,6 +3,8 @@ import { TransaccionIngresoEgreso } from '../../../ingresos-egresos/domain/entit
 import { LibroBanco } from '../../../libro-banco/domain/entities/libro-banco.domain.js';
 import { TransaccionLibroBanco } from '../../../libro-banco/domain/entities/transaccion-libro-banco.domain.js';
 import { Raci } from '../../../raci/domain/entities/raci.domain.js';
+import { Rai } from '../../../rai/domain/entities/rai.domain.js';
+import { TransaccionRai } from '../../../rai/domain/entities/transaccion-rai.domain.js';
 import { TransaccionRaci } from '../../../raci/domain/entities/transaccion-raci.domain.js';
 import { EstadoValidacion } from '../types/auditoria.types.js';
 import type { AuditoriaContext } from './auditoria-context.js';
@@ -62,6 +64,24 @@ const asientoRaci = (id: number, fecha: string, pagoDelMes = 10) =>
     pagoDelMes,
     pagoAcumulado: 0,
     pagoSaldoAPagar: 0,
+  });
+
+const asientoRai = (
+  id: number,
+  fecha: string,
+  ingresosDiarios: number,
+  asiento: number | null = null,
+) =>
+  new TransaccionRai({
+    id,
+    asiento,
+    fecha,
+    planillaNumero: null,
+    concepto: `Ingreso ${id}`,
+    ingresosDiarios,
+    ingresosMensuales: 0,
+    ingresosAcumulados: 0,
+    saldo: 0,
   });
 
 const contexto = (extra: Partial<AuditoriaContext> = {}): AuditoriaContext => ({
@@ -262,5 +282,32 @@ describe('F1 coherencia de fechas', () => {
     //la base es el id 1 aunque venga segunda; el id 3 se revisa
     expect(observaciones.map((o) => o.transaccionId)).toEqual([3]);
     expect(filas.map((f) => f.id)).toEqual([3, 1]);
+  });
+
+  it('marca el ingreso del RAI con importe y fecha fuera del mes y omite los que no tienen importe', () => {
+    const { observaciones, filasEvaluadas } = regla.execute(
+      contexto({
+        rai: new Rai(
+          7,
+          [
+            asientoRai(1, '2026-02-01', 0), //base: sin importe en el día
+            asientoRai(2, '2026-03-05', 10),
+            asientoRai(3, '2026-04-02', 20, 5),
+            asientoRai(4, '2026-02-27', 30),
+          ],
+          1,
+        ),
+      }),
+    );
+
+    //1 de banco + 1 de I/E + los 3 ingresos del RAI con importe
+    expect(filasEvaluadas).toBe(5);
+    expect(observaciones.map((o) => o.transaccionRaiId)).toEqual([3, 4]);
+    expect(observaciones[0]).toMatchObject({
+      libroOrigen: LibroOrigen.RAI,
+      transaccionRaciId: undefined,
+    });
+    expect(observaciones[0].descripcion).toContain('asiento 5 del RAI');
+    expect(observaciones[1].descripcion).toContain('ingreso "Ingreso 4"');
   });
 });

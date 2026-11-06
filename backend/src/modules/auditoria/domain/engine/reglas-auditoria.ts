@@ -9,6 +9,9 @@ import { FechasPeriodoF1Rule } from '../rules/fechas-periodo.rule.js';
 import { IngresosEgresosV2Rule } from '../rules/ingresos-egresos-banco.rule.js';
 import { IngresosEgresosV1Rule } from '../rules/ingresos-egresos-caja.rule.js';
 import { LibroBancoV3Rule } from '../rules/libro-banco-saldo.rule.js';
+import { RaiSumaMensualV7Rule } from '../rules/rai-suma-mensual.rule.js';
+import { CruceIngresosC3Rule } from '../rules/cruce-rai-ingresos-egresos-ingresos.rule.js';
+import { IngresosRaiMayorP3Rule } from '../rules/ingresos-rai-mayor.rule.js';
 import { RaciLimitePagoV6Rule } from '../rules/raci-limite-pago.rule.js';
 import { RaciLimitePresupuestarioV5Rule } from '../rules/raci-limite-presupuestario.rule.js';
 import { RaciSecuenciaGastoV4Rule } from '../rules/raci-secuencia-gasto.rule.js';
@@ -24,12 +27,15 @@ export const crearReglasAuditoria = (): ReglaAuditoria[] => [
   new RaciSecuenciaGastoV4Rule(),
   new RaciLimitePresupuestarioV5Rule(),
   new RaciLimitePagoV6Rule(),
+  new RaiSumaMensualV7Rule(),
   new CruceDevengadoC1Rule(),
   new CrucePagadoC2Rule(),
+  new CruceIngresosC3Rule(),
   new CruceDepositosC4Rule(),
   new CruceRetirosC5Rule(),
   new CruceSaldoFinalC6Rule(),
   new ChequeExistenciaP1Rule(),
   new ChequeMontoP2Rule(),
+  new IngresosRaiMayorP3Rule(),
   new FechasPeriodoF1Rule(),
 ];
