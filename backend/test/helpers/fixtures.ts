@@ -184,6 +184,24 @@ export async function obtenerOrganismoAjenoId(
   return creado.id;
 }
 
+//organismo propio de los e2e del RAI: el mes 1 es del e2e del libro y el 2 y el 3 del de sus reglas
+export async function obtenerOrganismoRaiId(
+  dataSource: DataSource,
+): Promise<number> {
+  const nombre = '__E2E__ Organismo RAI';
+  const existente = await dataSource.query(
+    `SELECT id FROM organismos WHERE nombre = $1 LIMIT 1`,
+    [nombre],
+  );
+  if (existente.length) return existente[0].id;
+
+  const [creado] = await dataSource.query(
+    `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'E2E', true) RETURNING id`,
+    [nombre],
+  );
+  return creado.id;
+}
+
 //organismo propio del e2e de las reglas del RACI: sus meses no los usa ningún otro spec
 export async function obtenerOrganismoReglasRaciId(
   dataSource: DataSource,
@@ -347,6 +365,31 @@ export async function cargarRaci(
           pagoDelMes: 10,
           pagoAcumulado: 10,
           pagoSaldoAPagar: 0,
+        },
+      ],
+    })
+    .expect(201);
+}
+
+//carga el libro RAI de la rendición (reemplaza el que haya) como responsable del organismo
+export async function cargarRai(
+  app: INestApplication,
+  bearerResponsable: string,
+  cuentaMensualId: number,
+): Promise<void> {
+  await request(app.getHttpServer())
+    .post(`/api/v1/cuentas-mensuales/${cuentaMensualId}/rai/ingestar`)
+    .set('Authorization', bearerResponsable)
+    .send({
+      reemplazar: true,
+      transacciones: [
+        {
+          fecha: '2026-03-02',
+          concepto: 'Ingreso E2E',
+          ingresosDiarios: 10,
+          ingresosMensuales: 10,
+          ingresosAcumulados: 10,
+          saldo: 990,
         },
       ],
     })

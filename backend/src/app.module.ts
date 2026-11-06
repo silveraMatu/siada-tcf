@@ -14,6 +14,7 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { IngresosEgresosModule } from './modules/ingresos-egresos/ingresos-egresos.module.js';
 import { RaciModule } from './modules/raci/raci.module.js';
+import { RaiModule } from './modules/rai/rai.module.js';
 import { RegistroActividadModule } from './modules/registro-actividad/registro-actividad.module.js';
 import { AuditoriaModule } from './modules/auditoria/auditoria.module.js';
 import { AsistenteModule } from './modules/asistente/asistente.module.js';
@@ -37,6 +38,7 @@ import { AsistenteModule } from './modules/asistente/asistente.module.js';
     LibroBancoModule,
     IngresosEgresosModule,
     RaciModule,
+    RaiModule,
     ResponsablesModule,
     UsuariosModule,
     AuthModule,

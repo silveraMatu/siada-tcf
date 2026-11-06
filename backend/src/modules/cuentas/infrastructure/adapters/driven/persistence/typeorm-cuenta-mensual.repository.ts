@@ -11,6 +11,7 @@ import { TipoLibro } from '../../../../domain/enums/tipo-libro.enum.js';
 import { IngresosEgresosEntity } from '../../../../../ingresos-egresos/infrastructure/entities/ingresos-egresos.entity.js';
 import { LibroBancoEntity } from '../../../../../libro-banco/infrastructure/entities/libro-banco.entity.js';
 import { RaciEntity } from '../../../../../raci/infrastructure/entities/raci.entity.js';
+import { RaiEntity } from '../../../../../rai/infrastructure/entities/rai.entity.js';
 import { CuentaMensualEntity } from '../../../entities/cuenta-mensual.entity.js';
 import { CuentaMensualMapper } from '../../../mappers/cuenta-mensual.mapper.js';
 
@@ -167,7 +168,7 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
     const porCuenta = new Map<number, ResumenLibro[]>();
     if (cuentaMensualIds.length === 0) return porCuenta;
 
-    const [librosBanco, ingresosEgresos, raci] = await Promise.all([
+    const [librosBanco, ingresosEgresos, raci, rai] = await Promise.all([
       this.resumirLibrosDe(
         LibroBancoEntity,
         TipoLibro.LIBRO_BANCO,
@@ -179,13 +180,15 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
         cuentaMensualIds,
       ),
       this.resumirLibrosDe(RaciEntity, TipoLibro.RACI, cuentaMensualIds, false),
+      this.resumirLibrosDe(RaiEntity, TipoLibro.RAI, cuentaMensualIds, false),
     ]);
 
-    //por cuenta: primero los libros banco, después el de ingresos y egresos y al final el RACI, cada grupo por id
+    //por cuenta: primero los libros banco, después el de ingresos y egresos, el RACI y al final el RAI, cada grupo por id
     for (const { cuentaMensualId, resumen } of [
       ...librosBanco,
       ...ingresosEgresos,
       ...raci,
+      ...rai,
     ]) {
       porCuenta.set(cuentaMensualId, [
         ...(porCuenta.get(cuentaMensualId) ?? []),
@@ -195,12 +198,13 @@ export class TypeOrmCuentaMensualRepositoryAdapter implements CuentaMensualRepos
     return porCuenta;
   }
 
-  //los libros comparten forma (id, cuenta mensual y transacciones con fecha); el RACI no tiene N° de cuenta
+  //los libros comparten forma (id, cuenta mensual y transacciones con fecha); el RACI y el RAI no tienen N° de cuenta
   private async resumirLibrosDe(
     entidad:
       | typeof LibroBancoEntity
       | typeof IngresosEgresosEntity
-      | typeof RaciEntity,
+      | typeof RaciEntity
+      | typeof RaiEntity,
     tipo: TipoLibro,
     cuentaMensualIds: number[],
     conNumeroCuentaCte = true,

@@ -17,6 +17,7 @@ import { UsuariosModule } from '../../src/modules/usuarios/usuarios.module.js';
 import { AuthModule } from '../../src/modules/auth/auth.module.js';
 import { IngresosEgresosModule } from '../../src/modules/ingresos-egresos/ingresos-egresos.module.js';
 import { RaciModule } from '../../src/modules/raci/raci.module.js';
+import { RaiModule } from '../../src/modules/rai/rai.module.js';
 import { RegistroActividadModule } from '../../src/modules/registro-actividad/registro-actividad.module.js';
 import { AuditoriaModule } from '../../src/modules/auditoria/auditoria.module.js';
 import { AsistenteModule } from '../../src/modules/asistente/asistente.module.js';
@@ -47,6 +48,7 @@ export async function createTestApp(): Promise<{
       LibroBancoModule,
       IngresosEgresosModule,
       RaciModule,
+      RaiModule,
       ResponsablesModule,
       UsuariosModule,
       AuthModule,
