@@ -264,3 +264,52 @@ describe('regla que no aplica por falta del RACI (opcional)', () => {
     expect(screen.queryByText('No aplica')).toBeNull();
   });
 });
+
+describe('regla que no aplica por falta del RAI (opcional)', () => {
+  const sinRai = {
+    ...faltan,
+    codigoRegla: 'V7',
+    descripcion: 'Coherencia de suma mensual',
+    mensaje: 'Faltan libros requeridos: RAI',
+    librosFaltantes: ['RAI'],
+  };
+
+  it('se presenta como «No aplica» nombrando el RAI', () => {
+    renderCard(sinRai, { observaciones: [] });
+
+    expect(
+      screen.getByRole('button', { name: /Coherencia de suma mensual/ })
+        .textContent,
+    ).toMatch(/No aplica: el RAI es opcional y no se cargó/);
+    expect(screen.getByText('No aplica')).toBeTruthy();
+  });
+
+  it('al abrirla dice que necesita el libro RAI y que no es un problema', async () => {
+    const { user } = renderCard(sinRai, { observaciones: [] });
+    await user.click(
+      screen.getByRole('button', { name: /Coherencia de suma mensual/ }),
+    );
+
+    expect(
+      screen.getByText(/necesita el libro RAI, que es opcional y no se cargó/),
+    ).toBeTruthy();
+  });
+
+  it('si faltan el RACI y el RAI los nombra a los dos', async () => {
+    const { user } = renderCard(
+      { ...sinRai, librosFaltantes: ['RACI', 'RAI'] },
+      { observaciones: [] },
+    );
+    expect(
+      screen.getByRole('button', { name: /Coherencia de suma mensual/ })
+        .textContent,
+    ).toMatch(/el RACI y el RAI son opcionales y no se cargaron/);
+
+    await user.click(
+      screen.getByRole('button', { name: /Coherencia de suma mensual/ }),
+    );
+    expect(
+      screen.getByText(/los libros RACI y RAI, que son opcionales/),
+    ).toBeTruthy();
+  });
+});

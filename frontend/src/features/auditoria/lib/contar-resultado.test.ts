@@ -4,6 +4,7 @@ import { MOCK_RESULTADOS } from '../mocks/resultados.mock';
 import {
   contarResultado,
   esNoAplica,
+  librosOpcionalesAusentes,
   nombreDeLibroFaltante,
 } from './contar-resultado';
 
@@ -99,5 +100,33 @@ describe('esNoAplica', () => {
     expect(esNoAplica(fallo)).toBe(false);
     expect(esNoAplica(verificado)).toBe(false);
     expect(esNoAplica({ ...faltan, librosFaltantes: [] })).toBe(false);
+  });
+});
+
+describe('el RAI también es un libro opcional', () => {
+  const sinRai = { ...faltan, codigoRegla: 'V7', librosFaltantes: ['RAI'] };
+
+  it('una regla que solo espera el RAI no aplica', () => {
+    expect(esNoAplica(sinRai)).toBe(true);
+    expect(esNoAplica({ ...faltan, librosFaltantes: ['RACI', 'RAI'] })).toBe(
+      true,
+    );
+  });
+
+  it('si espera además un libro obligatorio sigue siendo una omisión', () => {
+    expect(
+      esNoAplica({ ...faltan, librosFaltantes: ['RAI', 'INGRESOS_EGRESOS'] }),
+    ).toBe(false);
+  });
+
+  it('librosOpcionalesAusentes dice cuáles faltan, sin repetir y en orden fijo', () => {
+    const sinRaci = { ...faltan, codigoRegla: 'V4', librosFaltantes: ['RACI'] };
+    expect(librosOpcionalesAusentes([sinRai, sinRai])).toEqual(['RAI']);
+    expect(librosOpcionalesAusentes([sinRai, sinRaci])).toEqual([
+      'RACI',
+      'RAI',
+    ]);
+    // las omisiones por un libro obligatorio no cuentan
+    expect(librosOpcionalesAusentes([faltan, fallo, verificado])).toEqual([]);
   });
 });

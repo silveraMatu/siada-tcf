@@ -1,5 +1,5 @@
 import { Check, Crosshair, Loader2, RotateCcw, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { formatearFecha } from '@/features/libro-banco/lib/formato-libro';
 import { useRevisarObservacion } from '../hooks/useRevisarObservacion';
 import type { ObservacionUbicada } from '../types/auditoria.types';
 import { DescartarObservacionDialog } from './DescartarObservacionDialog';
@@ -26,10 +27,43 @@ const formatoMomento = new Intl.DateTimeFormat('es-AR', {
   timeStyle: 'short',
 });
 
-/** Fila del libro; en el RACI no hay fila sino N° de asiento. */
-function referenciaDeFila(observacion: ObservacionUbicada): string | number {
+/**
+ * Qué se muestra en la columna de la fila: la fila del libro, el N° de asiento (RACI y RAI) o, si un asiento
+ * del RAI no tiene N°, su fecha con el concepto debajo.
+ */
+function referenciaDeFila(observacion: ObservacionUbicada): ReactNode {
   if (observacion.asiento !== undefined) return `As. ${observacion.asiento}`;
+  if (observacion.fechaAsiento) {
+    return (
+      <>
+        <span className="whitespace-nowrap">
+          {formatearFecha(observacion.fechaAsiento)}
+        </span>
+        {observacion.conceptoAsiento && (
+          <span
+            title={observacion.conceptoAsiento}
+            className="ml-auto block max-w-28 truncate text-xs font-normal text-muted-foreground"
+          >
+            {observacion.conceptoAsiento}
+          </span>
+        )}
+      </>
+    );
+  }
   return observacion.fila ?? '—';
+}
+
+/** Cómo nombra el botón «Ver en el libro» a lo que va a mostrar. */
+function describirFila(observacion: ObservacionUbicada): string {
+  if (observacion.asiento !== undefined) {
+    return `el asiento ${observacion.asiento}`;
+  }
+  if (observacion.fechaAsiento) {
+    return `el asiento del ${formatearFecha(observacion.fechaAsiento)}${
+      observacion.conceptoAsiento ? ` («${observacion.conceptoAsiento}»)` : ''
+    }`;
+  }
+  return `la fila ${observacion.fila}`;
 }
 
 interface TablaObservacionesProps {
@@ -156,11 +190,7 @@ export function TablaObservaciones({
                         variant="outline"
                         size="sm"
                         onClick={() => onVerEnLibro(observacion)}
-                        aria-label={`Ver ${
-                          observacion.asiento !== undefined
-                            ? `el asiento ${observacion.asiento}`
-                            : `la fila ${observacion.fila}`
-                        } de ${observacion.libroNombre} en el libro`}
+                        aria-label={`Ver ${describirFila(observacion)} de ${observacion.libroNombre} en el libro`}
                       >
                         <Crosshair />
                         <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">

@@ -7,8 +7,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useIngresosEgresos } from '@/features/ingresos-egresos/hooks/useIngresosEgresos';
 import { useLibrosBanco } from '@/features/libro-banco/hooks/useLibrosBanco';
 import { useRaci } from '@/features/raci/hooks/useRaci';
+import { useRai } from '@/features/rai/hooks/useRai';
 import { useEjecucion } from '../hooks/useEjecucion';
 import { agruparPorTipo } from '../lib/agrupar-reglas';
+import { librosOpcionalesAusentes } from '../lib/contar-resultado';
 import { filtrarPorEstado, resumirResultados } from '../lib/resumir-resultados';
 import { ubicarObservaciones } from '../lib/ubicar-observaciones';
 import type {
@@ -71,9 +73,19 @@ export function PanelAuditoria({
     enabled: hayFallos,
   });
   const raci = useRaci(cuentaMensualId, { enabled: hayFallos });
+  const rai = useRai(cuentaMensualId, { enabled: hayFallos });
   const ubicando =
     hayFallos &&
-    (librosGuardados.isPending || ingresosEgresos.isPending || raci.isPending);
+    (librosGuardados.isPending ||
+      ingresosEgresos.isPending ||
+      raci.isPending ||
+      rai.isPending);
+
+  // qué libros opcionales no se cargaron y hacen que alguna regla no aplique (para decirlo con su nombre)
+  const opcionalesAusentes = useMemo(
+    () => (resultados ? librosOpcionalesAusentes(resultados) : []),
+    [resultados],
+  );
 
   const resumen = useMemo(
     () => (resultados ? resumirResultados(resultados) : null),
@@ -150,8 +162,13 @@ export function PanelAuditoria({
           {resumen.noAplican === 1
             ? '1 regla no aplica'
             : `${resumen.noAplican} reglas no aplican`}{' '}
-          porque no se cargó el RACI, que es un libro opcional: no es un
-          problema de la rendición.
+          porque{' '}
+          {opcionalesAusentes.length > 1 ? 'no se cargaron' : 'no se cargó'}{' '}
+          {opcionalesAusentes.map((libro) => `el ${libro}`).join(' y ')}, que{' '}
+          {opcionalesAusentes.length > 1
+            ? 'son libros opcionales'
+            : 'es un libro opcional'}
+          : no es un problema de la rendición.
         </p>
       )}
 
@@ -236,6 +253,7 @@ export function PanelAuditoria({
                           librosBanco: librosGuardados.data,
                           ingresosEgresos: ingresosEgresos.data,
                           raci: raci.data,
+                          rai: rai.data,
                         },
                       )}
                       ubicando={ubicando}

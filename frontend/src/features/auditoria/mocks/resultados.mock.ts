@@ -23,6 +23,7 @@ export const MOCK_RESULTADOS: ResultadoValidacion[] = [
         transaccionId: 12,
         transaccionIngresoEgresoId: null,
         transaccionRaciId: null,
+        transaccionRaiId: null,
         valorInformado: 1400,
         valorCalculado: 1300,
         diferencia: 100,

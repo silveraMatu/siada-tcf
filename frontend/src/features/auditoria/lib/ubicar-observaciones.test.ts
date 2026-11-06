@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
 import type { RaciGuardado } from '@/features/raci/types';
+import type { RaiGuardado } from '@/features/rai/types';
 import { MOCK_RESULTADOS } from '../mocks/resultados.mock';
 import { ubicarObservaciones } from './ubicar-observaciones';
 
@@ -67,6 +68,25 @@ const raci = {
     { id: 71, asiento: 8 },
   ],
 } as unknown as RaciGuardado;
+
+/** Un asiento con N° y otro sin él, como las planillas reales; el id coincide a propósito con el de otros libros. */
+const rai = {
+  id: 2,
+  cuentaMensualId: 5,
+  fechaCreacion: '2026-10-15T12:00:00.000Z',
+  subidoPorId: 1,
+  subidoPor: null,
+  hashContenido: 'a'.repeat(64),
+  transacciones: [
+    {
+      id: 90,
+      asiento: null,
+      fecha: '2026-09-29',
+      concepto: 'anticipo Coparticipacion sept/25',
+    },
+    { id: 91, asiento: 4, fecha: '2026-09-30', concepto: 'Venta activo fijo' },
+  ],
+} as unknown as RaiGuardado;
 
 const [observacion] = MOCK_RESULTADOS[0].observaciones; // transaccionId 12
 
@@ -250,6 +270,76 @@ describe('ubicarObservaciones', () => {
         'INGRESOS_EGRESOS',
         'LIBRO_BANCO',
       ]);
+    });
+  });
+
+  describe('libro RAI', () => {
+    const deRai = {
+      ...observacion,
+      codigoRegla: 'V7',
+      libroOrigen: 'RAI',
+      transaccionId: null,
+      transaccionIngresoEgresoId: null,
+      transaccionRaciId: null,
+      transaccionRaiId: 90,
+    };
+
+    it('un asiento sin N° se cita por su fecha y su concepto y lleva a ese libro', () => {
+      const [ubicada] = ubicarObservaciones([deRai], {
+        librosBanco,
+        ingresosEgresos,
+        raci,
+        rai,
+      });
+
+      expect(ubicada).toMatchObject({
+        transaccionId: 90,
+        libroTipo: 'RAI',
+        libroId: 2,
+        libroNombre: 'RAI',
+        fechaAsiento: '2026-09-29',
+        conceptoAsiento: 'anticipo Coparticipacion sept/25',
+      });
+      expect(ubicada.asiento).toBeUndefined();
+      expect(ubicada.fila).toBeUndefined();
+    });
+
+    it('si el asiento tiene N° también se cita por él', () => {
+      const [ubicada] = ubicarObservaciones(
+        [{ ...deRai, transaccionRaiId: 91 }],
+        { rai },
+      );
+      expect(ubicada).toMatchObject({ asiento: 4, fechaAsiento: '2026-09-30' });
+    });
+
+    it('no confunde el id de un asiento del RAI con el de otro libro', () => {
+      const [ubicada] = ubicarObservaciones(
+        [{ ...deRai, transaccionRaiId: 58 }],
+        {
+          librosBanco,
+          ingresosEgresos,
+          raci,
+          rai,
+        },
+      );
+      expect(ubicada.libroTipo).toBeUndefined();
+    });
+
+    it('un hallazgo de toda la cuenta (C3) queda con el nombre del libro y sin fila ni asiento', () => {
+      const [ubicada] = ubicarObservaciones(
+        [{ ...deRai, codigoRegla: 'C3', transaccionRaiId: null }],
+        { rai },
+      );
+      expect(ubicada).toMatchObject({
+        transaccionId: null,
+        libroNombre: 'RAI',
+      });
+      expect(ubicada.libroId).toBeUndefined();
+      expect(ubicada.fechaAsiento).toBeUndefined();
+    });
+
+    it('si el libro todavía no se cargó queda sin ubicar', () => {
+      expect(ubicarObservaciones([deRai], {})[0].libroId).toBeUndefined();
     });
   });
 });

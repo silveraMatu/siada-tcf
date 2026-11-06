@@ -231,3 +231,40 @@ describe('observación de un asiento del RACI', () => {
     expect(screen.getByText('RACI')).toBeTruthy();
   });
 });
+
+describe('observación de un asiento del RAI', () => {
+  const sinNumero: ObservacionUbicada = {
+    ...abierta,
+    id: 42,
+    transaccionId: 90,
+    libroTipo: 'RAI',
+    libroId: 8,
+    libroNombre: 'RAI',
+    fila: undefined,
+    fechaAsiento: '2026-09-29',
+    conceptoAsiento: 'anticipo Coparticipacion sept/25',
+  };
+
+  it('sin N° de asiento se cita por fecha y concepto, y el botón los nombra', () => {
+    renderTabla([sinNumero]);
+
+    expect(screen.getByText('29/09/2026')).toBeTruthy();
+    expect(screen.getByText('anticipo Coparticipacion sept/25')).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: 'Ver el asiento del 29/09/2026 («anticipo Coparticipacion sept/25») de RAI en el libro',
+      }),
+    ).toBeTruthy();
+  });
+
+  it('con N° de asiento se cita por él', () => {
+    renderTabla([{ ...sinNumero, asiento: 4 }]);
+
+    expect(screen.getByText('As. 4')).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: 'Ver el asiento 4 de RAI en el libro',
+      }),
+    ).toBeTruthy();
+  });
+});

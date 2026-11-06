@@ -59,13 +59,29 @@ const PRESENTACION: Record<EstadoValidacion, Presentacion> = {
   },
 };
 
-/** La regla pide el RACI, que es opcional, y no se cargó: no es un problema, solo no se evaluó. */
-const NO_APLICA: Presentacion = {
-  etiqueta: 'No aplica: el RACI es opcional y no se cargó',
-  icono: MinusCircle,
-  tonoIcono: 'text-muted-foreground',
-  tarjeta: 'border-dashed bg-muted/40 text-muted-foreground',
-};
+/** Cómo se nombran los libros opcionales ausentes: «el RACI», «el RAI» o «el RACI y el RAI». */
+function nombrarOpcionales(libros: readonly string[]): {
+  nombres: string;
+  muchos: boolean;
+} {
+  return {
+    nombres: libros.map((libro) => `el ${libro}`).join(' y '),
+    muchos: libros.length > 1,
+  };
+}
+
+/** La regla pide el RACI o el RAI, que son opcionales, y no se cargaron: no es un problema, solo no se evaluó. */
+function presentacionNoAplica(libros: readonly string[]): Presentacion {
+  const { nombres, muchos } = nombrarOpcionales(libros);
+  return {
+    etiqueta: muchos
+      ? `No aplica: ${nombres} son opcionales y no se cargaron`
+      : `No aplica: ${nombres} es opcional y no se cargó`,
+    icono: MinusCircle,
+    tonoIcono: 'text-muted-foreground',
+    tarjeta: 'border-dashed bg-muted/40 text-muted-foreground',
+  };
+}
 
 const plural = (n: number, uno: string, varios: string) =>
   `${n} ${n === 1 ? uno : varios}`;
@@ -123,7 +139,7 @@ export function ReglaValidacionCard({
   const [abierta, setAbierta] = useState(false);
   const noAplica = esNoAplica(resultado);
   const presentacion = noAplica
-    ? NO_APLICA
+    ? presentacionNoAplica(resultado.librosFaltantes)
     : (PRESENTACION[resultado.estado] ?? PRESENTACION.FALTAN_LIBROS);
   const Icono = presentacion.icono;
   const contadores = contarResultado(resultado);
@@ -246,10 +262,15 @@ function DetalleRegla({
   }
 
   if (esNoAplica(resultado)) {
+    const muchos = resultado.librosFaltantes.length > 1;
     return (
       <p className="text-sm">
-        No aplica: esta regla necesita el libro RACI, que es opcional y no se
-        cargó en esta rendición. No es un problema de la rendición.
+        No aplica: esta regla necesita {muchos ? 'los libros' : 'el libro'}{' '}
+        {resultado.librosFaltantes.join(' y ')}, que{' '}
+        {muchos
+          ? 'son opcionales y no se cargaron'
+          : 'es opcional y no se cargó'}{' '}
+        en esta rendición. No es un problema de la rendición.
       </p>
     );
   }

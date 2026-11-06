@@ -40,6 +40,14 @@ describe('reglas que no aplican por falta del RACI (opcional)', () => {
     });
   });
 
+  it('con el RAI pasa lo mismo que con el RACI', () => {
+    const sinRai = { ...noAplica, codigoRegla: 'V7', librosFaltantes: ['RAI'] };
+    expect(resumirResultados([sinRai, noAplica])).toMatchObject({
+      noAplican: 2,
+      omitidas: 0,
+    });
+  });
+
   it('el filtro de omitidas no las incluye, igual que su tarjeta', () => {
     const todas = [...MOCK_RESULTADOS, noAplica];
     expect(

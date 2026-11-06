@@ -16,6 +16,8 @@ import { obtenerIngresosEgresos } from '@/features/ingresos-egresos/api/ingresos
 import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
 import { obtenerLibrosBanco } from '@/features/libro-banco/api/libro-banco.api';
 import { obtenerRaci } from '@/features/raci/api/raci.api';
+import { obtenerRai } from '@/features/rai/api/rai.api';
+import type { RaiGuardado } from '@/features/rai/types';
 import type { LibroBancoGuardado } from '@/features/libro-banco/types';
 import { auditarRendicion, obtenerEjecucion } from '../api/auditoria.api';
 import { MOCK_EJECUCION, MOCK_RESULTADOS } from '../mocks/resultados.mock';
@@ -34,6 +36,10 @@ vi.mock('@/features/ingresos-egresos/api/ingresos-egresos.api', () => ({
 vi.mock('@/features/libro-banco/api/libro-banco.api', () => ({
   obtenerLibrosBanco: vi.fn(),
   ingestarLibroBanco: vi.fn(),
+}));
+vi.mock('@/features/rai/api/rai.api', () => ({
+  obtenerRai: vi.fn(),
+  ingestarRai: vi.fn(),
 }));
 vi.mock('@/features/raci/api/raci.api', () => ({
   obtenerRaci: vi.fn(),
@@ -88,6 +94,7 @@ const reglas = () => screen.findAllByRole('heading', { level: 4 });
 beforeEach(() => {
   vi.mocked(obtenerIngresosEgresos).mockResolvedValue(null);
   vi.mocked(obtenerRaci).mockResolvedValue(null);
+  vi.mocked(obtenerRai).mockResolvedValue(null);
   vi.mocked(obtenerLibrosBanco).mockResolvedValue(GUARDADOS);
   vi.mocked(obtenerEjecucion).mockResolvedValue(null);
 });
@@ -580,5 +587,213 @@ describe('con el libro RACI y las 14 reglas', () => {
       ),
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: /en el libro/ })).toBeNull();
+  });
+});
+
+describe('con el libro RAI y las 17 reglas', () => {
+  const base = MOCK_RESULTADOS[0].observaciones[0];
+  const regla = (
+    codigoRegla: string,
+    descripcion: string,
+    parcial: Partial<ResultadoValidacion> = {},
+  ): ResultadoValidacion => ({
+    codigoRegla,
+    descripcion,
+    estado: 'VERIFICADO',
+    observaciones: [],
+    filasEvaluadas: 4,
+    librosFaltantes: [],
+    ...parcial,
+  });
+  const sinLibro = (libro: string): Partial<ResultadoValidacion> => ({
+    estado: 'FALTAN_LIBROS',
+    mensaje: `Faltan libros requeridos: ${libro}`,
+    filasEvaluadas: null,
+    librosFaltantes: [libro],
+  });
+  const hallazgo = (
+    id: number,
+    codigoRegla: string,
+    tipo: string,
+    parcial: Record<string, unknown>,
+  ) => ({
+    ...base,
+    id,
+    codigoRegla,
+    tipo,
+    libroOrigen: 'RAI',
+    transaccionId: null,
+    transaccionIngresoEgresoId: null,
+    transaccionRaciId: null,
+    transaccionRaiId: null,
+    ...parcial,
+  });
+
+  const resultados: ResultadoValidacion[] = [
+    regla('V1', 'Saldo de caja'),
+    regla('V4', 'Secuencia lógica del gasto', sinLibro('RACI')),
+    regla('V7', 'Coherencia de suma mensual', {
+      estado: 'FALLO',
+      filasEvaluadas: 1,
+      observaciones: [
+        hallazgo(50, 'V7', 'INTERNA', {
+          descripcion:
+            'La suma de septiembre no coincide con el ingreso mensual.',
+          transaccionRaiId: 90,
+        }),
+      ],
+    }),
+    regla('C3', 'Ingresos del mes (RAI)', {
+      estado: 'FALLO',
+      filasEvaluadas: 1,
+      observaciones: [
+        hallazgo(51, 'C3', 'CRUZAMIENTO', {
+          descripcion:
+            'Los ingresos del RAI no coinciden con los de Ingresos y Egresos.',
+        }),
+      ],
+    }),
+    regla('P3', 'Existencia de ingresos', {
+      estado: 'FALLO',
+      filasEvaluadas: 2,
+      observaciones: [
+        hallazgo(52, 'P3', 'INTEGRIDAD', {
+          descripcion:
+            'El ingreso («Venta activo fijo», 30/09/2026) no está en Ingresos y Egresos.',
+          transaccionRaiId: 91,
+        }),
+      ],
+    }),
+    regla('F1', 'Coherencia de fechas'),
+  ];
+
+  beforeEach(() => {
+    vi.mocked(obtenerEjecucion).mockResolvedValue({
+      ...MOCK_EJECUCION,
+      resultados,
+    } satisfies Ejecucion);
+    vi.mocked(obtenerRai).mockResolvedValue({
+      id: 8,
+      cuentaMensualId: 5,
+      fechaCreacion: '2026-10-15T12:00:00.000Z',
+      subidoPorId: 1,
+      subidoPor: null,
+      hashContenido: 'c'.repeat(64),
+      transacciones: [
+        {
+          id: 90,
+          asiento: null,
+          fecha: '2026-09-29',
+          concepto: 'anticipo Coparticipacion sept/25',
+        },
+        {
+          id: 91,
+          asiento: null,
+          fecha: '2026-09-30',
+          concepto: 'Venta activo fijo',
+        },
+      ],
+    } as unknown as RaiGuardado);
+  });
+
+  it('V7, C3 y P3 caen en su grupo, junto a las reglas del resto de los libros', async () => {
+    renderPanel('EN_AUDITORIA');
+
+    const titulos = await reglas();
+    expect(titulos.map((h) => h.textContent)).toEqual([
+      expect.stringContaining('Saldo de caja'),
+      expect.stringContaining('Secuencia lógica del gasto'),
+      expect.stringContaining('Coherencia de suma mensual'),
+      expect.stringContaining('Ingresos del mes (RAI)'),
+      expect.stringContaining('Existencia de ingresos'),
+      expect.stringContaining('Coherencia de fechas'),
+    ]);
+    expect(
+      screen.getByRole('region', { name: 'Integridad de cheques' }),
+    ).toBeTruthy();
+  });
+
+  it('un asiento del RAI sin N° se cita por fecha y concepto y lleva a ese libro', async () => {
+    const { user, onVerEnLibro } = renderPanel('EN_AUDITORIA');
+
+    await user.click(
+      await screen.findByRole('button', { name: /Coherencia de suma mensual/ }),
+    );
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Ver el asiento del 29/09/2026 («anticipo Coparticipacion sept/25») de RAI en el libro',
+      }),
+    );
+
+    expect(onVerEnLibro).toHaveBeenCalledWith(
+      expect.objectContaining({
+        libroTipo: 'RAI',
+        libroId: 8,
+        transaccionId: 90,
+        fechaAsiento: '2026-09-29',
+      }),
+    );
+  });
+
+  it('el cruce C3 es de toda la cuenta: nombra el libro y no ofrece ir a una fila', async () => {
+    const { user } = renderPanel('EN_AUDITORIA');
+
+    await user.click(
+      await screen.findByRole('button', { name: /Ingresos del mes \(RAI\)/ }),
+    );
+
+    expect(
+      await screen.findByText(
+        /Los ingresos del RAI no coinciden con los de Ingresos y Egresos/,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /en el libro/ })).toBeNull();
+  });
+
+  it('sin RAI, V7, C3 y P3 no aplican y el aviso nombra al RAI', async () => {
+    const sinRai = [
+      regla('V7', 'Coherencia de suma mensual', sinLibro('RAI')),
+      regla('C3', 'Ingresos del mes (RAI)', sinLibro('RAI')),
+      regla('P3', 'Existencia de ingresos', sinLibro('RAI')),
+      regla('V1', 'Saldo de caja'),
+    ];
+    vi.mocked(obtenerEjecucion).mockResolvedValue({
+      ...MOCK_EJECUCION,
+      resultados: sinRai,
+    } satisfies Ejecucion);
+    renderPanel('EN_AUDITORIA');
+    await reglas();
+
+    expect(
+      screen.getByText(/3 reglas no aplican porque no se cargó el RAI/),
+    ).toBeTruthy();
+    const filtro = screen.getByRole('group', {
+      name: 'Filtrar las reglas por resultado',
+    });
+    expect(
+      (
+        within(filtro).getByRole('button', {
+          name: /Omitidas\s*0/,
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+  });
+
+  it('sin RACI ni RAI el aviso los nombra a los dos', async () => {
+    vi.mocked(obtenerEjecucion).mockResolvedValue({
+      ...MOCK_EJECUCION,
+      resultados: [
+        regla('V4', 'Secuencia lógica del gasto', sinLibro('RACI')),
+        regla('V7', 'Coherencia de suma mensual', sinLibro('RAI')),
+      ],
+    } satisfies Ejecucion);
+    renderPanel('EN_AUDITORIA');
+    await reglas();
+
+    expect(
+      screen.getByText(
+        /2 reglas no aplican porque no se cargaron el RACI y el RAI, que son libros opcionales/,
+      ),
+    ).toBeTruthy();
   });
 });

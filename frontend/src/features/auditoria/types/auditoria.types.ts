@@ -28,6 +28,8 @@ export interface ObservacionApi {
   transaccionIngresoEgresoId: number | null;
   /** Asiento del libro RACI donde se detectó (V4, V5, V6, P1, P2 y F1 sobre asientos); null si es de otro libro o de toda la cuenta (C1 y C2). */
   transaccionRaciId: number | null;
+  /** Asiento del libro RAI donde se detectó (V7, P3 y F1 sobre sus ingresos); null si es de otro libro o de toda la cuenta (C3). */
+  transaccionRaiId: number | null;
   /** Lo que dice el libro auditado, lo esperado y la diferencia absoluta; null si el hallazgo no es de un importe. */
   valorInformado: number | null;
   valorCalculado: number | null;
@@ -45,7 +47,7 @@ export interface ResultadoValidacion {
   /** Nombre legible de la regla, por ejemplo «Saldo de cuenta». */
   descripcion: string;
   estado: EstadoValidacion;
-  /** Solo en FALTAN_LIBROS: «Faltan libros requeridos: LIBRO_BANCO, RACI». El RACI es opcional: sin él, las reglas que lo piden quedan acá sin que sea un problema. */
+  /** Solo en FALTAN_LIBROS: «Faltan libros requeridos: LIBRO_BANCO, RACI». El RACI y el RAI son opcionales: sin ellos, las reglas que los piden quedan acá sin que sea un problema. */
   mensaje?: string;
   observaciones: ObservacionApi[];
   /** Controles que hizo la regla (filas validadas, o 1 si compara un total contra otro); null si no corrió. */
@@ -96,15 +98,21 @@ export interface ObservacionUbicada {
   revisadaPor: PersonaResumen | null;
   /** ISO */
   revisadaEn: string | null;
-  /** Id de la transacción hallada dentro de su libro (banco, Ingresos y Egresos o RACI); null si es de toda la cuenta. */
+  /** Id de la transacción hallada dentro de su libro (banco, Ingresos y Egresos, RACI o RAI); null si es de toda la cuenta. */
   transaccionId: number | null;
   libroTipo?: string;
   libroId?: number;
   libroNombre?: string;
   /** Número de fila tal como lo muestra la tabla del libro: la posición en el libro banco, la fila del archivo en Ingresos y Egresos. */
   fila?: number;
-  /** N° de asiento, si el hallazgo es de una fila del RACI: ahí no se numera por fila sino por asiento. */
+  /** N° de asiento, si el hallazgo es de una fila del RACI o del RAI: ahí no se numera por fila sino por asiento. */
   asiento?: number;
+  /**
+   * Fecha (YYYY-MM-DD) y concepto del asiento del RAI. Como el RAI puede venir sin N° de asiento, así es
+   * como se cita el hallazgo cuando `asiento` no está.
+   */
+  fechaAsiento?: string;
+  conceptoAsiento?: string;
 }
 
 /** Los tres contadores que acompañan a cada regla. `null` = no se puede calcular. */
@@ -122,7 +130,7 @@ export interface ResumenResultados {
   fallidas: number;
   /** Reglas que no corrieron porque falta algún libro obligatorio. */
   omitidas: number;
-  /** Reglas que no corrieron solo porque falta el RACI, que es opcional: no es un problema de la rendición. */
+  /** Reglas que no corrieron solo porque falta el RACI o el RAI, que son opcionales: no es un problema de la rendición. */
   noAplican: number;
   /** Total de observaciones de todas las reglas fallidas. */
   observaciones: number;

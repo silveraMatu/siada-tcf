@@ -9,16 +9,32 @@ export function nombreDeLibroFaltante(codigo: string): string {
   return etiquetaDeTipo(codigo);
 }
 
+/** Libros que la rendición puede no tener: sin ellos las reglas que los piden no aplican, no fallan. */
+const LIBROS_OPCIONALES: ReadonlySet<string> = new Set(['RACI', 'RAI']);
+
 /**
- * La regla no corrió solo porque falta el RACI, que es un libro opcional: no es un problema de la
- * rendición ni la deja «incompleta», así que se muestra aparte de las omitidas por faltar un libro obligatorio.
+ * La regla no corrió solo porque falta el RACI o el RAI, que son libros opcionales: no es un problema de
+ * la rendición ni la deja «incompleta», así que se muestra aparte de las omitidas por faltar un libro obligatorio.
  */
 export function esNoAplica(resultado: ResultadoValidacion): boolean {
   return (
     resultado.estado === 'FALTAN_LIBROS' &&
     resultado.librosFaltantes.length > 0 &&
-    resultado.librosFaltantes.every((libro) => libro === 'RACI')
+    resultado.librosFaltantes.every((libro) => LIBROS_OPCIONALES.has(libro))
   );
+}
+
+/** Libros opcionales que no se cargaron y por los que alguna regla no aplica, sin repetir y en orden fijo. */
+export function librosOpcionalesAusentes(
+  resultados: readonly ResultadoValidacion[],
+): string[] {
+  const ausentes = new Set<string>();
+  for (const resultado of resultados) {
+    if (esNoAplica(resultado)) {
+      resultado.librosFaltantes.forEach((libro) => ausentes.add(libro));
+    }
+  }
+  return [...LIBROS_OPCIONALES].filter((libro) => ausentes.has(libro));
 }
 
 /**
