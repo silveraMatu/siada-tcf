@@ -8,6 +8,8 @@ import type { ResumenLibro } from '@/features/cuentas/types';
 import { obtenerIngresosEgresos } from '@/features/ingresos-egresos/api/ingresos-egresos.api';
 import type { IngresosEgresosGuardado } from '@/features/ingresos-egresos/types';
 import { obtenerRaci } from '@/features/raci/api/raci.api';
+import { obtenerRai } from '@/features/rai/api/rai.api';
+import type { RaiGuardado } from '@/features/rai/types';
 import type { RaciGuardado } from '@/features/raci/types';
 import { obtenerLibrosBanco } from '../api/libro-banco.api';
 import type { LibroBancoGuardado } from '../types';
@@ -16,6 +18,10 @@ import { LibrosDeRendicion, type FocoLibro } from './LibrosDeRendicion';
 vi.mock('@/features/ingresos-egresos/api/ingresos-egresos.api', () => ({
   obtenerIngresosEgresos: vi.fn(),
   ingestarIngresosEgresos: vi.fn(),
+}));
+vi.mock('@/features/rai/api/rai.api', () => ({
+  obtenerRai: vi.fn(),
+  ingestarRai: vi.fn(),
 }));
 vi.mock('@/features/raci/api/raci.api', () => ({
   obtenerRaci: vi.fn(),
@@ -445,6 +451,83 @@ describe('LibrosDeRendicion', () => {
       expect(fila?.getAttribute('aria-current')).toBe('true');
       expect(
         screen.getByRole('tab', { name: 'RACI' }).getAttribute('aria-selected'),
+      ).toBe('true');
+    });
+  });
+
+  describe('libro RAI', () => {
+    // comparte el id 2 con el segundo libro banco: las pestañas se distinguen por tipo
+    const rai: ResumenLibro = {
+      id: 2,
+      tipo: 'RAI',
+      numeroCuentaCte: null,
+      cantidadTransacciones: 2,
+      fechaDesde: '2026-09-01',
+      fechaHasta: '2026-09-29',
+    };
+    const guardadoRai = {
+      id: 2,
+      cuentaMensualId: 5,
+      fechaCreacion: '2026-10-15T12:00:00.000Z',
+      subidoPorId: 1,
+      subidoPor: null,
+      hashContenido: 'a'.repeat(64),
+      transacciones: [
+        {
+          id: 87,
+          asiento: null,
+          fecha: '2026-09-01',
+          planillaNumero: null,
+          concepto: 'Saldo coparticipación agosto',
+        },
+        {
+          id: 88,
+          asiento: null,
+          fecha: '2026-09-29',
+          planillaNumero: null,
+          concepto: 'Anticipo coparticipación septiembre',
+        },
+      ],
+    } as unknown as RaiGuardado;
+
+    beforeEach(() => {
+      datosDeLosLibros();
+      vi.mocked(obtenerRai).mockResolvedValue(guardadoRai);
+    });
+
+    it('en el resumen cuenta asientos, no transacciones', () => {
+      renderLibros([...LIBROS, rai]);
+
+      const fila = screen.getByRole('button', { name: 'RAI' }).closest('li');
+      expect(fila?.textContent).toMatch(/2 asientos/);
+      expect(fila?.textContent).not.toMatch(/transacciones/);
+    });
+
+    it('su nombre abre sus asientos, no las filas del libro banco con el mismo id', async () => {
+      const { user } = renderLibros([...LIBROS, rai]);
+
+      await user.click(screen.getByRole('button', { name: 'RAI' }));
+
+      expect(
+        screen.getByRole('tab', { name: 'RAI' }).getAttribute('aria-selected'),
+      ).toBe('true');
+      expect(
+        await screen.findByText('Saldo coparticipación agosto'),
+      ).toBeTruthy();
+      expect(screen.queryByText('Proveedor Dos')).toBeNull();
+    });
+
+    it('el foco abre su pestaña y marca el asiento pedido', async () => {
+      const { pedirFoco } = renderLibros([...LIBROS, rai]);
+
+      pedirFoco({ libroTipo: 'RAI', libroId: 2, transaccionId: 88, clave: 1 });
+
+      const fila = (
+        await screen.findByText('Anticipo coparticipación septiembre')
+      ).closest('tr');
+      expect(fila?.getAttribute('aria-current')).toBe('true');
+      expect(
+        screen.getByRole('tab', { name: 'RAI' }).getAttribute('aria-selected'),
       ).toBe('true');
     });
   });

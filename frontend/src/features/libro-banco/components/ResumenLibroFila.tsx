@@ -14,6 +14,9 @@ interface ResumenLibroFilaProps {
 }
 
 /** Una fila por libro cargado: qué libro es y qué trae, sin abrirlo. Su nombre abre el detalle. */
+/** Los libros RACI y RAI no tienen transacciones sino asientos. */
+const esLibroDeAsientos = (tipo: string) => tipo === 'RACI' || tipo === 'RAI';
+
 export function ResumenLibroFila({ libro, onAbrir }: ResumenLibroFilaProps) {
   const esBanco = libro.tipo === 'LIBRO_BANCO';
 
@@ -30,7 +33,7 @@ export function ResumenLibroFila({ libro, onAbrir }: ResumenLibroFilaProps) {
           type="button"
           onClick={onAbrir}
           title={
-            libro.tipo === 'RACI'
+            esLibroDeAsientos(libro.tipo)
               ? 'Ver los asientos de este libro'
               : 'Ver las transacciones de este libro'
           }
@@ -40,7 +43,7 @@ export function ResumenLibroFila({ libro, onAbrir }: ResumenLibroFilaProps) {
         </button>
       </div>
       <p className="text-muted-foreground">
-        {libro.tipo === 'RACI'
+        {esLibroDeAsientos(libro.tipo)
           ? describirAsientos(libro.cantidadTransacciones)
           : describirTransacciones(libro.cantidadTransacciones)}{' '}
         · {describirRangoFechas(libro.fechaDesde, libro.fechaHasta)}
