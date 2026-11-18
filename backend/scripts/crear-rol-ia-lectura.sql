@@ -1,7 +1,7 @@
 -- Rol de solo lectura del microservicio de IA (ia-agent-service) con aislamiento por organismo.
 --
 -- El agente genera SQL con un LLM; este rol es la barrera real de la base (la validación en
--- Python es solo la primera capa): solo puede leer 9 tablas de rendición, nunca usuarios,
+-- Python es solo la primera capa): solo puede leer 13 tablas de rendición, nunca usuarios,
 -- responsables ni registro_actividad, y la RLS le muestra únicamente las filas del organismo
 -- que el servicio fija en cada consulta con `set_config('app.organismo_id', <id>, true)`.
 -- Sin ese valor no ve ninguna fila. El dueño de las tablas (el backend/TypeORM) no pasa por RLS.
@@ -45,6 +45,10 @@ GRANT SELECT ON
   transacciones_libro_banco,
   ingresos_egresos,
   transacciones_ingresos_egresos,
+  raci,
+  transacciones_raci,
+  rai,
+  transacciones_rai,
   observaciones,
   ejecuciones_auditoria
 TO siada_ia_ro;
@@ -61,6 +65,10 @@ ALTER TABLE libros_banco                   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transacciones_libro_banco      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ingresos_egresos               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transacciones_ingresos_egresos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE raci                           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transacciones_raci             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rai                            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transacciones_rai              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE observaciones                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ejecuciones_auditoria          ENABLE ROW LEVEL SECURITY;
 
@@ -94,6 +102,22 @@ CREATE POLICY ia_ro_select ON ingresos_egresos FOR SELECT TO siada_ia_ro
 DROP POLICY IF EXISTS ia_ro_select ON transacciones_ingresos_egresos;
 CREATE POLICY ia_ro_select ON transacciones_ingresos_egresos FOR SELECT TO siada_ia_ro
   USING (EXISTS (SELECT 1 FROM ingresos_egresos ie WHERE ie.id = transacciones_ingresos_egresos.ingresos_egresos_id));
+
+DROP POLICY IF EXISTS ia_ro_select ON raci;
+CREATE POLICY ia_ro_select ON raci FOR SELECT TO siada_ia_ro
+  USING (EXISTS (SELECT 1 FROM cuentas_mensuales cm WHERE cm.id = raci.cuenta_mensual_id));
+
+DROP POLICY IF EXISTS ia_ro_select ON transacciones_raci;
+CREATE POLICY ia_ro_select ON transacciones_raci FOR SELECT TO siada_ia_ro
+  USING (EXISTS (SELECT 1 FROM raci r WHERE r.id = transacciones_raci.raci_id));
+
+DROP POLICY IF EXISTS ia_ro_select ON rai;
+CREATE POLICY ia_ro_select ON rai FOR SELECT TO siada_ia_ro
+  USING (EXISTS (SELECT 1 FROM cuentas_mensuales cm WHERE cm.id = rai.cuenta_mensual_id));
+
+DROP POLICY IF EXISTS ia_ro_select ON transacciones_rai;
+CREATE POLICY ia_ro_select ON transacciones_rai FOR SELECT TO siada_ia_ro
+  USING (EXISTS (SELECT 1 FROM rai ra WHERE ra.id = transacciones_rai.rai_id));
 
 DROP POLICY IF EXISTS ia_ro_select ON observaciones;
 CREATE POLICY ia_ro_select ON observaciones FOR SELECT TO siada_ia_ro
