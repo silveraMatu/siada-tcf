@@ -166,11 +166,11 @@ describe('Bitácora de actividad (e2e)', () => {
       await api()
         .post('/api/v1/organismos')
         .set('Authorization', responsable.bearer)
-        .send({ nombre: 'No debería crearse', rubro: 'X' })
+        .send({ nombre: 'No debería crearse', rubro: 'OTROS' })
         .expect(403);
       await api()
         .post('/api/v1/organismos')
-        .send({ nombre: 'No debería crearse', rubro: 'X' })
+        .send({ nombre: 'No debería crearse', rubro: 'OTROS' })
         .expect(401);
 
       const denegados = await eventos(
@@ -192,7 +192,7 @@ describe('Bitácora de actividad (e2e)', () => {
       const res = await api()
         .post('/api/v1/organismos')
         .set('Authorization', bearerAdmin)
-        .send({ nombre, rubro: 'E2E' })
+        .send({ nombre, rubro: 'OTROS' })
         .expect(201);
 
       const [evento] = await eventos(

@@ -27,7 +27,7 @@ describe('Auditor asignado al organismo (e2e)', () => {
       .set('Authorization', bearerAdmin)
       .send({
         nombre: `__E2E__ Auditor ${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        rubro: 'E2E',
+        rubro: 'OTROS',
       })
       .expect(201);
     return res.body.id;

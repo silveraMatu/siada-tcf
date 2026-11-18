@@ -7,6 +7,7 @@ import {
 } from '../../../usuarios/domain/entities/usuario.domain.js';
 import { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
 import { Organismo } from '../../domain/entities/organismo.domain.js';
+import { Rubro } from '../../domain/enums/rubro.enum.js';
 import { OrganismoRepositoryPort } from '../ports/out/organismo-repository.port.js';
 import { AsignarAuditorUseCase } from './asignar-auditor.use-case.js';
 import { QuitarAuditorUseCase } from './quitar-auditor.use-case.js';
@@ -96,7 +97,7 @@ class ActividadEspia extends ContextoActividadPort {
 }
 
 const organismo = (auditorId: number | null = null, active = true) =>
-  new Organismo('Hospital', 'Salud', active, 5, new Date(), auditorId);
+  new Organismo('Hospital', Rubro.DESARROLLO_HUMANO, active, 5, new Date(), auditorId);
 const usuario = (roles: Rol[], active = true): UsuarioSinPassword => ({
   nombre: 'Ana',
   apellido: 'Pérez',

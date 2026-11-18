@@ -21,6 +21,7 @@ import { AsignarOrganismoAResponsableUseCase } from '../modules/responsables/app
 import { CrearResponsableUseCase } from '../modules/responsables/application/use-cases/crear-responsable.use-case.js';
 import { UsuarioRepositoryPort } from '../modules/usuarios/application/ports/out/usuario-repository.port.js';
 import { ActivarUsuarioYAsignarRolesUseCase } from '../modules/usuarios/application/use-cases/activar-usuario-y-asignar-roles.use-case.js';
+import { Rubro } from '../modules/organismos/domain/enums/rubro.enum.js';
 import type { Usuario } from '../modules/usuarios/domain/entities/usuario.domain.js';
 import { Rol } from '../modules/usuarios/domain/enums/rol.enum.js';
 import { EJERCICIO_SEED, mesesDelSeed } from './seed-datos.js';
@@ -112,7 +113,7 @@ export async function sembrar(
     ) ??
     (await get(CrearOrganismoUseCase).execute(
       NOMBRE_ORGANISMO_SEED,
-      'Municipalidad',
+      Rubro.DESARROLLO_HUMANO,
     ));
   const organismoId = organismo.id!;
 

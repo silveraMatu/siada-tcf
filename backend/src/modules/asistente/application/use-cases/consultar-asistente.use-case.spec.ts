@@ -14,6 +14,7 @@ import { EstadoCuentaMensual } from '../../../cuentas/domain/enums/estado-cuenta
 import { TipoLibro } from '../../../cuentas/domain/enums/tipo-libro.enum.js';
 import { OrganismoRepositoryPort } from '../../../organismos/application/ports/out/organismo-repository.port.js';
 import { Organismo } from '../../../organismos/domain/entities/organismo.domain.js';
+import { Rubro } from '../../../organismos/domain/enums/rubro.enum.js';
 import { ContextoActividadPort } from '../../../registro-actividad/application/ports/out/contexto-actividad.port.js';
 import { Rol } from '../../../usuarios/domain/enums/rol.enum.js';
 import {
@@ -85,7 +86,7 @@ class OrganismosFalso extends OrganismoRepositoryPort {
   buscarPorId(id: number): Promise<Organismo | null> {
     return Promise.resolve(
       this.existentes.includes(id)
-        ? new Organismo('Municipalidad Demo', 'Municipalidad', true, id)
+        ? new Organismo('Municipalidad Demo', Rubro.OTROS, true, id)
         : null,
     );
   }
@@ -229,7 +230,7 @@ describe('ConsultarAsistenteUseCase', () => {
         organismoId: ORGANISMO,
         metadatosOrganismo: {
           nombre: 'Municipalidad Demo',
-          rubro: 'Municipalidad',
+          rubro: Rubro.OTROS,
           activo: true,
         },
         contextoRendicion: null,

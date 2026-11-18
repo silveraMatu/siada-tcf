@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { CuentaAnualEntity } from '../../../cuentas/infrastructure/entities/cuenta-anual.entity.js';
 import { UsuarioEntity } from '../../../usuarios/infrastructure/entities/usuario.entity.js';
+import { Rubro } from '../../domain/enums/rubro.enum.js';
 import { ResponsableEntity } from '../../../responsables/infrastructure/entities/responsable.entity.js';
 
 @Entity('organismos')
@@ -20,12 +21,8 @@ export class OrganismoEntity {
   @Column({ type: 'varchar', length: 255 })
   nombre: string;
 
-  @Column({
-    type: 'varchar',
-    length: 255,
-    default: 'General',
-  })
-  rubro: string;
+  @Column({ type: 'enum', enum: Rubro, default: Rubro.OTROS })
+  rubro: Rubro;
 
   @Column({ type: 'boolean', default: true })
   active: boolean;

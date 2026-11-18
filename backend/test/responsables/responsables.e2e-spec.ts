@@ -349,7 +349,7 @@ describe('Responsables (e2e)', () => {
         .set('Authorization', bearer)
         .send({
           nombre: `__E2E__ Asignacion ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          rubro: 'E2E',
+          rubro: 'OTROS',
         })
         .expect(201);
       return res.body.id;
@@ -561,7 +561,7 @@ describe('Responsables (e2e)', () => {
       );
       if (existente.length) return existente[0].id;
       const [creado] = await dataSource.query(
-        `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'E2E', false) RETURNING id`,
+        `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'OTROS', false) RETURNING id`,
         [nombre],
       );
       return creado.id;
@@ -576,7 +576,7 @@ describe('Responsables (e2e)', () => {
       expect(res.body).toEqual({
         id: organismoId,
         nombre: '__E2E__ Organismo Base',
-        rubro: 'E2E',
+        rubro: 'OTROS',
         active: true,
         fechaCreacion: expect.any(String),
       });

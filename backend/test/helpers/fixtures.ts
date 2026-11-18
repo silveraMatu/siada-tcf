@@ -33,7 +33,7 @@ export async function obtenerOrganismoBaseId(
   if (existente.length) return existente[0].id;
 
   const [creado] = await dataSource.query(
-    `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'E2E', true) RETURNING id`,
+    `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'OTROS', true) RETURNING id`,
     [nombre],
   );
   return creado.id;
@@ -178,7 +178,7 @@ export async function obtenerOrganismoAjenoId(
   if (existente.length) return existente[0].id;
 
   const [creado] = await dataSource.query(
-    `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'E2E', true) RETURNING id`,
+    `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'OTROS', true) RETURNING id`,
     [nombre],
   );
   return creado.id;
@@ -196,7 +196,7 @@ export async function obtenerOrganismoRaiId(
   if (existente.length) return existente[0].id;
 
   const [creado] = await dataSource.query(
-    `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'E2E', true) RETURNING id`,
+    `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'OTROS', true) RETURNING id`,
     [nombre],
   );
   return creado.id;
@@ -214,7 +214,7 @@ export async function obtenerOrganismoReglasRaciId(
   if (existente.length) return existente[0].id;
 
   const [creado] = await dataSource.query(
-    `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'E2E', true) RETURNING id`,
+    `INSERT INTO organismos (nombre, rubro, active) VALUES ($1, 'OTROS', true) RETURNING id`,
     [nombre],
   );
   return creado.id;

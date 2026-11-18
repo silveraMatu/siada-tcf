@@ -1,11 +1,12 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { Rubro } from '../../../domain/enums/rubro.enum.js';
 
 //fechaCreacion viaja como string ISO 8601 (z.date() no se puede documentar en OpenAPI)
 export const OrganismoResponseSchema = z.object({
   id: z.number().int(),
   nombre: z.string(),
-  rubro: z.string(),
+  rubro: z.enum(Rubro),
   active: z.boolean(),
   fechaCreacion: z.iso.datetime(),
 });

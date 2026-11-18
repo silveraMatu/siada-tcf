@@ -250,7 +250,7 @@ describe('Asistente de IA (e2e)', () => {
         organismo_id: organismoId,
         metadatos_organismo: {
           nombre: '__E2E__ Organismo Base',
-          rubro: 'E2E',
+          rubro: 'OTROS',
           activo: true,
         },
         contexto_rendicion: null,

@@ -36,12 +36,12 @@ describe('Organismos (e2e)', () => {
   describe('POST /organismos', () => {
     it('201: crea el organismo activo y devuelve el contrato de respuesta', async () => {
       const nombre = `__E2E__ Organismo ${Date.now()}`;
-      const res = await crear({ nombre, rubro: 'Educacion' }).expect(201);
+      const res = await crear({ nombre, rubro: 'CULTURA_EDUCACION' }).expect(201);
 
       expect(res.body).toEqual({
         id: expect.any(Number),
         nombre,
-        rubro: 'Educacion',
+        rubro: 'CULTURA_EDUCACION',
         active: true,
         fechaCreacion: expect.any(String),
         //un organismo nuevo todavía no tiene auditor
@@ -54,57 +54,76 @@ describe('Organismos (e2e)', () => {
         `SELECT * FROM organismos WHERE id = $1`,
         [res.body.id],
       );
-      expect(fila).toMatchObject({ nombre, rubro: 'Educacion', active: true });
+      expect(fila).toMatchObject({ nombre, rubro: 'CULTURA_EDUCACION', active: true });
     });
 
     it('201: ignora `active` enviado por el cliente (siempre nace activo)', async () => {
       const res = await crear({
         nombre: `__E2E__ Active ${Date.now()}`,
-        rubro: 'E2E',
+        rubro: 'OTROS',
         active: false,
       }).expect(201);
       expect(res.body.active).toBe(true);
     });
 
-    it('201: recorta espacios en nombre y rubro', async () => {
+    it('201: recorta espacios en el nombre', async () => {
       const sufijo = Date.now();
       const res = await crear({
         nombre: `  __E2E__ Trim ${sufijo}  `,
-        rubro: '  E2E  ',
+        rubro: 'OTROS',
       }).expect(201);
       expect(res.body).toMatchObject({
         nombre: `__E2E__ Trim ${sufijo}`,
-        rubro: 'E2E',
+        rubro: 'OTROS',
       });
     });
 
     it('201: permite organismos con el mismo nombre', async () => {
       const nombre = `__E2E__ Repetido ${Date.now()}`;
-      const a = await crear({ nombre, rubro: 'E2E' }).expect(201);
-      const b = await crear({ nombre, rubro: 'E2E' }).expect(201);
+      const a = await crear({ nombre, rubro: 'OTROS' }).expect(201);
+      const b = await crear({ nombre, rubro: 'OTROS' }).expect(201);
       expect(a.body.id).not.toBe(b.body.id);
     });
 
-    it('201: acepta nombre y rubro de exactamente 255 caracteres', async () => {
+    it('201: acepta un nombre de exactamente 255 caracteres', async () => {
       const res = await crear({
         nombre: 'n'.repeat(255),
-        rubro: 'r'.repeat(255),
+        rubro: 'OTROS',
       }).expect(201);
       expect(res.body.nombre).toHaveLength(255);
-      expect(res.body.rubro).toHaveLength(255);
+    });
+
+    it.each([
+      'COMUNICACION_SOCIAL',
+      'COMUNIDAD',
+      'CULTURA_EDUCACION',
+      'DESARROLLO_HUMANO',
+      'ECONOMIA_HACIENDA_FINANZAS',
+      'GOBIERNO_JUSTICIA_SEGURIDAD_TRABAJO',
+      'PLANIFICACION_OBRAS_SERVICIOS',
+      'PRODUCCION_AMBIENTE',
+      'TURISMO',
+      'OTROS',
+    ])('201: acepta el rubro %s del catálogo', async (rubro) => {
+      const res = await crear({
+        nombre: `__E2E__ Rubro ${rubro} ${Date.now()}`,
+        rubro,
+      }).expect(201);
+      expect(res.body.rubro).toBe(rubro);
     });
 
     it.each([
       ['body vacio', {}],
-      ['sin nombre', { rubro: 'E2E' }],
+      ['sin nombre', { rubro: 'OTROS' }],
       ['sin rubro', { nombre: 'X' }],
-      ['nombre vacio', { nombre: '', rubro: 'E2E' }],
-      ['nombre solo espacios', { nombre: '   ', rubro: 'E2E' }],
+      ['nombre vacio', { nombre: '', rubro: 'OTROS' }],
+      ['nombre solo espacios', { nombre: '   ', rubro: 'OTROS' }],
       ['rubro vacio', { nombre: 'X', rubro: '' }],
       ['rubro solo espacios', { nombre: 'X', rubro: '   ' }],
-      ['nombre de 256 caracteres', { nombre: 'n'.repeat(256), rubro: 'E2E' }],
-      ['rubro de 256 caracteres', { nombre: 'X', rubro: 'r'.repeat(256) }],
-      ['nombre numerico', { nombre: 123, rubro: 'E2E' }],
+      ['rubro fuera del catalogo', { nombre: 'X', rubro: 'Municipio' }],
+      ['rubro en minusculas', { nombre: 'X', rubro: 'turismo' }],
+      ['nombre de 256 caracteres', { nombre: 'n'.repeat(256), rubro: 'OTROS' }],
+      ['nombre numerico', { nombre: 123, rubro: 'OTROS' }],
       ['rubro nulo', { nombre: 'X', rubro: null }],
     ])('400: %s', async (_caso, body) => {
       await crear(body).expect(400);
@@ -114,7 +133,7 @@ describe('Organismos (e2e)', () => {
   describe('GET /organismos', () => {
     it('200: devuelve un arreglo con el contrato de respuesta y orden por id ascendente', async () => {
       const nombre = `__E2E__ Listado ${Date.now()}`;
-      const creado = await crear({ nombre, rubro: 'E2E' }).expect(201);
+      const creado = await crear({ nombre, rubro: 'OTROS' }).expect(201);
 
       const res = await listar().expect(200);
 
@@ -151,7 +170,7 @@ describe('Organismos (e2e)', () => {
   describe('autorización', () => {
     const cuerpoNuevo = () => ({
       nombre: `__E2E__ Autorizacion ${Date.now()}`,
-      rubro: 'E2E',
+      rubro: 'OTROS',
     });
     const contarOrganismos = async (): Promise<number> => {
       const [{ total }] = await dataSource.query(
