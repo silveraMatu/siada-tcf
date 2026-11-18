@@ -52,7 +52,7 @@ const responsable = (id: number, nombre: string, active = true): Responsable => 
 const organismo = (id: number, nombre: string, active = true): Organismo => ({
   id,
   nombre,
-  rubro: 'Municipio',
+  rubro: 'COMUNIDAD',
   active,
   fechaCreacion: '2026-10-01T12:00:00.000Z',
 });

@@ -75,7 +75,7 @@ const organismo = (
 ): Organismo => ({
   id,
   nombre,
-  rubro: 'Municipio',
+  rubro: 'COMUNIDAD',
   active: true,
   fechaCreacion: '2026-10-15T12:00:00.000Z',
   auditorId: null,
@@ -156,6 +156,20 @@ describe('AsignacionAuditoresPage', () => {
     expect(screen.getByText('Municipalidad de Pirané')).toBeTruthy();
     expect(screen.queryByText('Hospital Central')).toBeNull();
     expect(screen.getByText(/^1 de 3 organismos/)).toBeTruthy();
+  });
+
+  it('busca también por el nombre legible del rubro', async () => {
+    const user = renderPagina();
+    await screen.findByText('Hospital Central');
+
+    await user.type(
+      screen.getByLabelText('Buscar organismo'),
+      'ministerio de la comunidad',
+    );
+
+    // todos los organismos del ejemplo son del rubro Comunidad
+    expect(screen.getByText('Hospital Central')).toBeTruthy();
+    expect(screen.getByText(/^3 organismos/)).toBeTruthy();
   });
 
   it('«Solo sin auditor» deja los organismos activos que todavía no tienen y se puede quitar', async () => {

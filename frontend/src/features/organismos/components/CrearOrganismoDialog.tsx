@@ -22,9 +22,20 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { getErrorMessage } from '@/lib/api';
 import { useCrearOrganismo } from '../hooks/useCrearOrganismo';
-import { CrearOrganismoSchema, type CrearOrganismoValues } from '../types';
+import {
+  CrearOrganismoSchema,
+  RUBROS,
+  type CrearOrganismoValues,
+} from '../types';
 
 export function CrearOrganismoDialog() {
   const [open, setOpen] = useState(false);
@@ -33,7 +44,7 @@ export function CrearOrganismoDialog() {
   const form = useForm<CrearOrganismoValues>({
     resolver: zodResolver(CrearOrganismoSchema),
     mode: 'onTouched',
-    defaultValues: { nombre: '', rubro: '' },
+    defaultValues: { nombre: '' },
   });
 
   function cambiarApertura(abierto: boolean) {
@@ -101,13 +112,23 @@ export function CrearOrganismoDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Rubro</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Ej.: Municipio, Comisión de Fomento"
-                      autoComplete="off"
-                      {...field}
-                    />
-                  </FormControl>
+                  <Select
+                    value={field.value ?? ''}
+                    onValueChange={field.onChange}
+                  >
+                    <FormControl>
+                      <SelectTrigger onBlur={field.onBlur}>
+                        <SelectValue placeholder="Seleccione un rubro" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {RUBROS.map((rubro) => (
+                        <SelectItem key={rubro.valor} value={rubro.valor}>
+                          {rubro.etiqueta}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

@@ -15,11 +15,44 @@ vi.mock('../api/organismos.api', () => ({
   crearOrganismo: vi.fn(),
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+// El Select de Radix no es fiable en jsdom: se lo reemplaza por un <select> nativo con la misma interfaz.
+vi.mock('@/components/ui/select', () => ({
+  Select: ({
+    value,
+    onValueChange,
+    children,
+  }: {
+    value: string;
+    onValueChange: (valor: string) => void;
+    children: React.ReactNode;
+  }) => (
+    <select
+      aria-label="Rubro"
+      value={value}
+      onChange={(e) => onValueChange(e.target.value)}
+    >
+      <option value="">Seleccione un rubro</option>
+      {children}
+    </select>
+  ),
+  SelectTrigger: () => null,
+  SelectValue: () => null,
+  SelectContent: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  SelectItem: ({
+    value,
+    children,
+  }: {
+    value: string;
+    children: React.ReactNode;
+  }) => <option value={value}>{children}</option>,
+}));
 
 const crear = (id: number, nombre: string, active = true): Organismo => ({
   id,
   nombre,
-  rubro: 'Municipio',
+  rubro: 'COMUNIDAD',
   active,
   fechaCreacion: '2026-10-15T12:00:00.000Z',
 });
@@ -65,6 +98,10 @@ describe('OrganismosPage', () => {
     expect(within(filas[0]).getByText('Inactivo')).toBeTruthy();
     expect(within(filas[1]).getByText('Municipalidad de Pirané')).toBeTruthy();
     expect(within(filas[1]).getByText('Activo')).toBeTruthy();
+    // el rubro se muestra con su nombre legible, no con el código
+    expect(
+      within(filas[0]).getByText('Comunidad (Ministerio de la Comunidad)'),
+    ).toBeTruthy();
     expect(screen.getByText('2 organismos')).toBeTruthy();
     expect(screen.getByText('Gestión de Organismos')).toBeTruthy();
   });
@@ -125,7 +162,7 @@ describe('OrganismosPage', () => {
       await screen.findByLabelText('Nombre del Organismo'),
       'Escuela N° 12',
     );
-    await user.type(screen.getByLabelText('Rubro'), 'Municipio');
+    await user.selectOptions(screen.getByLabelText('Rubro'), 'COMUNIDAD');
     await user.click(screen.getByRole('button', { name: 'Crear Organismo' }));
 
     expect(await screen.findByText('Escuela N° 12')).toBeTruthy();

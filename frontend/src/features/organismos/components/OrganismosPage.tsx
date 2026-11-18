@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import { getErrorMessage } from '@/lib/api';
 import { useOrganismos } from '../hooks/useOrganismos';
+import { etiquetaRubro } from '../types';
 import { CrearOrganismoDialog } from './CrearOrganismoDialog';
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' });
@@ -104,7 +105,7 @@ export function OrganismosPage() {
                       {organismo.nombre}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {organismo.rubro}
+                      {etiquetaRubro(organismo.rubro)}
                     </TableCell>
                     <TableCell>
                       {organismo.active ? (

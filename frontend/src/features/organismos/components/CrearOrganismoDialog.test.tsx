@@ -12,6 +12,39 @@ vi.mock('../api/organismos.api', () => ({
   obtenerOrganismos: vi.fn(),
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+// El Select de Radix no es fiable en jsdom: se lo reemplaza por un <select> nativo con la misma interfaz.
+vi.mock('@/components/ui/select', () => ({
+  Select: ({
+    value,
+    onValueChange,
+    children,
+  }: {
+    value: string;
+    onValueChange: (valor: string) => void;
+    children: React.ReactNode;
+  }) => (
+    <select
+      aria-label="Rubro"
+      value={value}
+      onChange={(e) => onValueChange(e.target.value)}
+    >
+      <option value="">Seleccione un rubro</option>
+      {children}
+    </select>
+  ),
+  SelectTrigger: () => null,
+  SelectValue: () => null,
+  SelectContent: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  SelectItem: ({
+    value,
+    children,
+  }: {
+    value: string;
+    children: React.ReactNode;
+  }) => <option value={value}>{children}</option>,
+}));
 
 function renderDialog() {
   const client = new QueryClient({
@@ -34,7 +67,7 @@ beforeEach(() => {
   vi.mocked(crearOrganismo).mockResolvedValue({
     id: 1,
     nombre: 'Municipalidad de Clorinda',
-    rubro: 'Municipio',
+    rubro: 'COMUNIDAD',
     active: true,
     fechaCreacion: '2026-10-15T12:00:00.000Z',
   });
@@ -45,11 +78,13 @@ afterEach(() => {
 });
 
 describe('CrearOrganismoDialog', () => {
-  it('abre el modal con los dos campos', async () => {
+  it('abre el modal con los dos campos y ofrece los 10 rubros del catálogo', async () => {
     const user = renderDialog();
     await abrir(user);
     expect(screen.getByLabelText('Nombre del Organismo')).toBeTruthy();
     expect(screen.getByLabelText('Rubro')).toBeTruthy();
+    // la opción vacía de prueba más los 10 rubros
+    expect(screen.getAllByRole('option')).toHaveLength(11);
   });
 
   it('valida los campos obligatorios sin llamar a la API', async () => {
@@ -69,13 +104,13 @@ describe('CrearOrganismoDialog', () => {
       screen.getByLabelText('Nombre del Organismo'),
       '  Municipalidad de Clorinda ',
     );
-    await user.type(screen.getByLabelText('Rubro'), 'Municipio');
+    await user.selectOptions(screen.getByLabelText('Rubro'), 'COMUNIDAD');
     await user.click(screen.getByRole('button', { name: 'Crear Organismo' }));
 
     await waitFor(() =>
       expect(crearOrganismo).toHaveBeenCalledWith({
         nombre: 'Municipalidad de Clorinda',
-        rubro: 'Municipio',
+        rubro: 'COMUNIDAD',
       }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -85,8 +120,14 @@ describe('CrearOrganismoDialog', () => {
     vi.mocked(crearOrganismo).mockRejectedValue(new Error('Servidor caído'));
     const user = renderDialog();
     await abrir(user);
-    await user.type(screen.getByLabelText('Nombre del Organismo'), 'Escuela 12');
-    await user.type(screen.getByLabelText('Rubro'), 'Educación');
+    await user.type(
+      screen.getByLabelText('Nombre del Organismo'),
+      'Escuela 12',
+    );
+    await user.selectOptions(
+      screen.getByLabelText('Rubro'),
+      'CULTURA_EDUCACION',
+    );
     await user.click(screen.getByRole('button', { name: 'Crear Organismo' }));
 
     expect(await screen.findByText('Servidor caído')).toBeTruthy();

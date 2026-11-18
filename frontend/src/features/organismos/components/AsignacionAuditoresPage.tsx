@@ -33,7 +33,7 @@ import { useAuthStore } from '@/features/auth/hooks/useAuth';
 import { useQuitarAuditor } from '../hooks/useAsignarAuditor';
 import { useAuditores } from '../hooks/useAuditores';
 import { useOrganismos } from '../hooks/useOrganismos';
-import type { Organismo } from '../types';
+import { etiquetaRubro, type Organismo } from '../types';
 import { AsignarAuditorDialog } from './AsignarAuditorDialog';
 
 /** Qué auditor tiene cada organismo, para que el juez de trámite lo asigne, lo cambie o lo quite. */
@@ -61,7 +61,7 @@ export function AsignacionAuditoresPage() {
     (o) =>
       (!soloSinAuditor || (o.active && !o.auditor)) &&
       (consulta === '' ||
-        normalizar(`${o.nombre} ${o.rubro}`).includes(consulta)),
+        normalizar(`${o.nombre} ${etiquetaRubro(o.rubro)}`).includes(consulta)),
   );
   const sinCandidatos = auditores.data?.length === 0;
 
@@ -180,7 +180,7 @@ export function AsignacionAuditoresPage() {
                       )}
                     </TableCell>
                     <TableCell className="max-w-48 whitespace-normal break-words text-muted-foreground">
-                      {organismo.rubro}
+                      {etiquetaRubro(organismo.rubro)}
                     </TableCell>
                     <TableCell>
                       {organismo.auditor ? (

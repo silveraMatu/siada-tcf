@@ -12,7 +12,7 @@ export async function crearOrganismo(
 ): Promise<Organismo> {
   const { data: organismo } = await api.post<Organismo>('/organismos', {
     nombre: data.nombre.trim(),
-    rubro: data.rubro.trim(),
+    rubro: data.rubro,
   });
   return organismo;
 }
