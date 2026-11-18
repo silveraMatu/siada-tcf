@@ -14,7 +14,11 @@ from langgraph.prebuilt import ToolNode
 
 from core.config import settings
 from core.llm import get_llm
-from features.agent.prompts import construir_prompt_sistema, construir_prompt_sql
+from features.agent.prompts import (
+    construir_prompt_rubro,
+    construir_prompt_sistema,
+    construir_prompt_sql,
+)
 from features.agent.state import AgentInput, AgentOutput, AgentState
 from features.agent.tools import auditor_tools
 from features.agent.traza import paso_fallido, paso_publico
@@ -46,7 +50,11 @@ async def call_model(state: AgentState) -> dict[str, Any]:
     # (se arma en cada llamada) para que no se duplique en cada vuelta del ciclo.
     nuevos: list[BaseMessage] = [] if existentes else [HumanMessage(content=input_data.pregunta)]
     sistema = SystemMessage(
-        content=f"{construir_prompt_sistema(input_data)}\n\n{construir_prompt_sql()}"
+        content=(
+            f"{construir_prompt_sistema(input_data)}\n\n"
+            f"{construir_prompt_rubro(input_data)}\n\n"
+            f"{construir_prompt_sql()}"
+        )
     )
 
     # Al llegar al tope de consultas se fuerza la respuesta final quitando las herramientas.

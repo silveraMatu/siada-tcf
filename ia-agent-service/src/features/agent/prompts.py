@@ -1,6 +1,7 @@
 import json
 from typing import Any
 
+from features.agent.contexto_rubro import contexto_para
 from features.agent.models import ConsultaAuditorInput
 from features.agent.schema import SCHEMA_PERMITIDO
 
@@ -33,6 +34,22 @@ def construir_prompt_sistema(input_data: ConsultaAuditorInput) -> str:
     if not bloques:
         return PROMPT_BASE
     return "\n\n".join([PROMPT_BASE, AVISO_DATOS, *bloques])
+
+
+def construir_prompt_rubro(input_data: ConsultaAuditorInput) -> str:
+    """Instrucciones propias de SIADA según el rubro del organismo.
+
+    Va FUERA de `<metadatos_organismo>`: aquel bloque es dato y el modelo debe ignorar órdenes dentro de él,
+    mientras que esto es contenido del repositorio. El rubro de la petición solo elige el archivo.
+    """
+    metadatos = input_data.metadatos_organismo or {}
+    contexto = contexto_para(metadatos.get("rubro"))
+    return (
+        f"Contexto del rubro «{contexto.etiqueta}» (instrucciones de SIADA, no datos de la rendición). "
+        "Orienta tu enfoque, tu vocabulario y qué mirar primero; no reemplaza los datos ni te autoriza a "
+        "afirmar hechos que no estén en ellos.\n\n"
+        f"{contexto.texto}"
+    )
 
 
 def construir_prompt_sql() -> str:
